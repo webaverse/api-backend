@@ -5,14 +5,16 @@ const https = require('https');
 const httpProxy = require('http-proxy');
 
 const PORT = parseInt(process.env.PORT, 10) || 80;
-const PREFIX = 'https://proxy.webaverse.com/';
 const CERT = fs.readFileSync('/etc/letsencrypt/live/proxy.webaverse.com/fullchain.pem');
 const PRIVKEY = fs.readFileSync('/etc/letsencrypt/live/proxy.webaverse.com/privkey.pem');
 
 const proxy = httpProxy.createProxyServer({});
 proxy.on('proxyRes', proxyRes => {
   if (proxyRes.headers['location']) {
-    proxyRes.headers['location'] = PREFIX + proxyRes.headers['location'];
+    const o = url.parse(proxyRes.headers['location']);
+    o.host = o.protocol.slice(0, -1) + '-' + o.host.replace(/\./g, '-').replace(/:([0-9]+)$/, '-$1') + '.proxy.webaverse.com';
+    o.protocol = 'https:';
+    proxyRes.headers['location'] = url.format(o);
   }
 });
 
@@ -31,13 +33,15 @@ try {
         o.host = match2[2].replace(/-/g, '.').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
         return true;
       } else {
+        console.log('invalid 2', raw);
         return false;
       }
     } else {
+      console.log('invalid 1', o.host);
       return false;
     }
   })();
-  console.log(o.protocol + ' - ' + o.host);
+  // console.log(ok + ' - ' + o.protocol + ' - ' + o.host);
 
   if (ok) {
     req.url = url.format(o);
