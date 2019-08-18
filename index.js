@@ -16,15 +16,34 @@ proxy.on('proxyRes', proxyRes => {
   }
 });
 
-const _req = (req, res) => {
+const _req = protocol => (req, res) => {
 try {
 
   const oldUrl = req.url;
-  req.url = url.parse(req.url).path.slice(1);
-  const o = url.parse(req.url);
+  const o = url.parse(protocol + '//' + (req.headers['host'] || '') + req.url);
+  const ok = (() => {
+    const match = o.host.match(/^(.+)\.proxy\.webaverse\.com$/);
+    if (match) {
+      const raw = match[1];
+      const match2 = raw.match(/^(https?-)(.+?)(-[0-9]+)?$/);
+      if (match2) {
+        o.protocol = match2[1].replace(/-/g, ':');
+        o.host = match2[2].replace(/-/g, '.').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  })();
+  console.log(o.protocol + ' - ' + o.host);
 
-  if (o.protocol && o.host) {
-    console.log(oldUrl, '->', req.url, o);
+  if (ok) {
+    req.url = url.format(o);
+
+    console.log(oldUrl, '->', req.url);
+
     proxy.web(req, res, {
       target: o.protocol + '//' + o.host,
       secure: false,
@@ -48,12 +67,12 @@ const _ws = (req, socket, head) => {
   proxy.ws(req, socket, head);
 };
 
-const server = http.createServer(_req);
+const server = http.createServer(_req('http:'));
 server.on('upgrade', _ws);
 const server2 = https.createServer({
   cert: CERT,
   key: PRIVKEY,
-}, _req);
+}, _req('https:'));
 server2.on('upgrade', _ws);
 
 const _warn = err => {
