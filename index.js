@@ -1,9 +1,13 @@
+const fs = require('fs');
 const url = require('url');
 const http = require('http');
+const https = require('https');
 const httpProxy = require('http-proxy');
 
 const PORT = parseInt(process.env.PORT, 10) || 80;
 const PREFIX = 'https://proxy.webaverse.com/';
+const CERT = fs.readFileSync('/etc/letsencrypt/live/proxy.webaverse.com/fullchain.pem');
+const PRIVKEY = fs.readFileSync('/etc/letsencrypt/live/proxy.webaverse.com/privkey.pem');
 
 const proxy = httpProxy.createProxyServer({});
 proxy.on('proxyRes', proxyRes => {
@@ -12,7 +16,7 @@ proxy.on('proxyRes', proxyRes => {
   }
 });
 
-const server = http.createServer((req, res) => {
+const _req = (req, res) => {
 try {
 
   const oldUrl = req.url;
@@ -39,10 +43,18 @@ try {
   res.statusCode = 500;
   res.end();
 }
-});
-server.on('upgrade', (req, socket, head) => {
+};
+const _ws = (req, socket, head) => {
   proxy.ws(req, socket, head);
-});
+};
+
+const server = http.createServer(_req);
+server.on('upgrade', _ws);
+const server2 = https.createServer({
+  cert: CERT,
+  key: PRIVKEY,
+}, _req);
+server2.on('upgrade', _ws);
 
 const _warn = err => {
   console.warn(err.stack);
@@ -51,3 +63,4 @@ process.on('uncaughtException', _warn);
 process.on('unhandledRejection', _warn);
 
 server.listen(PORT);
+server2.listen(443);
