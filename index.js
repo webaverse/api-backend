@@ -67,7 +67,7 @@ try {
     console.log('token get request', {method, path: p});
 
     let match, tokenId, address, x, z;
-    if ((match = p.match(/^\/token\/([0-9]+)$/)) && (tokenId = parseInt(match[1], 10)) && isFinite(tokenId)) {
+    if ((match = p.match(/^\/token\/([0-9]+)$/)) && isFinite(tokenId = parseInt(match[1], 10))) {
       const tokenItem = await ddb.getItem({
         TableName: 'token',
         Key: {
@@ -120,7 +120,7 @@ try {
       console.log('query address 2', {address, items: items.length});
 
       _respond(200, JSON.stringify(items));
-    } else if ((match = /^\/coords\/(-?[0-9\.]+)\/(-?[0-9\.]+)$/) && (x = parseFloat(match[1])) && (z = parseFloat(match[2])) && isFinite(x) && isFinite(z)) {
+    } else if ((match = /^\/coords\/(-?[0-9\.]+)\/(-?[0-9\.]+)$/) && isFinite(x = parseFloat(match[1])) && isFinite(z = parseFloat(match[2]))) {
       const key = _getKey(x, z);
       console.log('query address 1', {x, z, key});
 
