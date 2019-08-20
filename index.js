@@ -2,8 +2,9 @@ const fs = require('fs');
 const url = require('url');
 const http = require('http');
 const https = require('https');
-const httpProxy = require('http-proxy');
 
+const httpProxy = require('http-proxy');
+const ws = require('ws');
 const AWS = require('aws-sdk');
 const ddb = new AWS.DynamoDB();
 const s3 = new AWS.S3();
