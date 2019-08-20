@@ -64,7 +64,7 @@ try {
   };
 
   if (method === 'GET') {
-    console.log('token get request', method);
+    console.log('token get request', {method, path: p});
 
     let match, tokenId, address, x, z;
     if ((match = p.match(/^\/token\/([0-9]+)$/)) && (tokenId = parseInt(match[1], 10)) && isFinite(tokenId)) {
