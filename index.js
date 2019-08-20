@@ -2,6 +2,7 @@ const fs = require('fs');
 const url = require('url');
 const http = require('http');
 const https = require('https');
+const crypto = require('crypto');
 
 const httpProxy = require('http-proxy');
 const ws = require('ws');
@@ -16,6 +17,13 @@ const awsConfig = new AWS.Config({
 });
 const ddb = new AWS.DynamoDB(awsConfig);
 const s3 = new AWS.S3(awsConfig);
+const ses = new AWS.SES(new AWS.Config({
+  credentials: new AWS.Credentials({
+    accessKeyId,
+    secretAccessKey,
+  }),
+  region: 'us-west-2',
+}));
 const bucketName = 'content.webaverse.com';
 
 const bip32 = require('./bip32.js');
@@ -29,6 +37,8 @@ const PRIVKEY = fs.readFileSync('/etc/letsencrypt/live/webaverse.com/privkey.pem
 const PORT = parseInt(process.env.PORT, 10) || 80;
 const PARCEL_SIZE = 8;
 
+const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
+const codeTestRegex = /^[0-9]{6}$/;
 function _randomString() {
   return Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
 }
@@ -57,11 +67,177 @@ function _getKeyFromBindingUrl(u) {
   }
 }
 
+const _handleLogin = async (req, res) => {
+try {
+    const {method} = req;
+    const {query, path: p} = url.parse(req.url, true);
+
+    console.log('got login', {method, p, query});
+
+    const _respond = (statusCode, body) => {
+      res.statusCode = statusCode;
+      res.setHeader('Access-Control-Allow-Origin', 'webaverse.com');
+      // res.setHeader('Access-Control-Allow-Headers', '*');
+      // res.setHeader('Access-Control-Allow-Methods', '*');
+      res.end(body);
+    };
+
+    if (method === 'POST') {
+      let {email, code, token} = query;
+      if (email && emailRegex.test(email)) {
+        if (token) {
+          const tokenItem = await ddb.getItem({
+            TableName: 'login',
+            Key: {
+              email: {S: email + '.token'},
+            }
+          }).promise();
+          
+          console.log('got login', tokenItem, {email, token});
+
+          const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+          if (tokens.includes(token)) {
+            _respond(200, JSON.stringify({}));
+          } else {
+            _respond(401, JSON.stringify({
+              error: 'invalid token',
+            }));
+          }
+        } else if (code) {
+          if (codeTestRegex.test(code)) {
+            const codeItem = await ddb.getItem({
+              TableName: 'login',
+              Key: {
+                email: {S: email + '.code'},
+              }
+            }).promise();
+            
+            console.log('got verification', codeItem, {email, code});
+            
+            if (codeItem.Item && codeItem.Item.code.S === code) {
+              await ddb.deleteItem({
+                TableName: 'login',
+                Key: {
+                  email: {S: email + '.code'},
+                }
+              }).promise();
+              
+              const tokenItem = await ddb.getItem({
+                TableName: 'login',
+                Key: {
+                  email: {S: email + '.token'},
+                },
+              }).promise();
+              const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+              let mnemonic = tokenItem.Item ? tokenItem.Item.mnemonic.S : null;
+              let addr = tokenItem.Item ? tokenItem.Item.addr.S : null;
+              
+              console.log('old item', tokenItem, {tokens, mnemonic});
+
+              const token = crypto.randomBytes(32).toString('base64');
+              tokens.push(token);
+              if (!mnemonic) {
+                mnemonic = bip39.entropyToMnemonic(crypto.randomBytes(32));
+              }
+              if (!addr) {
+                const start = Date.now();
+                const seed = bip39.mnemonicToSeedSync(mnemonic, '');
+                const privateKey = '0x' + bip32.fromSeed(seed).derivePath("m/44'/60'/0'/0").derive(0).privateKey.toString('hex');
+                addr = '0x' + ethUtil.privateToAddress(privateKey).toString('hex');
+                const end = Date.now();
+                console.log('get address time', end - start, addr);
+              }
+              
+              console.log('new item', {tokens, mnemonic, addr});
+              
+              await ddb.putItem({
+                TableName: 'login',
+                Item: {
+                  email: {S: email + '.token'},
+                  tokens: {S: JSON.stringify(tokens)},
+                  mnemonic: {S: mnemonic},
+                  addr: {S: addr},
+                }
+              }).promise();
+
+              _respond(200, JSON.stringify({
+                email,
+                token,
+                mnemonic,
+                addr,
+              }));
+            } else {
+              _respond(403, JSON.stringify({
+                error: 'invalid code',
+              }));
+            }
+          } else {
+            _respond(403, JSON.stringify({
+              error: 'invalid code',
+            }));
+          }
+        } else {
+          const code = new Uint32Array(crypto.randomBytes(4).buffer, 0, 1).toString(10).slice(-6);
+          
+          console.log('verification', {email, code});
+
+          await ddb.putItem({
+            TableName: 'login',
+            Item: {
+              email: {S: email + '.code'},
+              code: {S: code},
+            }
+          }).promise();
+          
+          var params = {
+              Destination: {
+                  ToAddresses: [email],
+              },
+              Message: {
+                  Body: {
+                      Html: {
+                          Data: `<h1>${code}</h1> is your verification code. <a href="https://webaverse.com/login?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}"><strong>Log in</strong></a>`
+                      }
+                  },
+                  
+                  Subject: {
+                      Data: `Verification code for Webaverse`
+                  }
+              },
+              Source: "noreply@webaverse.com"
+          };
+      
+          
+          const data = await ses.sendEmail(params).promise();
+          
+          console.log('got response', data);
+          
+          _respond(200, JSON.stringify({}));
+        }
+      } else {
+        _respond(400, JSON.stringify({
+          error: 'invalid parameters',
+        }));
+      }
+    } else {
+      _respond(400, JSON.stringify({
+        error: 'invalid method',
+      }));
+    }
+} catch(err) {
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
+}
+};
+
 const _handleToken = async (req, res) => {
 try {
   const {method} = req;
   const {query, path: p} = url.parse(req.url, true);
-  console.log('token request', {method, query});
+  console.log('token request', {method, query, p});
 
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -431,7 +607,7 @@ try {
         error: 'no token',
       }));
     }
-  } else if (event.httpMethod === 'OPTIONS') {
+  } else if (method === 'OPTIONS') {
     // console.log('respond options');
 
     _respond(200, JSON.stringify({}));
@@ -443,15 +619,9 @@ try {
 } catch(err) {
   console.warn(err);
 
-  return {
-    statusCode: 500,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': '*',
-      'Access-Control-Allow-Methods': '*',
-    },
-    body: JSON.stringify(err.stack),
-  };
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
 }
 };
 
@@ -554,8 +724,15 @@ presenceWss.on('connection', (s, req) => {
 const _req = protocol => (req, res) => {
 try {
 
-  const oldUrl = req.url;
   const o = url.parse(protocol + '//' + (req.headers['host'] || '') + req.url);
+  if (o.host === 'login.webaverse.com') {
+    _handleLogin(req, res);
+    return;
+  } else if (o.host === 'token.webaverse.com') {
+    _handleToken(req, res);
+    return;
+  }
+
   const match = o.host.match(/^(.+)\.proxy\.webaverse\.com$/);
   if (match) {
     const raw = match[1];
@@ -563,6 +740,7 @@ try {
     if (match2) {
       o.protocol = match2[1].replace(/-/g, ':');
       o.host = match2[2].replace(/-/g, '.').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
+      const oldUrl = req.url;
       req.url = url.format(o);
 
       console.log(oldUrl, '->', req.url);
@@ -574,10 +752,6 @@ try {
       });
       return;
     }
-  }
-  if (o.host === 'token.webaverse.com') {
-    _handleToken(req, res);
-    return;
   }
 
   res.statusCode = 404;
