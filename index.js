@@ -14,7 +14,12 @@ const bip39 = require('./bip39.js');
 const ethUtil = require('./ethereumjs-util.js');
 const api = require('./api.js');
 
+const CERT = fs.readFileSync('/etc/letsencrypt/live/webaverse.com/fullchain.pem');
+const PRIVKEY = fs.readFileSync('/etc/letsencrypt/live/webaverse.com/privkey.pem');
+
+const PORT = parseInt(process.env.PORT, 10) || 80;
 const PARCEL_SIZE = 8;
+
 function _randomString() {
   return Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
 }
@@ -455,11 +460,6 @@ try {
 
 
 
-
-
-const PORT = parseInt(process.env.PORT, 10) || 80;
-const CERT = fs.readFileSync('/etc/letsencrypt/live/webaverse.com/fullchain.pem');
-const PRIVKEY = fs.readFileSync('/etc/letsencrypt/live/webaverse.com/privkey.pem');
 
 const proxy = httpProxy.createProxyServer({});
 proxy.on('proxyRes', proxyRes => {
