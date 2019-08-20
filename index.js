@@ -5,10 +5,10 @@ const https = require('https');
 const httpProxy = require('http-proxy');
 
 const PORT = parseInt(process.env.PORT, 10) || 80;
-/* const CERT = fs.readFileSync('/etc/letsencrypt/live/proxy.webaverse.com/fullchain.pem');
-const PRIVKEY = fs.readFileSync('/etc/letsencrypt/live/proxy.webaverse.com/privkey.pem'); */
-const CERT = fs.readFileSync('fullchain.pem');
-const PRIVKEY = fs.readFileSync('privkey.pem');
+const CERT = fs.readFileSync('/etc/letsencrypt/live/proxy.webaverse.com/fullchain.pem');
+const PRIVKEY = fs.readFileSync('/etc/letsencrypt/live/proxy.webaverse.com/privkey.pem');
+/* const CERT = fs.readFileSync('fullchain.pem');
+const PRIVKEY = fs.readFileSync('privkey.pem'); */
 
 const proxy = httpProxy.createProxyServer({});
 proxy.on('proxyRes', proxyRes => {
