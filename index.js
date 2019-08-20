@@ -6,6 +6,14 @@ const https = require('https');
 const httpProxy = require('http-proxy');
 const ws = require('ws');
 const AWS = require('aws-sdk');
+const {accessKeyId, secretAccessKey} = require('./config.json');
+AWS.config({
+  credentials: new AWS.Credentials({
+    accessKeyId,
+    secretAccessKey,
+  }),
+  region: 'us-west-1',
+});
 const ddb = new AWS.DynamoDB();
 const s3 = new AWS.S3();
 const bucketName = 'content.webaverse.com';
