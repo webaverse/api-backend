@@ -10,6 +10,14 @@ const PRIVKEY = fs.readFileSync('/etc/letsencrypt/live/webaverse.com/privkey.pem
 /* const CERT = fs.readFileSync('fullchain.pem');
 const PRIVKEY = fs.readFileSync('privkey.pem'); */
 
+function _jsonParse(s) {
+  try {
+    return JSON.parse(s);
+  } catch(err) {
+    return null;
+  }
+}
+
 const proxy = httpProxy.createProxyServer({});
 proxy.on('proxyRes', proxyRes => {
   if (proxyRes.headers['location']) {
@@ -18,6 +26,76 @@ proxy.on('proxyRes', proxyRes => {
     o.protocol = 'https:';
     proxyRes.headers['location'] = url.format(o);
   }
+});
+
+const connectionIds = [];
+const sockets = [];
+const presenceWss = new ws.Server({
+  noServer: true,
+});
+presenceWss.on('connection', (s, req) => {
+  const {remoteAddress} = req.connection;
+  console.log('got connection', remoteAddress);
+
+  let connectionId = null;
+  s.on('message', m => {
+    console.log('got message', m);
+
+    const data = _jsonParse(m);
+    if (data) {
+      if (data.method === 'init' && typeof data.connectionId === 'string') {
+        if (!connectionId) {
+          connectionId = data.connectionId;
+
+          console.log('send forward sockets', sockets.length);
+          sockets.forEach(s => {
+            s.send(JSON.stringify({
+              method: 'join',
+              connectionId,
+            }));
+          });
+
+          console.log('send back sockets', connectionIds.length);
+          connectionIds.forEach(connectionId => {
+            s.send(JSON.stringify({
+              method: 'join',
+              connectionId,
+            }));
+          });
+
+          connectionIds.push(connectionId);
+          sockets.push(s);
+        } else {
+          console.warn('protocol error');
+          s.close();
+        }
+      } else if (data.method === 'ping') {
+        // nothing
+      } else {
+        const index = connectionIds.indexOf(data.dst);
+        if (index !== -1) {
+          sockets[index].send(m);
+        }
+      }
+    } else {
+      console.warn('protocol error');
+      s.close();
+    }
+  });
+  s.on('close', () => {
+    console.log('lost connection', remoteAddress, connectionId);
+    const index = connectionIds.indexOf(connectionId);
+    if (index !== -1) {
+      connectionIds.splice(index, 1);
+      sockets.splice(index, 1);
+    }
+    sockets.forEach(s => {
+      s.send(JSON.stringify({
+        method: 'leave',
+        connectionId,
+      }));
+    });
+  });
 });
 
 const _req = protocol => (req, res) => {
@@ -70,7 +148,14 @@ try {
 }
 };
 const _ws = (req, socket, head) => {
-  proxy.ws(req, socket, head);
+  const host = req.getHeader('Host');
+  if (host === 'presence.webaverse.com') {
+    presenceWss.handleUpgrade(request, socket, head, (s, req) => {
+      presenceWss.emit('connection', s, request);
+    });
+  } else {
+    proxy.ws(req, socket, head);
+  }
 };
 
 const server = http.createServer(_req('http:'));
