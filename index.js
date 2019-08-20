@@ -120,7 +120,7 @@ try {
       console.log('query address 2', {address, items: items.length});
 
       _respond(200, JSON.stringify(items));
-    } else if ((match = /^\/coords\/(-?[0-9\.]+)\/(-?[0-9\.]+)$/) && isFinite(x = parseFloat(match[1])) && isFinite(z = parseFloat(match[2]))) {
+    } else if ((match = p.match(/^\/coords\/(-?[0-9\.]+)\/(-?[0-9\.]+)$/)) && isFinite(x = parseFloat(match[1])) && isFinite(z = parseFloat(match[2]))) {
       const key = _getKey(x, z);
       console.log('query address 1', {x, z, key});
 
