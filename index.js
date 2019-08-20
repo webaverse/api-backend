@@ -582,7 +582,7 @@ try {
 }
 };
 const _ws = (req, socket, head) => {
-  const host = req.getHeader('Host');
+  const host = req.headers['host'];
   if (host === 'presence.webaverse.com') {
     presenceWss.handleUpgrade(req, socket, head, s => {
       presenceWss.emit('connection', s, req);
