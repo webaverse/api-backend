@@ -7,15 +7,15 @@ const httpProxy = require('http-proxy');
 const ws = require('ws');
 const AWS = require('aws-sdk');
 const {accessKeyId, secretAccessKey} = require('./config.json');
-AWS.config({
+const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
     accessKeyId,
     secretAccessKey,
   }),
   region: 'us-west-1',
 });
-const ddb = new AWS.DynamoDB();
-const s3 = new AWS.S3();
+const ddb = new AWS.DynamoDB(awsConfig);
+const s3 = new AWS.S3(awsConfig);
 const bucketName = 'content.webaverse.com';
 
 const bip32 = require('./bip32.js');
