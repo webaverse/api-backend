@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/modulesio/webaverse-proxy#readme",
   "dependencies": {
+    "aws-sdk": "^2.513.0",
     "http-proxy": "^1.17.0",
     "ws": "^7.1.2"
   }
