@@ -52,11 +52,10 @@ try {
 
   const interval = setInterval(() => {
     console.log('pos', robot.getMousePos());
-    // robot.moveMouse(683, 197);
-    robot.moveMouse(359, 347);
+    robot.moveMouse(683, 197);
     robot.mouseClick();
-    /* robot.moveMouse(260, 230);
-    robot.mouseClick(); */
+    robot.moveMouse(260, 230);
+    robot.mouseClick();
     robot.moveMouse(737, 536);
     robot.mouseClick();
   }, 1000);
