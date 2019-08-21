@@ -3,6 +3,7 @@
 const chromium = require('chrome-aws-lambda');
 const robot = require('robotjs');
 
+robot.setXDisplayName(process.env.DISPLAY);
 robot.setMouseDelay(0);
 
 (async () => {
@@ -13,9 +14,10 @@ let result = null;
 let error = null;
 let browser = null;
 
-/* chromium.args.splice(chromium.args.indexOf('--start-maximized'), 1);
-chromium.defaultViewport.width = 1280;
-chromium.defaultViewport.height = 1280; */
+chromium.args.push('--use-fake-ui-for-media-stream');
+// chromium.args.splice(chromium.args.indexOf('--start-maximized'), 1);
+chromium.defaultViewport.width = 1920;
+chromium.defaultViewport.height = 1080;
 
 try {
   browser = await chromium.puppeteer.launch({
@@ -48,11 +50,11 @@ try {
 
   const interval = setInterval(() => {
     console.log('pos', robot.getMousePos());
-    robot.moveMouse(1167, 186);
+    robot.moveMouse(683, 197);
     robot.mouseClick();
-    robot.moveMouse(744, 219);
+    robot.moveMouse(260, 230);
     robot.mouseClick();
-    robot.moveMouse(1215, 522);
+    robot.moveMouse(737, 536);
     robot.mouseClick();
   }, 1000);
 
