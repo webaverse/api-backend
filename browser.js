@@ -153,6 +153,12 @@ try {
       });
 
       console.log('lol 7');
+
+      await new Promise((accept, reject) => {
+        setTimeout(accept, 1000*60*1000);
+      });
+
+      console.log('lol 8');
     } catch(err) {
       console.warn(err.stack);
     }
