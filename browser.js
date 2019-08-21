@@ -14,16 +14,16 @@ let result = null;
 let error = null;
 let browser = null;
 
-/* chromium.args.push('--use-fake-ui-for-media-stream');
-chromium.args.push('--enable-usermedia-screen-capturing');
-chromium.args.push('--allow-http-screen-capture'); */
-// chromium.args.splice(chromium.args.indexOf('--start-maximized'), 1);
+const {args} = chromium;
+args.splice(args.indexOf('--start-maximized'), 1);
+args.push('--window-position=0,0');
+args.push('--window-size=1920,1080');
 chromium.defaultViewport.width = 1920;
 chromium.defaultViewport.height = 1080;
 
 try {
   browser = await chromium.puppeteer.launch({
-    args: chromium.args,
+    args,
     defaultViewport: chromium.defaultViewport,
     executablePath: await chromium.executablePath,
     headless: chromium.headless,
@@ -51,12 +51,13 @@ try {
   console.log('eval 1');
 
   const interval = setInterval(() => {
-    console.log('pos', robot.getMousePos());
-    robot.moveMouse(683, 197);
+    // console.log('pos', robot.getMousePos());
+
+    robot.moveMouse(1163, 182);
     robot.mouseClick();
-    robot.moveMouse(260, 230);
+    robot.moveMouse(740, 218);
     robot.mouseClick();
-    robot.moveMouse(737, 536);
+    robot.moveMouse(1214, 524);
     robot.mouseClick();
   }, 1000);
 
