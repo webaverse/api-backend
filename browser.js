@@ -14,9 +14,9 @@ let result = null;
 let error = null;
 let browser = null;
 
-chromium.args.push('--use-fake-ui-for-media-stream');
+/* chromium.args.push('--use-fake-ui-for-media-stream');
 chromium.args.push('--enable-usermedia-screen-capturing');
-chromium.args.push('--allow-http-screen-capture');
+chromium.args.push('--allow-http-screen-capture'); */
 // chromium.args.splice(chromium.args.indexOf('--start-maximized'), 1);
 chromium.defaultViewport.width = 1920;
 chromium.defaultViewport.height = 1080;
@@ -41,8 +41,8 @@ try {
   });
 
   await page.setViewport({
-    width: 1980,
-    height: 1024,
+    width: 1920,
+    height: 1080,
     deviceScaleFactor: 1,
   });
 
