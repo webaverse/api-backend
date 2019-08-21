@@ -1,3 +1,4 @@
+const path = require('path');
 const fs = require('fs');
 const url = require('url');
 const http = require('http');
@@ -684,7 +685,8 @@ presenceWss.on('connection', (s, req) => {
       } else if (data.method === 'ping') {
         // nothing
       } else if (data.method === 'requestBrowser') {
-        const cp = child_process.spawn('xvfb-run', ['-s', '-screen 0 1920x1080x24', 'node', path.join(__dirname, 'browser.js'), 'https://google.com/'];
+        const {url, connectionId} = data;
+        const cp = child_process.spawn('xvfb-run', ['-s', '-screen 0 1920x1080x24', 'node', path.join(__dirname, 'browser.js'), url, connectionId]);
         cp.stdout.pipe(process.stdout);
         cp.stderr.pipe(process.stderr);
       } else {

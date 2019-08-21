@@ -80,6 +80,15 @@ try {
       const peerConnection = new RTCPeerConnection(peerConnectionConfig);
       const videoTrack = mediaPromise.getVideoTracks()[0];
       peerConnection.addTrack(videoTrack);
+      peerConnection.onicecandidate = e => {
+        const {candidate} = e;
+        s.send(JSON.stringify({
+          method: 'iceCandidate',
+          src: connectionId,
+          dst: peerConnectionId,
+          candidate,
+        }));
+      };
 
       const s = new WebSocket('wss://presence.webaverse.com/');
       s.onopen = () => {
@@ -88,15 +97,6 @@ try {
         peerConnection.createOffer()
           .then(offer => {
             peerConnection.setLocalDescription(offer);
-            peerConnection.onicecandidate = e => {
-              const {candidate} = e;
-              s.send(JSON.stringify({
-                method: 'iceCandidate',
-                src: connectionId,
-                dst: peerConnectionId,
-                candidate,
-              }));
-            };
 
             s.send(JSON.stringify({
               method: 'respondBrowser',
