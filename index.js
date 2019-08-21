@@ -691,6 +691,7 @@ presenceWss.on('connection', (s, req) => {
         cp.stderr.pipe(process.stderr);
       } else {
         const index = connectionIds.indexOf(data.dst);
+        console.log('route data', m, index);
         if (index !== -1) {
           sockets[index].send(m);
         }

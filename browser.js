@@ -103,7 +103,12 @@ try {
           .then(offer => {
             peerConnection.setLocalDescription(offer);
 
-            console.log('browser send offer', offer);
+            console.log('browser send offer ' + JSON.stringify({
+              method: 'respondBrowser',
+              src: connectionId,
+              dst: peerConnectionId,
+              offer,
+            }));
 
             s.send(JSON.stringify({
               method: 'respondBrowser',
@@ -131,6 +136,20 @@ try {
       };
 
       console.log('lol 6');
+
+      await new Promise((accept, reject) => {
+        peerConnection.onconnectionstatechange = e => {
+          const {connectionState} = e;
+          console.log('connection state change', connectionState);
+          if (connectionState === 'connected') {
+            accept();
+          } else if (connectionState == 'failed') {
+            reject(new Error('rtc peer connection failed'));
+          }
+        };
+      });
+
+      console.log('lol 7');
     } catch(err) {
       console.warn(err.stack);
     }
