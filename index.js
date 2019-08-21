@@ -686,7 +686,7 @@ presenceWss.on('connection', (s, req) => {
         // nothing
       } else if (data.method === 'requestBrowser') {
         const {url, connectionId} = data;
-        const cp = child_process.spawn('xvfb-run', ['-s', '-screen 0 1920x1080x24', 'node', path.join(__dirname, 'browser.js'), url, connectionId]);
+        const cp = child_process.spawn('xvfb-run', ['-s', '-screen 0 1920x1080x24', process.argv[0], path.join(__dirname, 'browser.js'), url, connectionId]);
         cp.stdout.pipe(process.stdout);
         cp.stderr.pipe(process.stderr);
       } else {
