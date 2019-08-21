@@ -80,7 +80,7 @@ try {
         ],
       };
       const peerConnection = new RTCPeerConnection(peerConnectionConfig);
-      const videoTrack = mediaPromise.getVideoTracks()[0];
+      const videoTrack = media.getVideoTracks()[0];
       peerConnection.addTrack(videoTrack);
       peerConnection.onicecandidate = e => {
         const {candidate} = e;
