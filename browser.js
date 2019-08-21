@@ -15,6 +15,8 @@ let error = null;
 let browser = null;
 
 chromium.args.push('--use-fake-ui-for-media-stream');
+chromium.args.push('--enable-usermedia-screen-capturing');
+chromium.args.push('--allow-http-screen-capture');
 // chromium.args.splice(chromium.args.indexOf('--start-maximized'), 1);
 chromium.defaultViewport.width = 1920;
 chromium.defaultViewport.height = 1080;
@@ -66,11 +68,18 @@ try {
 
       console.log('lol 1');
       const mediaStreamPromise = navigator.mediaDevices.getDisplayMedia({
-        video: true,
+        video: true/* {
+          mandatory: {
+            // chromeMediaSource: 'screen',
+            displaySurface: 'browser',
+          },
+          optional: [],
+        } */,
+        audio: false,
       });
       console.log('lol 2');
       const mediaStream = await mediaStreamPromise;
-      console.log('lol 3', mediaStream);
+      console.log('lol 3 ' + JSON.stringify(mediaStream));
 
       const connectionId = _randomString();
       const peerConnectionConfig = {
@@ -80,7 +89,7 @@ try {
         ],
       };
       const peerConnection = new RTCPeerConnection(peerConnectionConfig);
-      console.log('lol 4', mediaStream.getVideoTracks().length);
+      console.log('lol 4 ' + mediaStream.getVideoTracks().length);
       peerConnection.addTrack(mediaStream.getVideoTracks()[0], mediaStream);
       peerConnection.onicecandidate = e => {
         const {candidate} = e;
