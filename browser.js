@@ -90,7 +90,7 @@ try {
         ],
       };
       const peerConnection = new RTCPeerConnection(peerConnectionConfig);
-      console.log('lol 4 ' + mediaStream.getVideoTracks().length);
+      console.log('lol 4 ' + mediaStream.getVideoTracks().length + ' ' + JSON.stringify(mediaStream.getVideoTracks()[0].getSettings()));
       peerConnection.addTrack(mediaStream.getVideoTracks()[0], mediaStream);
       peerConnection.onicecandidate = e => {
         const {candidate} = e;
