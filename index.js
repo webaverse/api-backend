@@ -3,6 +3,7 @@ const url = require('url');
 const http = require('http');
 const https = require('https');
 const crypto = require('crypto');
+const child_process = require('child_process');
 
 const httpProxy = require('http-proxy');
 const ws = require('ws');
@@ -682,6 +683,10 @@ presenceWss.on('connection', (s, req) => {
         }
       } else if (data.method === 'ping') {
         // nothing
+      } else if (data.method === 'requestBrowser') {
+        const cp = child_process.spawn('xvfb-run', ['-s', '-screen 0 1920x1080x24', 'node', path.join(__dirname, 'browser.js'), 'https://google.com/'];
+        cp.stdout.pipe(process.stdout);
+        cp.stderr.pipe(process.stderr);
       } else {
         const index = connectionIds.indexOf(data.dst);
         if (index !== -1) {
