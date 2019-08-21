@@ -81,6 +81,7 @@ try {
       };
       const peerConnection = new RTCPeerConnection(peerConnectionConfig);
       const videoTrack = media.getVideoTracks()[0];
+      console.log('lol 4', videoTrack);
       peerConnection.addTrack(videoTrack);
       peerConnection.onicecandidate = e => {
         const {candidate} = e;
@@ -92,6 +93,8 @@ try {
         }));
       };
 
+      console.log('lol 5');
+
       const s = new WebSocket('wss://presence.webaverse.com/');
       s.onopen = () => {
         console.log('browser presence socket open');
@@ -99,6 +102,8 @@ try {
         peerConnection.createOffer()
           .then(offer => {
             peerConnection.setLocalDescription(offer);
+
+            console.log('browser send offer', offer);
 
             s.send(JSON.stringify({
               method: 'respondBrowser',
@@ -124,6 +129,8 @@ try {
             });
         }
       };
+
+      console.log('lol 6');
     } catch(err) {
       console.warn(err.stack);
     }
