@@ -58,7 +58,7 @@ try {
     robot.mouseClick();
   }, 1000);
 
-  const media = await page.evaluate(async () => {
+  const media = await page.evaluate(async ({peerConnectionId}) => {
     try {
       function _randomString() {
         return Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
@@ -103,7 +103,8 @@ try {
           .then(offer => {
             peerConnection.setLocalDescription(offer);
 
-            console.log('browser send offer ' + JSON.stringify({
+            console.log('browser send offer 1');
+            console.log('browser send offer 2' + JSON.stringify({
               method: 'respondBrowser',
               src: connectionId,
               dst: peerConnectionId,
@@ -116,6 +117,9 @@ try {
               dst: peerConnectionId,
               offer,
             }));
+          })
+          .catch(err => {
+            console.warn(err.stack);
           });
       };
       s.onmessage = e => {
@@ -153,6 +157,8 @@ try {
     } catch(err) {
       console.warn(err.stack);
     }
+  }, {
+    peerConnectionId,
   });
 
   clearInterval(interval);

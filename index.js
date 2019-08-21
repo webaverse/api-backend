@@ -682,6 +682,16 @@ presenceWss.on('connection', (s, req) => {
           console.warn('protocol error');
           s.close();
         }
+      } else if (data.method === 'respondBrowser' && typeof data.src === 'string') {
+        const {src: connectionId} = data;
+        connectionIds.push(connectionId);
+        sockets.push(s);
+
+        const index = connectionIds.indexOf(data.dst);
+        console.log('route respond browser data', m, index);
+        if (index !== -1) {
+          sockets[index].send(m);
+        }
       } else if (data.method === 'ping') {
         // nothing
       } else if (data.method === 'requestBrowser') {
