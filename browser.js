@@ -65,12 +65,12 @@ try {
       }
 
       console.log('lol 1');
-      const mediaPromise = navigator.mediaDevices.getDisplayMedia({
+      const mediaStreamPromise = navigator.mediaDevices.getDisplayMedia({
         video: true,
       });
       console.log('lol 2');
-      const media = await mediaPromise;
-      console.log('lol 3', media);
+      const mediaStream = await mediaStreamPromise;
+      console.log('lol 3', mediaStream);
 
       const connectionId = _randomString();
       const peerConnectionConfig = {
@@ -80,9 +80,8 @@ try {
         ],
       };
       const peerConnection = new RTCPeerConnection(peerConnectionConfig);
-      const videoTrack = media.getVideoTracks()[0];
-      console.log('lol 4', videoTrack);
-      peerConnection.addTrack(videoTrack);
+      console.log('lol 4', mediaStream.getVideoTracks().length);
+      peerConnection.addTrack(mediaStream.getVideoTracks()[0], mediaStream);
       peerConnection.onicecandidate = e => {
         const {candidate} = e;
         s.send(JSON.stringify({
