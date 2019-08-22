@@ -481,7 +481,9 @@ try {
               error: 'not found',
             }));
           }
-        } else if (isFinite(tokenId) && event.body) {
+        } else if (isFinite(tokenId) && event.body) { // file upload
+          // XXX make this remove old files first
+
           const files = _jsonParse(event.body);
           console.log('got files 1', {tokenId, files});
 
