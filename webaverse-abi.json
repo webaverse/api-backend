@@ -45,10 +45,6 @@
 			{
 				"name": "_name",
 				"type": "string"
-			},
-			{
-				"name": "url",
-				"type": "string"
 			}
 		],
 		"name": "mintToken",
@@ -84,24 +80,6 @@
 			}
 		],
 		"name": "renameToken",
-		"outputs": [],
-		"payable": false,
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"constant": false,
-		"inputs": [
-			{
-				"name": "tokenId",
-				"type": "uint256"
-			},
-			{
-				"name": "url",
-				"type": "string"
-			}
-		],
-		"name": "setTokenUrl",
 		"outputs": [],
 		"payable": false,
 		"stateMutability": "nonpayable",
@@ -152,6 +130,23 @@
 		"payable": false,
 		"stateMutability": "nonpayable",
 		"type": "constructor"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"name": "owner",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "Mint",
+		"type": "event"
 	},
 	{
 		"anonymous": false,
@@ -256,10 +251,6 @@
 			{
 				"name": "_name",
 				"type": "string"
-			},
-			{
-				"name": "url",
-				"type": "string"
 			}
 		],
 		"payable": false,
@@ -286,10 +277,6 @@
 			},
 			{
 				"name": "_name2",
-				"type": "string"
-			},
-			{
-				"name": "url",
 				"type": "string"
 			}
 		],
@@ -477,10 +464,6 @@
 			},
 			{
 				"name": "name",
-				"type": "string"
-			},
-			{
-				"name": "url",
 				"type": "string"
 			}
 		],
