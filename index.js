@@ -364,7 +364,7 @@ try {
         const addr = tokenItem.Item.addr.S;
         console.log('got login 2', tokenItem, {email, token, name, url, type, addr, tokenId, bindingUrl});
 
-        if (name && typeof type === 'string') {
+        if (name && typeof type === 'string') { // new token
           let updateResult;
           {
             const start = Date.now();
@@ -387,7 +387,10 @@ try {
             console.log('update token time', end - start, updateResult);
           }
           const tokenId = parseInt(updateResult.Attributes.tokenIds.N, 10);
-          const url = `https://content.webaverse.com/${tokenId}`;
+          const hadUrl = !!url;
+          if (!url) {
+            url = `https://content.webaverse.com/${tokenId}`;
+          }
           const bindingUrl = '';
           const key = _getKeyFromBindingUrl(bindingUrl);
 
@@ -428,7 +431,7 @@ try {
           }
 
           let uploadUrl;
-          {
+          if (!hadUrl) {
             const start = Date.now();
             uploadUrl = s3.getSignedUrl('putObject', {
               Bucket: bucketName,
@@ -438,6 +441,8 @@ try {
             });
             const end = Date.now();
             console.log('get signed url time', end - start);
+          } else {
+            uploadUrl = null;
           }
 
           _respond(200, JSON.stringify({
@@ -449,7 +454,7 @@ try {
             key,
             uploadUrl,
           }));
-        } else if (isFinite(tokenId) && bindingUrl && typeof type === 'string') {
+        } else if (isFinite(tokenId) && bindingUrl && typeof type === 'string') { // bind token
           const tokenItem = await ddb.getItem({
             TableName: 'token',
             Key: {
