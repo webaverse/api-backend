@@ -263,6 +263,7 @@ try {
         const addr = tokenItem.Item.addr.S;
         const name = JSON.parse(tokenItem.Item.name.S);
         const url = JSON.parse(tokenItem.Item.url.S);
+        const type = JSON.parse(tokenItem.Item.type.S);
         const bindingUrl = JSON.parse(tokenItem.Item.bindingUrl.S);
         const key = JSON.parse(tokenItem.Item.key.S);
         const j = {
@@ -270,6 +271,7 @@ try {
           addr,
           name,
           url,
+          type,
           bindingUrl,
           key,
         };
@@ -297,6 +299,7 @@ try {
         tokenId: parseInt(item.tokenId.S.replace(/\.token$/, ''), 10),
         addr: item.addr.S,
         url: JSON.parse(item.url.S),
+        type: JSON.parse(item.type.S),
         name: JSON.parse(item.name.S),
         bindingUrl: JSON.parse(item.bindingUrl.S),
         key: JSON.parse(item.key.S),
@@ -323,6 +326,7 @@ try {
         tokenId: parseInt(item.tokenId.S.replace(/\.token$/, ''), 10),
         addr: item.addr.S,
         url: JSON.parse(item.url.S),
+        type: JSON.parse(item.type.S),
         name: JSON.parse(item.name.S),
         bindingUrl: JSON.parse(item.bindingUrl.S),
         key: JSON.parse(item.key.S),
@@ -394,8 +398,9 @@ try {
               Item: {
                 tokenId: {S: tokenId + '.token'},
                 addr: {S: addr},
-                name: {S: JSON.stringify(name)},
                 url: {S: JSON.stringify(url)},
+                type: {S: JSON.stringify(type)},
+                name: {S: JSON.stringify(name)},
                 bindingUrl: {S: JSON.stringify(bindingUrl)},
                 key: {S: JSON.stringify(key)},
               }
@@ -445,7 +450,7 @@ try {
             key,
             uploadUrl,
           }));
-        } else if (isFinite(tokenId) && bindingUrl) {
+        } else if (isFinite(tokenId) && bindingUrl && typeof type === 'string') {
           const tokenItem = await ddb.getItem({
             TableName: 'token',
             Key: {
@@ -467,6 +472,7 @@ try {
                   addr: {S: addr},
                   name: {S: JSON.stringify(name)},
                   url: {S: JSON.stringify(url)},
+                  type: {S: JSON.stringify(type)},
                   bindingUrl: {S: JSON.stringify(bindingUrl)},
                   key: {S: JSON.stringify(key)},
                 }
