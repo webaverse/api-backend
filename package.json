@@ -1,5 +1,5 @@
 {
-  "name": "webaverse-proxy",
+  "name": "webaverse-server",
   "version": "0.0.1",
   "description": "",
   "main": "index.js",
@@ -8,14 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/modulesio/webaverse-proxy.git"
+    "url": "git+https://github.com/modulesio/webaverse-server.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/modulesio/webaverse-proxy/issues"
+    "url": "https://github.com/modulesio/webaverse-server/issues"
   },
-  "homepage": "https://github.com/modulesio/webaverse-proxy#readme",
+  "homepage": "https://github.com/modulesio/webaverse-server#readme",
   "dependencies": {
     "aws-sdk": "^2.513.0",
     "http-proxy": "^1.17.0",
