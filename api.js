@@ -32,14 +32,14 @@ async function _execute(spec) {
   const {method, data, wait} = spec;
   switch (method) {
     case 'mintToken': {
-      const {tokenId, addr, name, url} = data;
+      const {tokenId, addr, name} = data;
 
       const nonce = (await this.eth.getTransactionCount(this.eth.defaultAccount)) + 1;
-      const gas = await this.contracts.webaverse.methods.mintToken(tokenId, addr, name, url).estimateGas({from: this.eth.defaultAccount, nonce});
+      const gas = await this.contracts.webaverse.methods.mintToken(tokenId, addr, name).estimateGas({from: this.eth.defaultAccount, nonce});
       console.log('estimate gas', gas);
       // const {transactionHash} = await this.contracts.webaverse.methods.mintToken(tokenId, addr, name).send({from: this.eth.defaultAccount, gas, nonce});
       const transactionHash = await new Promise((accept, reject) => {
-        const p = this.contracts.webaverse.methods.mintToken(tokenId, addr, name, url).send({from: this.eth.defaultAccount, gas, nonce});
+        const p = this.contracts.webaverse.methods.mintToken(tokenId, addr, name).send({from: this.eth.defaultAccount, gas, nonce});
         p.once('transactionHash', accept);
         p.once('error', reject);
       });

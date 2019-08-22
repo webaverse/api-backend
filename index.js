@@ -417,7 +417,6 @@ try {
                 tokenId,
                 addr,
                 name,
-                url,
               },
               wait: false,
             }).then(() => {
