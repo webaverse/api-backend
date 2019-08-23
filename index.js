@@ -529,6 +529,87 @@ try {
         error: 'no token',
       }));
     }
+  } else if (method === 'DELETE') {
+    let {email, token, tokenId} = query;
+    tokenId = parseInt(tokenId, 10);
+    
+    console.log('got request', method, {email, token, tokenId});
+
+    if (email && token) {
+      let tokenItem;
+      {
+        const start = Date.now();
+        tokenItem = await ddb.getItem({
+          TableName: 'login',
+          Key: {
+            email: {S: email + '.token'},
+          }
+        }).promise();
+        const end = Date.now();
+        console.log('got login 1 time', end - start, tokenItem);
+      }
+
+      const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+      if (tokens.includes(token)) {
+        const addr = tokenItem.Item.addr.S;
+        console.log('got login 2', tokenItem, {email, token, addr, tokenId});
+
+        const tokenItem = await ddb.getItem({
+          TableName: 'token',
+          Key: {
+            tokenId: {S: tokenId + '.token'},
+          },
+        }).promise();
+
+        if (tokenItem && tokenItem.Item) {
+          if (tokenItem.Item.addr.S === addr) {
+            {
+              const start = Date.now();
+              api.execute({
+                method: 'transferTo',
+                data: {
+                  addr: '0x0000000000000000000000000000000000000000',
+                  tokenId,
+                },
+                wait: false,
+              }).then(() => {
+                const end = Date.now();
+                console.log('burn token time', end - start);
+              }).catch(err => {
+                console.warn(err.stack);
+              });
+            }
+
+            await ddb.deleteItem({
+              TableName: 'token',
+              Key: {
+                tokenId: {S: tokenId + '.token'},
+              }
+            }).promise();
+
+            _respond(200, JSON.stringify({
+              error: 'invalid token',
+            }));
+          } else {
+            _respond(403, JSON.stringify({
+              error: 'not owned',
+            }));
+          }
+        } else {
+          _respond(404, JSON.stringify({
+            error: 'not found',
+          }));
+        }
+      } else {
+        _respond(403, JSON.stringify({
+          error: 'invalid token',
+        }));
+      }
+    } else {
+      _respond(401, JSON.stringify({
+        error: 'no token',
+      }));
+    }
   } else if (method === 'OPTIONS') {
     // console.log('respond options');
 

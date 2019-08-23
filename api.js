@@ -57,6 +57,32 @@ async function _execute(spec) {
         return null;
       }
     }
+    case 'transferTo': {
+      const {addr, tokenId} = data;
+
+      const nonce = (await this.eth.getTransactionCount(this.eth.defaultAccount)) + 1;
+      const gas = await this.contracts.webaverse.methods.transferTo(addr, tokenId).estimateGas({from: this.eth.defaultAccount, nonce});
+      console.log('estimate gas', gas);
+      // const {transactionHash} = await this.contracts.webaverse.methods.mintToken(tokenId, addr, name).send({from: this.eth.defaultAccount, gas, nonce});
+      const transactionHash = await new Promise((accept, reject) => {
+        const p = this.contracts.webaverse.methods.transferTo(addr, tokenId).send({from: this.eth.defaultAccount, gas, nonce});
+        p.once('transactionHash', accept);
+        p.once('error', reject);
+      });
+      console.log('got txid', transactionHash);
+      if (wait) {
+        const rx = await _waitTransaction(transactionHash);
+        console.log('got rx', rx);
+        return rx;
+        /* const result = await this.contracts.webaverse.methods.getTokenByName(name).call();
+        console.log('got result 1', result);
+        const tokenId = parseInt(result[1], 10);
+        console.log('got result 2', tokenId);
+        return tokenId; */
+      } else {
+        return null;
+      }
+    }
     default: throw new Error(`unknown execute method ${method}`);
   }
 } 
