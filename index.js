@@ -737,6 +737,11 @@ try {
         target: o.protocol + '//' + o.host,
         secure: false,
         changeOrigin: true,
+      }, err => {
+        console.warn(err.stack);
+
+        res.statusCode = 500;
+        res.end();
       });
       return;
     }
