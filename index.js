@@ -628,21 +628,6 @@ try {
 }
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const proxy = httpProxy.createProxyServer({});
 proxy.on('proxyRes', proxyRes => {
   if (proxyRes.headers['location']) {
