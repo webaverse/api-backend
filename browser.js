@@ -125,6 +125,7 @@ try {
       };
       peerConnection.ondatachannel = e => {
         const {channel} = e;
+        console.log('browser got data channel', !!channel);
         let down = false;
         channel.onmessage = e => {
           const {data} = e;
