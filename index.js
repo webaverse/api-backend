@@ -675,11 +675,11 @@ try {
     const [anchors, screenshot] = await Promise.all([
       page.evaluate(() => {
         return Array.from(document.querySelectorAll('a')).map(a => {
-          const {src} = a;
+          const {href} = a;
           const {x, y, width, height} = a.getBoundingClientRect();
           if (width > 0 && height > 0) {
             return {
-              src,
+              href,
               box: {
                 x,
                 y,
