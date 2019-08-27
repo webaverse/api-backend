@@ -51,14 +51,55 @@ try {
   };
 
   let page = await browser.newPage();
+  let down = false;
   page.on('console', async msg => {
     const args = await Promise.all(msg.args().map(handle => handle.jsonValue()));
     console.log(args);
 
-    if (args.length > 0 && args[0] === 'startRtc') {
+    if (args.length >= 1 && args[0] === 'startRtc') {
       _startRtc();
-    } else if (args.length > 0 && args[0] === 'endRtc') {
+    } else if (args.length >= 1 && args[0] === 'endRtc') {
       _endRtc();
+    } else if (args.length >= 2 && args[0] === 'rtcMessage') {
+      const data = args[1];
+      const j = (() => {
+        try {
+          return JSON.parse(data);
+        } catch (err) {
+          return null;
+        }
+      })();
+      if (j) {
+        const {method} = j;
+        switch (method) {
+          case 'mousemove': {
+            const {x, y} = j;
+            if (down) {
+              robot.moveDrag(x, y);
+            } else {
+              robot.moveMouse(x, y);
+            }
+            break;
+          }
+          case 'mousedown': {
+            robot.mouseToggle('down');
+            down = true;
+            break;
+          }
+          case 'mouseup': {
+            robot.mouseToggle('up');
+            down = false;
+            break;
+          }
+          case 'click': {
+            robot.mouseClick();
+            break;
+          }
+          default: {
+            break;
+          }
+        }
+      }
     }
   });
   page.on('dialog', d => {
@@ -123,50 +164,11 @@ try {
           candidate,
         }));
       };
-      peerConnection.ondatachannel = e => {
-        const {channel} = e;
-        console.log('browser got data channel', !!channel);
-        let down = false;
-        channel.onmessage = e => {
-          const {data} = e;
-          const j = (() => {
-            try {
-              return JSON.parse(data);
-            } catch (err) {
-              return null;
-            }
-          })();
-          if (j) {
-            const {method} = j;
-            switch (method) {
-              case 'mousemove': {
-                const {x, y} = j;
-                if (down) {
-                  robot.moveDrag(x, y);
-                } else {
-                  robot.moveMouse(x, y);
-                }
-                break;
-              }
-              case 'mousedown': {
-                robot.mouseToggle('down');
-                down = true;
-                break;
-              }
-              case 'mouseup': {
-                robot.mouseToggle('up');
-                down = false;
-                break;
-              }
-              /* case 'click': {
-                robot.mouseClick();
-                break;
-              } */
-              default: {
-                break;
-              }
-            }
-          }
+      const dataChannel = browserPeerConnection.createDataChannel('browser', {id: 0, negotiated: true});  
+      dataChannel.onopen = () => {
+        console.log('browser got data channel', !!dataChannel);
+        dataChannel.onmessage = e => {
+          console.log('rtcMessage', e.data);
         };
       };
 
