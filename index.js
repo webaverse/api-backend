@@ -658,6 +658,13 @@ const _handleBrowser = async (req, res) => {
 try {
   page = await browser.newPage();
 
+  page.on('error', err => {
+    console.warn('error', err);
+  });
+  page.on('pageerror', err => {
+    console.warn('pageerror', err);
+  });
+
   const {query, path: p} = url.parse(req.url, true);
   if (query && query.u) {
     try {
@@ -700,14 +707,7 @@ try {
 
     res.setHeader('Content-Type', 'image/jpeg');
     res.setHeader('Anchors', JSON.stringify(anchors)),
-    res.end(screenshot);
-
-    page.on('error', err => {
-      console.warn('error', err);
-    });
-    page.on('pageerror', err => {
-      console.warn('pageerror', err);
-    });
+    _respond(200, screenshot);
   } else {
     _respond(400, JSON.stringify({
       error: 'not found',
