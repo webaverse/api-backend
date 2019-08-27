@@ -634,8 +634,8 @@ try {
 const browser = await puppeteer.launch({
   // args,
   defaultViewport: {
-    width: 1920,
-    height: 1920,
+    width: 1280,
+    height: 1280,
   },
   args: [
     '--no-sandbox',
