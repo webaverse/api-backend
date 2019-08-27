@@ -660,7 +660,17 @@ try {
 
   const {query, path: p} = url.parse(req.url, true);
   if (query && query.u) {
-    await page.goto(query.u);
+    try {
+      await page.goto(query.u);
+    } catch (err) {
+      console.warn('page error', err);
+
+      _respond(404, JSON.stringify({
+        error: 'not found',
+      }));
+
+      return;
+    }
 
     const screenshot = await page.screenshot({
       type: 'png',
@@ -671,13 +681,13 @@ try {
     res.end(screenshot);
 
     page.on('error', err => {
-      console.warn(err.toString());
+      console.warn('error', err);
     });
     page.on('pageerror', err => {
-      console.warn(err.toString());
+      console.warn('pageerror', err);
     });
   } else {
-    _respond(404, JSON.stringify({
+    _respond(400, JSON.stringify({
       error: 'not found',
     }));
   }
