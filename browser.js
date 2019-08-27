@@ -20,8 +20,8 @@ args.splice(args.indexOf('--start-maximized'), 1);
 args.push('--window-position=0,0');
 args.push('--window-size=1920,1920');
 console.log('got args', args);
-chromium.defaultViewport.width = 1920;
-chromium.defaultViewport.height = 1920;
+// chromium.defaultViewport.width = 1920;
+// chromium.defaultViewport.height = 1920;
 
 try {
   browser = await chromium.puppeteer.launch({
@@ -122,11 +122,11 @@ try {
     console.warn(err.toString());
   });
 
-  await page.setViewport({
+  /* await page.setViewport({
     width: 1920,
     height: 1920,
     deviceScaleFactor: 1,
-  });
+  }); */
 
   // await page.goto(u);
   await page.goto(`file://${path.join(__dirname, 'blank.html')}`);
