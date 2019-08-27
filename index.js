@@ -693,12 +693,12 @@ try {
         }).filter(a => a !== null);
       }),
       page.screenshot({
-        type: 'png',
+        type: 'jpeg',
         fullPage: true,
       }),
     ]);
 
-    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Type', 'image/jpeg');
     res.setHeader('Anchors', JSON.stringify(anchors)),
     res.end(screenshot);
 
