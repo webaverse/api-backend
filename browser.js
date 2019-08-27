@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const path = require('path');
 const chromium = require('chrome-aws-lambda');
 const robot = require('robotjs');
 
@@ -18,6 +19,7 @@ const {args} = chromium;
 args.splice(args.indexOf('--start-maximized'), 1);
 args.push('--window-position=0,0');
 args.push('--window-size=1920,1920');
+console.log('got args', args);
 chromium.defaultViewport.width = 1920;
 chromium.defaultViewport.height = 1920;
 
@@ -29,6 +31,10 @@ try {
     headless: chromium.headless,
   });
 
+  // const page2 = await browser.newPage();
+  const page2 = (await browser.pages())[0];
+  await page2.goto(u);
+
   let rtcInterval = null;
   const _startRtc = () => {
     console.log('start rtc');
@@ -38,11 +44,12 @@ try {
 
       robot.moveMouse(1163, 182);
       robot.mouseClick();
-      robot.moveMouse(740, 218);
+      // robot.moveMouse(740, 218);
+      robot.moveMouse(732, 261);
       robot.mouseClick();
       robot.moveMouse(1214, 524);
       robot.mouseClick();
-    }, 500);
+    }, 200);
   };
   const _endRtc = () => {
     console.log('end rtc');
@@ -50,7 +57,7 @@ try {
     rtcInterval = null;
   };
 
-  let page = await browser.newPage();
+  const page = await browser.newPage();
   let down = false;
   page.on('console', async msg => {
     const args = await Promise.all(msg.args().map(handle => handle.jsonValue()));
@@ -121,7 +128,8 @@ try {
     deviceScaleFactor: 1,
   });
 
-  await page.goto(u);
+  // await page.goto(u);
+  await page.goto(`file://${path.join(__dirname, 'blank.html')}`);
 
   console.log('eval 1');
 
