@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const httpProxy = require('http-proxy');
 const ws = require('ws');
 const AWS = require('aws-sdk');
+const puppeteer = require('puppeteer');
 const {accessKeyId, secretAccessKey} = require('./config.json');
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
@@ -66,6 +67,8 @@ function _getKeyFromBindingUrl(u) {
     return [];
   }
 }
+
+(async () => {
 
 const _handleLogin = async (req, res) => {
 try {
@@ -628,6 +631,69 @@ try {
 }
 };
 
+const browser = await puppeteer.launch({
+  // args,
+  defaultViewport: {
+    width: 1920,
+    height: 1920,
+  },
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+  ],
+  // executablePath: await chromium.executablePath,
+  headless: true,
+});
+
+const _handleBrowser = async (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    // res.setHeader('Access-Control-Allow-Headers', '*');
+    // res.setHeader('Access-Control-Allow-Methods', '*');
+    res.end(body);
+  };
+
+  let page;
+try {
+  page = await browser.newPage();
+
+  const {query, path: p} = url.parse(req.url, true);
+  if (query && query.u) {
+    await page.goto(query.u);
+
+    const screenshot = await page.screenshot({
+      type: 'png',
+      fullPage: true,
+    });
+
+    res.setHeader('Content-Type', 'image/png');
+    res.end(screenshot);
+
+    page.on('error', err => {
+      console.warn(err.toString());
+    });
+    page.on('pageerror', err => {
+      console.warn(err.toString());
+    });
+  } else {
+    _respond(404, JSON.stringify({
+      error: 'not found',
+    }));
+  }
+} catch (err) {
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
+} finally {
+  if (page) {
+    page.close();
+  }
+}
+};
+
 const proxy = httpProxy.createProxyServer({});
 proxy.on('proxyRes', proxyRes => {
   if (proxyRes.headers['location']) {
@@ -719,6 +785,9 @@ try {
   } else if (o.host === 'token.webaverse.com') {
     _handleToken(req, res);
     return;
+  } else if (o.host === 'browser.webaverse.com') {
+    _handleBrowser(req, res);
+    return;
   }
 
   const match = o.host.match(/^(.+)\.proxy\.webaverse\.com$/);
@@ -783,3 +852,5 @@ process.on('unhandledRejection', _warn);
 
 server.listen(PORT);
 server2.listen(443);
+
+})();
