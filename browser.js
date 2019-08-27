@@ -61,7 +61,7 @@ try {
   let down = false;
   page.on('console', async msg => {
     const args = await Promise.all(msg.args().map(handle => handle.jsonValue()));
-    console.log(args);
+    // console.log(args);
 
     if (args.length >= 1 && args[0] === 'startRtc') {
       _startRtc();
