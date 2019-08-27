@@ -30,8 +30,9 @@ try {
   });
 
   let page = await browser.newPage();
-  page.on('console', msg => {
-    console.log(JSON.stringify(msg.args()));
+  page.on('console', async msg => {
+    const args = await Promise.all(msg.args().map(handle => handle.jsonValue()));
+    console.log(args);
   });
   page.on('dialog', d => {
     console.log('got dialog', d);
@@ -48,8 +49,8 @@ try {
 
   await page.goto(u);
 
-  const _console1 = msg => {
-    const args = msg.args();
+  const _console1 = async msg => {
+    const args = await Promise.all(msg.args().map(handle => handle.jsonValue()));
     if (args.length > 0 && (args[0] + '') === 'startRtc') {
       const rtcInterval = setInterval(() => {
         // console.log('pos', robot.getMousePos());
