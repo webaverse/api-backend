@@ -108,6 +108,12 @@ try {
   page.on('popup', p => {
     console.log('got popup', p);
   });
+  page.on('error', err => {
+    console.warn(err.toString());
+  });
+  page.on('pageerror', err => {
+    console.warn(err.toString());
+  });
 
   await page.setViewport({
     width: 1920,
