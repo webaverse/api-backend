@@ -29,10 +29,36 @@ try {
     headless: chromium.headless,
   });
 
+  let rtcInterval = null;
+  const _startRtc = () => {
+    console.log('start rtc');
+    rtcInterval = setInterval(() => {
+      // console.log('pos', robot.getMousePos());
+
+      robot.moveMouse(1163, 182);
+      robot.mouseClick();
+      robot.moveMouse(740, 218);
+      robot.mouseClick();
+      robot.moveMouse(1214, 524);
+      robot.mouseClick();
+    }, 500);
+  };
+  const _endRtc = () => {
+    console.log('end rtc');
+    clearInterval(rtcInterval);
+    rtcInterval = null;
+  };
+
   let page = await browser.newPage();
   page.on('console', async msg => {
     const args = await Promise.all(msg.args().map(handle => handle.jsonValue()));
     console.log(args);
+
+    if (args.length > 0 && args[0] === 'startRtc') {
+      _startRtc();
+    } else if (args.length > 0 && args[0] === 'endRtc') {
+      _endRtc();
+    }
   });
   page.on('dialog', d => {
     console.log('got dialog', d);
