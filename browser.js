@@ -31,7 +31,7 @@ try {
 
   let page = await browser.newPage();
   page.on('console', msg => {
-    console.log(msg.args().join(' '));
+    console.log(JSON.stringify(msg.args()));
   });
   page.on('dialog', d => {
     console.log('got dialog', d);
@@ -73,7 +73,6 @@ try {
       };
       page.on('console', _console2);
     }
-    console.log(msg.args().join(' '));
   };
   page.on('console', _console1);
 
