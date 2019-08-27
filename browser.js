@@ -48,18 +48,36 @@ try {
 
   await page.goto(u);
 
+  const _console1 = msg => {
+    const args = msg.args();
+    if (args.length > 0 && (args[0] + '') === 'startRtc') {
+      const rtcInterval = setInterval(() => {
+        // console.log('pos', robot.getMousePos());
+
+        robot.moveMouse(1163, 182);
+        robot.mouseClick();
+        robot.moveMouse(740, 218);
+        robot.mouseClick();
+        robot.moveMouse(1214, 524);
+        robot.mouseClick();
+      }, 500);
+
+      page.removeListener('console', _console1);
+      const _console2 = () => {
+        const args = msg.args();
+        if (args.length > 0 && (args[0] + '') === 'endRtc') {
+          clearInterval(rtcInterval);
+
+          page.removeListener('console', _console2);
+        }
+      };
+      page.on('console', _console2);
+    }
+    console.log(msg.args().join(' '));
+  };
+  page.on('console', _console1);
+
   console.log('eval 1');
-
-  const interval = setInterval(() => {
-    // console.log('pos', robot.getMousePos());
-
-    robot.moveMouse(1163, 182);
-    robot.mouseClick();
-    robot.moveMouse(740, 218);
-    robot.mouseClick();
-    robot.moveMouse(1214, 524);
-    robot.mouseClick();
-  }, 1000);
 
   const media = await page.evaluate(async ({peerConnectionId}) => {
     try {
@@ -67,7 +85,6 @@ try {
         return Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
       }
 
-      console.log('lol 1');
       const mediaStreamPromise = navigator.mediaDevices.getDisplayMedia({
         video: true/* {
           mandatory: {
@@ -79,7 +96,13 @@ try {
         audio: false,
       });
       console.log('lol 2');
+
+      setTimeout(() => {
+        console.log('startRtc');
+      });
       const mediaStream = await mediaStreamPromise;
+      console.log('endRtc');
+
       console.log('lol 3 ' + JSON.stringify(mediaStream));
 
       const connectionId = _randomString();
@@ -164,9 +187,9 @@ try {
 
       console.log('lol 7');
 
-      await new Promise((accept, reject) => {
+      /* await new Promise((accept, reject) => {
         setTimeout(accept, 1000*60*1000);
-      });
+      }); */
 
       console.log('lol 8');
     } catch(err) {
@@ -176,11 +199,16 @@ try {
     peerConnectionId,
   });
 
-  clearInterval(interval);
-
   console.log('eval 2');
 
   console.log('got media', media);
+
+  await new Promise((accept, reject) => {
+    process.stdin.resume();
+    process.stdin.on('end', () => {
+      accept();
+    });
+  });
 
   // console.log('got anchors', anchors);
 
