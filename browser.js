@@ -212,6 +212,13 @@ try {
           peerConnection.addIceCandidate(candidate)
             .catch(err => {
               console.warn('add ice candidate error', err.stack);
+
+              if (!candidate) {
+                return peerConnection.addIceCandidate({candidate: '', sdpMid: null, sdpMLineIndex: null})
+                  .catch(err => {
+                    console.warn('add ice candidate error', err.stack);
+                  });
+              }
             });
         }
       };
