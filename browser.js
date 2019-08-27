@@ -33,6 +33,7 @@ try {
   const _startRtc = () => {
     console.log('start rtc');
     rtcInterval = setInterval(() => {
+      console.log('tick rtc');
       // console.log('pos', robot.getMousePos());
 
       robot.moveMouse(1163, 182);
@@ -74,34 +75,6 @@ try {
   });
 
   await page.goto(u);
-
-  const _console1 = async msg => {
-    const args = await Promise.all(msg.args().map(handle => handle.jsonValue()));
-    if (args.length > 0 && args[0] === 'startRtc') {
-      const rtcInterval = setInterval(() => {
-        // console.log('pos', robot.getMousePos());
-
-        robot.moveMouse(1163, 182);
-        robot.mouseClick();
-        robot.moveMouse(740, 218);
-        robot.mouseClick();
-        robot.moveMouse(1214, 524);
-        robot.mouseClick();
-      }, 500);
-
-      page.removeListener('console', _console1);
-      const _console2 = async () => {
-        const args = await Promise.all(msg.args().map(handle => handle.jsonValue()));
-        if (args.length > 0 && args[0] === 'endRtc') {
-          clearInterval(rtcInterval);
-
-          page.removeListener('console', _console2);
-        }
-      };
-      page.on('console', _console2);
-    }
-  };
-  page.on('console', _console1);
 
   console.log('eval 1');
 
