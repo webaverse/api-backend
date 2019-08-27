@@ -124,6 +124,51 @@ try {
           candidate,
         }));
       };
+      peerConnection.ondatachannel = e => {
+        const {channel} = e;
+        let down = false;
+        channel.onmessage = e => {
+          const {data} = e;
+          const j = (() => {
+            try {
+              return JSON.parse(data);
+            } catch (err) {
+              return null;
+            }
+          })();
+          if (j) {
+            const {method} = j;
+            switch (method) {
+              case 'mousemove': {
+                const {x, y} = j;
+                if (down) {
+                  robot.moveDrag(x, y);
+                } else {
+                  robot.moveMouse(x, y);
+                }
+                break;
+              }
+              case 'mousedown': {
+                robot.mouseToggle('down');
+                down = true;
+                break;
+              }
+              case 'mouseup': {
+                robot.mouseToggle('up');
+                down = false;
+                break;
+              }
+              /* case 'click': {
+                robot.mouseClick();
+                break;
+              } */
+              default: {
+                break;
+              }
+            }
+          }
+        };
+      };
 
       console.log('lol 5');
 
