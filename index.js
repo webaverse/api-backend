@@ -672,12 +672,34 @@ try {
       return;
     }
 
-    const screenshot = await page.screenshot({
-      type: 'png',
-      fullPage: true,
-    });
+    const [anchors, screenshot] = await Promise.all([
+      page.evaluate(() => {
+        return Array.from(document.querySelectorAll('a')).map(a => {
+          const {src} = a;
+          const {x, y, width, height} = a.getBoundingClientRect();
+          if (width > 0 && height > 0) {
+            return {
+              src,
+              box: {
+                x,
+                y,
+                width,
+                height,
+              },
+            };
+          } else {
+            return null;
+          }
+        }).filter(a => a !== null);
+      }),
+      page.screenshot({
+        type: 'png',
+        fullPage: true,
+      }),
+    ]);
 
     res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Anchors', JSON.stringify(anchors)),
     res.end(screenshot);
 
     page.on('error', err => {
