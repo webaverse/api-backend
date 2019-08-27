@@ -170,7 +170,7 @@ try {
           candidate,
         }));
       };
-      const dataChannel = browserPeerConnection.createDataChannel('browser', {id: 0, negotiated: true});  
+      const dataChannel = peerConnection.createDataChannel('browser', {id: 0, negotiated: true});
       dataChannel.onopen = () => {
         console.log('browser got data channel', !!dataChannel);
         dataChannel.onmessage = e => {
