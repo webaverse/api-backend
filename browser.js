@@ -51,7 +51,7 @@ try {
 
   const _console1 = async msg => {
     const args = await Promise.all(msg.args().map(handle => handle.jsonValue()));
-    if (args.length > 0 && (args[0] + '') === 'startRtc') {
+    if (args.length > 0 && args[0] === 'startRtc') {
       const rtcInterval = setInterval(() => {
         // console.log('pos', robot.getMousePos());
 
@@ -64,9 +64,9 @@ try {
       }, 500);
 
       page.removeListener('console', _console1);
-      const _console2 = () => {
-        const args = msg.args();
-        if (args.length > 0 && (args[0] + '') === 'endRtc') {
+      const _console2 = async () => {
+        const args = await Promise.all(msg.args().map(handle => handle.jsonValue()));
+        if (args.length > 0 && args[0] === 'endRtc') {
           clearInterval(rtcInterval);
 
           page.removeListener('console', _console2);
