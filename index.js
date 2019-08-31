@@ -730,6 +730,7 @@ const proxy = httpProxy.createProxyServer({});
 proxy.on('proxyRes', proxyRes => {
   if (proxyRes.headers['location']) {
     const o = url.parse(proxyRes.headers['location']);
+    o.host = o.host.replace('-', '--');
     o.host = o.protocol.slice(0, -1) + '-' + o.host.replace(/\./g, '-').replace(/:([0-9]+)$/, '-$1') + '.proxy.webaverse.com';
     o.protocol = 'https:';
     proxyRes.headers['location'] = url.format(o);
