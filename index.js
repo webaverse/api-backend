@@ -835,6 +835,8 @@ try {
 
       console.log(oldUrl, '->', req.url);
 
+      delete req.headers['referer'];
+
       proxy.web(req, res, {
         target: o.protocol + '//' + o.host,
         secure: false,
