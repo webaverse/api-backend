@@ -828,7 +828,7 @@ try {
     const match2 = raw.match(/^(https?-)(.+?)(-[0-9]+)?$/);
     if (match2) {
       o.protocol = match2[1].replace(/-/g, ':');
-      o.host = match2[2].replace(/-/g, '.').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
+      o.host = match2[2].replace(/--/g, '=').replace(/-/g, '.').replace(/=/g, '-').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
       const oldUrl = req.url;
       req.url = url.format(o);
 
