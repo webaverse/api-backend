@@ -732,7 +732,7 @@ proxy.on('proxyRes', (proxyRes, req) => {
     const o = new url.URL(proxyRes.headers['location'], req.url);
     console.log('redirect location 1', req.url, proxyRes.headers['location'], o.href);
     o.host = o.host.replace('-', '--');
-    o.host = o.protocol.slice(0, -1) + '-' + o.host.replace(/\./g, '-').replace(/:([0-9]+)$/, '-$1') + '.proxy.webaverse.com';
+    o.host = o.protocol.slice(0, -1) + '-' + o.host.replace(/\./g, '-').replace(/:([0-9]+)$/, '-$1') + '.proxy.exokit.org';
     o.protocol = 'https:';
     proxyRes.headers['location'] = o.href;
   }
@@ -824,7 +824,7 @@ try {
     return;
   }
 
-  const match = o.host.match(/^(.+)\.proxy\.webaverse\.com$/);
+  const match = o.host.match(/^(.+)\.proxy\.exokit.org$/);
   if (match) {
     const raw = match[1];
     const match2 = raw.match(/^(https?-)(.+?)(-[0-9]+)?$/);
