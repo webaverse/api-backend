@@ -834,7 +834,7 @@ try {
         res.setHeader('Access-Control-Allow-Origin', '*');
         // res.setHeader('Access-Control-Allow-Headers', '*');
         // res.setHeader('Access-Control-Allow-Methods', '*');
-        res.end(body);
+        res.end();
       } else {
         o.protocol = match2[1].replace(/-/g, ':');
         o.host = match2[2].replace(/--/g, '=').replace(/-/g, '.').replace(/=/g, '-').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
