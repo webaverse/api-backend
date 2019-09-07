@@ -829,25 +829,33 @@ try {
     const raw = match[1];
     const match2 = raw.match(/^(https?-)(.+?)(-[0-9]+)?$/);
     if (match2) {
-      o.protocol = match2[1].replace(/-/g, ':');
-      o.host = match2[2].replace(/--/g, '=').replace(/-/g, '.').replace(/=/g, '-').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
-      const oldUrl = req.url;
-      req.url = url.format(o);
+      if (req.method === 'OPTIONS') {
+        res.statusCode = 200;
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        // res.setHeader('Access-Control-Allow-Headers', '*');
+        // res.setHeader('Access-Control-Allow-Methods', '*');
+        res.end(body);
+      } else {
+        o.protocol = match2[1].replace(/-/g, ':');
+        o.host = match2[2].replace(/--/g, '=').replace(/-/g, '.').replace(/=/g, '-').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
+        const oldUrl = req.url;
+        req.url = url.format(o);
 
-      console.log(oldUrl, '->', req.url);
+        console.log(oldUrl, '->', req.url);
 
-      delete req.headers['referer'];
+        delete req.headers['referer'];
 
-      proxy.web(req, res, {
-        target: o.protocol + '//' + o.host,
-        secure: false,
-        changeOrigin: true,
-      }, err => {
-        console.warn(err.stack);
+        proxy.web(req, res, {
+          target: o.protocol + '//' + o.host,
+          secure: false,
+          changeOrigin: true,
+        }, err => {
+          console.warn(err.stack);
 
-        res.statusCode = 500;
-        res.end();
-      });
+          res.statusCode = 500;
+          res.end();
+        });
+      }
       return;
     }
   }
