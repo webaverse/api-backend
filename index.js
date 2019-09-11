@@ -727,20 +727,25 @@ try {
 };
 
 const _checkProxyApiKey = async req => {
-  const o = url.parse(req.headers['referer'], true);
-  const domain = o.host;
-  const key = o.query.key;
+  const referer = req.headers['referer'];
+  if (referer) {
+    const o = url.parse(referer, true);
+    const domain = o.host;
+    const key = o.query.key;
 
-  if (domain) {
-    const apiKeyItem = await ddb.getItem({
-      TableName: 'api-key',
-      Key: {
-        domain: {S: domain},
-      },
-    }).promise();
-    if (apiKeyItem.Item) {
-      const keys = JSON.parse(apiKeyItem.Item.keys.S);
-      return keys === true || (Array.isArray(keys) && keys.includes(key));
+    if (domain) {
+      const apiKeyItem = await ddb.getItem({
+        TableName: 'api-key',
+        Key: {
+          domain: {S: domain},
+        },
+      }).promise();
+      if (apiKeyItem.Item) {
+        const keys = JSON.parse(apiKeyItem.Item.keys.S);
+        return keys === true || (Array.isArray(keys) && keys.includes(key));
+      } else {
+        return false;
+      }
     } else {
       return false;
     }
