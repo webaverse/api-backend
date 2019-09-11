@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "sudo xvfb-run $(which node) index.js",
+    "start": "sudo $(which node) index.js",
+    "start-browser": "sudo xvfb-run $(which node) index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
