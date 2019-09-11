@@ -738,7 +738,7 @@ const _checkProxyApiKey = async req => {
     const domain = o.host;
 
     if (domain) {
-      if (whitelistedProxyDomains.includes(domain)) {
+      if (whitelistedProxyDomains.includes(domain) || /\.proxy\.exokit\.org$/.test(domain)) {
         return true;
       } else {
         const apiKeyItem = await ddb.getItem({
