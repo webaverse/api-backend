@@ -6,6 +6,7 @@ const crypto = require('crypto');
 
 const httpProxy = require('http-proxy');
 const ws = require('ws');
+const LRU = require('lru');
 const AWS = require('aws-sdk');
 // const puppeteer = require('puppeteer');
 const {accessKeyId, secretAccessKey} = require('./config.json');
@@ -25,7 +26,10 @@ const ses = new AWS.SES(new AWS.Config({
   }),
   region: 'us-west-2',
 }));
-const bucketName = 'content.webaverse.com';
+const apiKeyCache = new LRU({
+  max: 1024,
+  maxAge: 60 * 1000,
+});
 
 const bip32 = require('./bip32.js');
 const bip39 = require('./bip39.js');
@@ -38,10 +42,7 @@ const PRIVKEY = fs.readFileSync('/etc/letsencrypt/live/webaverse.com/privkey.pem
 const PORT = parseInt(process.env.PORT, 10) || 80;
 const PARCEL_SIZE = 8;
 
-const whitelistedProxyDomains = [
-  'web.exokit.org',
-  'webaverse.com',
-];
+const bucketName = 'content.webaverse.com';
 
 const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 const codeTestRegex = /^[0-9]{6}$/;
@@ -738,7 +739,9 @@ const _checkProxyApiKey = async req => {
     const domain = o.host;
 
     if (domain) {
-      if (whitelistedProxyDomains.includes(domain) || /\.proxy\.exokit\.org$/.test(domain)) {
+      const {key} = o.query;
+      const k = `${domain}:${key}`;
+      if (apiKeyCache.get(k)) {
         return true;
       } else {
         const apiKeyItem = await ddb.getItem({
@@ -747,12 +750,15 @@ const _checkProxyApiKey = async req => {
             domain: {S: domain},
           },
         }).promise();
+        let result;
         if (apiKeyItem.Item) {
           const keys = JSON.parse(apiKeyItem.Item.keys.S);
-          return keys.includes(o.query.key);
+          result = keys === true || (Array.isArray(keys) && keys.includes(key));
         } else {
-          return false;
+          result = false;
         }
+        apiKeyCache.set(k, result);
+        return result;
       }
     } else {
       return false;
