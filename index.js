@@ -7,7 +7,7 @@ const crypto = require('crypto');
 const httpProxy = require('http-proxy');
 const ws = require('ws');
 const AWS = require('aws-sdk');
-const puppeteer = require('puppeteer');
+// const puppeteer = require('puppeteer');
 const {accessKeyId, secretAccessKey} = require('./config.json');
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
@@ -636,7 +636,7 @@ try {
 }
 };
 
-const browser = await puppeteer.launch({
+/* const browser = await puppeteer.launch({
   // args,
   defaultViewport: {
     width: 1280,
@@ -729,7 +729,7 @@ try {
     page.close();
   }
 }
-};
+}; */
 
 const _checkProxyApiKey = async req => {
   const referer = req.headers['referer'];
@@ -855,10 +855,10 @@ try {
   } else if (o.host === 'token.webaverse.com') {
     _handleToken(req, res);
     return;
-  } else if (o.host === 'browser.webaverse.com') {
+  } /* else if (o.host === 'browser.webaverse.com') {
     _handleBrowser(req, res);
     return;
-  }
+  } */
 
   const match = o.host.match(/^(.+)\.proxy\.exokit.org$/);
   if (match) {
