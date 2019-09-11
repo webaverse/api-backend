@@ -728,10 +728,10 @@ try {
 
 const _checkProxyApiKey = async req => {
   const o = url.parse(req.headers['referer'], true);
-  const origin = o.host;
+  const domain = o.host;
   const key = o.query.key;
 
-  if (domain && key) {
+  if (domain) {
     const apiKeyItem = await ddb.getItem({
       TableName: 'api-key',
       Key: {
@@ -739,7 +739,7 @@ const _checkProxyApiKey = async req => {
       },
     }).promise();
     if (apiKeyItem.Item) {
-      const keys = JSON.parse(apiKeyItem.Item.key.S);
+      const keys = JSON.parse(apiKeyItem.Item.keys.S);
       return keys === true || (Array.isArray(keys) && keys.includes(key));
     } else {
       return false;
