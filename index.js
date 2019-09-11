@@ -38,6 +38,11 @@ const PRIVKEY = fs.readFileSync('/etc/letsencrypt/live/webaverse.com/privkey.pem
 const PORT = parseInt(process.env.PORT, 10) || 80;
 const PARCEL_SIZE = 8;
 
+const whitelistedProxyDomains = [
+  'web.exokit.org',
+  'webaverse.com',
+];
+
 const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 const codeTestRegex = /^[0-9]{6}$/;
 function _randomString() {
@@ -731,20 +736,23 @@ const _checkProxyApiKey = async req => {
   if (referer) {
     const o = url.parse(referer, true);
     const domain = o.host;
-    const key = o.query.key;
 
     if (domain) {
-      const apiKeyItem = await ddb.getItem({
-        TableName: 'api-key',
-        Key: {
-          domain: {S: domain},
-        },
-      }).promise();
-      if (apiKeyItem.Item) {
-        const keys = JSON.parse(apiKeyItem.Item.keys.S);
-        return keys === true || (Array.isArray(keys) && keys.includes(key));
+      if (whitelistedProxyDomains.includes(domain)) {
+        return true;
       } else {
-        return false;
+        const apiKeyItem = await ddb.getItem({
+          TableName: 'api-key',
+          Key: {
+            domain: {S: domain},
+          },
+        }).promise();
+        if (apiKeyItem.Item) {
+          const keys = JSON.parse(apiKeyItem.Item.keys.S);
+          return keys.includes(o.query.key);
+        } else {
+          return false;
+        }
       }
     } else {
       return false;
