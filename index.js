@@ -726,6 +726,29 @@ try {
 }
 };
 
+const _checkProxyApiKey = async req => {
+  const o = url.parse(req.headers['referer'], true);
+  const origin = o.host;
+  const key = o.query.key;
+
+  if (domain && key) {
+    const apiKeyItem = await ddb.getItem({
+      TableName: 'api-key',
+      Key: {
+        domain: {S: domain},
+      },
+    }).promise();
+    if (apiKeyItem.Item) {
+      const keys = JSON.parse(apiKeyItem.Item.key.S);
+      return keys === true || (Array.isArray(keys) && keys.includes(key));
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+};
+
 const proxy = httpProxy.createProxyServer({});
 proxy.on('proxyRes', (proxyRes, req) => {
   if (proxyRes.headers['location']) {
@@ -829,33 +852,41 @@ try {
     const raw = match[1];
     const match2 = raw.match(/^(https?-)(.+?)(-[0-9]+)?$/);
     if (match2) {
-      if (req.method === 'OPTIONS') {
-        res.statusCode = 200;
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', '*');
-        res.setHeader('Access-Control-Allow-Headers', '*');
-        res.end();
-      } else {
-        o.protocol = match2[1].replace(/-/g, ':');
-        o.host = match2[2].replace(/--/g, '=').replace(/-/g, '.').replace(/=/g, '-').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
-        const oldUrl = req.url;
-        req.url = url.format(o);
+      _checkProxyApiKey(req)
+        .then(ok => {
+          if (ok) {
+            if (req.method === 'OPTIONS') {
+              res.statusCode = 200;
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              res.setHeader('Access-Control-Allow-Methods', '*');
+              res.setHeader('Access-Control-Allow-Headers', '*');
+              res.end();
+            } else {
+              o.protocol = match2[1].replace(/-/g, ':');
+              o.host = match2[2].replace(/--/g, '=').replace(/-/g, '.').replace(/=/g, '-').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
+              const oldUrl = req.url;
+              req.url = url.format(o);
 
-        console.log(oldUrl, '->', req.url);
+              console.log(oldUrl, '->', req.url);
 
-        delete req.headers['referer'];
+              delete req.headers['referer'];
 
-        proxy.web(req, res, {
-          target: o.protocol + '//' + o.host,
-          secure: false,
-          changeOrigin: true,
-        }, err => {
-          console.warn(err.stack);
+              proxy.web(req, res, {
+                target: o.protocol + '//' + o.host,
+                secure: false,
+                changeOrigin: true,
+              }, err => {
+                console.warn(err.stack);
 
-          res.statusCode = 500;
-          res.end();
+                res.statusCode = 500;
+                res.end();
+              });
+            }
+          } else {
+            res.statusCode = 403;
+            res.end('invalid domain or api key');
+          }
         });
-      }
       return;
     }
   }
@@ -876,7 +907,14 @@ const _ws = (req, socket, head) => {
       presenceWss.emit('connection', s, req);
     });
   } else {
-    proxy.ws(req, socket, head);
+    _checkProxyApiKey(req)
+      .then(ok => {
+        if (ok) {
+          proxy.ws(req, socket, head);
+        } else {
+          socket.close();
+        }
+      });
   }
 };
 
