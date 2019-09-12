@@ -739,27 +739,22 @@ const _checkProxyApiKey = async req => {
     const domain = o.host;
 
     if (domain) {
-      const {key} = o.query;
-      const k = `${domain}:${key}`;
-      if (apiKeyCache.get(k)) {
-        return true;
-      } else {
+      let keys = apiKeyCache.get(domain);
+      if (keys === undefined) {
         const apiKeyItem = await ddb.getItem({
           TableName: 'api-key',
           Key: {
             domain: {S: domain},
           },
         }).promise();
-        let result;
         if (apiKeyItem.Item) {
-          const keys = JSON.parse(apiKeyItem.Item.keys.S);
-          result = keys === true || (Array.isArray(keys) && keys.includes(key));
+          keys = JSON.parse(apiKeyItem.Item.keys.S);
         } else {
-          result = false;
+          keys = [];
         }
-        apiKeyCache.set(k, result);
-        return result;
+        apiKeyCache.set(domain, keys);
       }
+      return keys === true || (Array.isArray(keys) && keys.includes(o.query.key));
     } else {
       return false;
     }
