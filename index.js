@@ -221,7 +221,7 @@ try {
                     },
                     
                     Subject: {
-                        Data: `Verification code for Webaverse`
+                        Data: `Verification code for Exokit`
                     }
                 },
                 Source: "noreply@exokit.org"
