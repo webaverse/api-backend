@@ -942,7 +942,7 @@ const _ws = (req, socket, head) => {
         if (ok) {
           proxy.ws(req, socket, head);
         } else {
-          socket.close();
+          socket.destroy();
         }
       });
   }
