@@ -186,42 +186,56 @@ try {
             }));
           }
         } else {
-          const code = new Uint32Array(crypto.randomBytes(4).buffer, 0, 1).toString(10).slice(-6);
-          
-          console.log('verification', {email, code});
-
-          await ddb.putItem({
+          const tokenItem = await ddb.getItem({
             TableName: 'login',
-            Item: {
-              email: {S: email + '.code'},
-              code: {S: code},
+            Key: {
+              email: {S: email + '.token'},
             }
           }).promise();
-          
-          var params = {
-              Destination: {
-                  ToAddresses: [email],
-              },
-              Message: {
-                  Body: {
-                      Html: {
-                          Data: `<h1>${code}</h1> is your verification code. <a href="https://webaverse.com/login?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}"><strong>Log in</strong></a>`
-                      }
-                  },
-                  
-                  Subject: {
-                      Data: `Verification code for Webaverse`
-                  }
-              },
-              Source: "noreply@webaverse.com"
-          };
-      
-          
-          const data = await ses.sendEmail(params).promise();
-          
-          console.log('got response', data);
-          
-          _respond(200, JSON.stringify({}));
+          const whitelisted = tokenItem.Item ? tokenItem.Item.whitelisted.B : false;
+
+          if (whitelisted) {
+            const code = new Uint32Array(crypto.randomBytes(4).buffer, 0, 1).toString(10).slice(-6);
+            
+            console.log('verification', {email, code});
+
+            await ddb.putItem({
+              TableName: 'login',
+              Item: {
+                email: {S: email + '.code'},
+                code: {S: code},
+              }
+            }).promise();
+            
+            var params = {
+                Destination: {
+                    ToAddresses: [email],
+                },
+                Message: {
+                    Body: {
+                        Html: {
+                            Data: `<h1>${code}</h1> is your verification code. <a href="https://webaverse.com/login?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}"><strong>Log in</strong></a>`
+                        }
+                    },
+                    
+                    Subject: {
+                        Data: `Verification code for Webaverse`
+                    }
+                },
+                Source: "noreply@webaverse.com"
+            };
+        
+            
+            const data = await ses.sendEmail(params).promise();
+            
+            console.log('got response', data);
+            
+            _respond(200, JSON.stringify({}));
+          } else {
+            _respond(403, JSON.stringify({
+              error: 'email not whitelisted',
+            }));
+          }
         }
       } else {
         _respond(400, JSON.stringify({
