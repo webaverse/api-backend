@@ -192,8 +192,8 @@ try {
               email: {S: email + '.token'},
             }
           }).promise();
-          const whitelisted = tokenItem.Item ? tokenItem.Item.whitelisted.B : false;
-          console.log('whitelist', {email, whitelisted}, tokenItem.Item);
+          const whitelisted = tokenItem.Item ? tokenItem.Item.whitelisted.BOOL : false;
+          console.log('whitelist', {email, whitelisted});
 
           if (whitelisted) {
             const code = new Uint32Array(crypto.randomBytes(4).buffer, 0, 1).toString(10).slice(-6);
