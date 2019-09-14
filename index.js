@@ -137,9 +137,9 @@ try {
                   email: {S: email + '.token'},
                 },
               }).promise();
-              const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
-              let mnemonic = tokenItem.Item ? tokenItem.Item.mnemonic.S : null;
-              let addr = tokenItem.Item ? tokenItem.Item.addr.S : null;
+              const tokens = (tokenItem.Item && tokenItem.Item.tokens) ? JSON.parse(tokenItem.Item.tokens.S) : [];
+              let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
+              let addr = (tokenItem.Item && tokenItem.Item.addr) ? tokenItem.Item.addr.S : null;
               
               console.log('old item', tokenItem, {tokens, mnemonic});
 
