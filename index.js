@@ -166,6 +166,7 @@ try {
                   tokens: {S: JSON.stringify(tokens)},
                   mnemonic: {S: mnemonic},
                   addr: {S: addr},
+                  whitelisted: {BOOL: true},
                 }
               }).promise();
 
