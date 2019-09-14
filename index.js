@@ -216,7 +216,7 @@ try {
                 Message: {
                     Body: {
                         Html: {
-                            Data: `<h1>${code}</h1> is your verification code. <a href="https://webaverse.com/login?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}"><strong>Log in</strong></a>`
+                            Data: `<h1>${code}</h1> is your verification code. <a href="https://exokit.org/login?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}"><strong>Log in</strong></a>`
                         }
                     },
                     
@@ -224,7 +224,7 @@ try {
                         Data: `Verification code for Webaverse`
                     }
                 },
-                Source: "noreply@webaverse.com"
+                Source: "noreply@exokit.org"
             };
         
             
