@@ -414,7 +414,7 @@ try {
           const tokenId = parseInt(updateResult.Attributes.tokenIds.N, 10);
           const hadUrl = !!url;
           if (!url) {
-            url = `https://content.webaverse.com/${tokenId}`;
+            url = `https://content.exokit.org/${tokenId}`;
           }
           const bindingUrl = '';
           const key = _getKeyFromBindingUrl(bindingUrl);
@@ -866,13 +866,13 @@ const _req = protocol => (req, res) => {
 try {
 
   const o = url.parse(protocol + '//' + (req.headers['host'] || '') + req.url);
-  if (o.host === 'login.webaverse.com') {
+  if (o.host === 'login.exokit.org') {
     _handleLogin(req, res);
     return;
-  } else if (o.host === 'token.webaverse.com') {
+  } else if (o.host === 'token.exokit.org') {
     _handleToken(req, res);
     return;
-  } /* else if (o.host === 'browser.webaverse.com') {
+  } /* else if (o.host === 'browser.exokit.org') {
     _handleBrowser(req, res);
     return;
   } */
@@ -932,7 +932,7 @@ try {
 };
 const _ws = (req, socket, head) => {
   const host = req.headers['host'];
-  if (host === 'presence.webaverse.com') {
+  if (host === 'presence.exokit.org') {
     presenceWss.handleUpgrade(req, socket, head, s => {
       presenceWss.emit('connection', s, req);
     });
