@@ -216,7 +216,7 @@ try {
                 Message: {
                     Body: {
                         Html: {
-                            Data: `<h1>${code}</h1><p>is your verification code. <a href="https://browser.exokit.org/?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}"><strong>Log in</strong></a></p>`
+                            Data: `<p><strong>${code}</strong> is your verification code. <a href="https://browser.exokit.org/?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}"><i>Log in</i></a></p>`
                         }
                     },
                     
