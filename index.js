@@ -805,7 +805,7 @@ presenceWss.on('connection', (s, req) => {
   const {c} = o.query;
   if (c) {
     const {remoteAddress} = req.connection;
-    console.log('got connection', remoteAddress);
+    console.log('got connection', remoteAddress, c);
 
     let channel = channels[c];
     if (!channel) {
