@@ -877,7 +877,7 @@ presenceWss.on('connection', (s, req) => {
           if (!connectionId) {
             connectionId = data.connectionId;
 
-            console.log('send forward sockets', channel.sockets.length);
+            console.log('send forward to sockets', channel.sockets.length);
             channel.sockets.forEach(s => {
               s.send(JSON.stringify({
                 method: 'join',
