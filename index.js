@@ -920,7 +920,7 @@ presenceWss.on('connection', (s, req) => {
       });
     });
   } else {
-    s.destroy();
+    s.close();
   }
 });
 
