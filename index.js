@@ -799,7 +799,8 @@ proxy.on('proxyRes', (proxyRes, req) => {
   proxyRes.headers['access-control-allow-origin'] = '*';
 });
 
-const _makeChannel = () => ({
+const _makeChannel = name => ({
+  name,
   connectionIds: [],
   sockets: [],
 });
@@ -816,7 +817,7 @@ presenceWss.on('connection', (s, req) => {
 
     let channel = channels[c];
     if (!channel) {
-      channel = _makeChannel();
+      channel = _makeChannel(c);
       channels[c] = channel;
     }
 
