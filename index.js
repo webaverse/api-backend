@@ -139,6 +139,7 @@ try {
                 },
               }).promise();
               const tokens = (tokenItem.Item && tokenItem.Item.tokens) ? JSON.parse(tokenItem.Item.tokens.S) : [];
+              let name = (tokenItem.Item && tokenItem.Item.name) ? tokenItem.Item.name.S : null;
               let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
               let addr = (tokenItem.Item && tokenItem.Item.addr) ? tokenItem.Item.addr.S : null;
               
@@ -146,6 +147,9 @@ try {
 
               const token = crypto.randomBytes(32).toString('base64');
               tokens.push(token);
+              if (!name) {
+                name = namegen(2).map(n => n[0].toUpperCase() + n.slice(1)).join(' ');
+              }
               if (!mnemonic) {
                 mnemonic = bip39.entropyToMnemonic(crypto.randomBytes(32));
               }
@@ -158,7 +162,6 @@ try {
                 console.log('get address time', end - start, addr);
               }
 
-              const name = namegen(2).map(n => n[0].toUpperCase() + n.slice(1)).join(' ');
               console.log('new item', {name, tokens, mnemonic, addr});
               
               await ddb.putItem({
@@ -176,6 +179,7 @@ try {
               _respond(200, JSON.stringify({
                 email,
                 token,
+                name,
                 mnemonic,
                 addr,
               }));
