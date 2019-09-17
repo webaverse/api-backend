@@ -792,74 +792,89 @@ proxy.on('proxyRes', (proxyRes, req) => {
   proxyRes.headers['access-control-allow-origin'] = '*';
 });
 
-const connectionIds = [];
-const sockets = [];
+const _makeChannel = () => ({
+  connectionIds: [],
+  sockets: [],
+});
+const channels = {};
 const presenceWss = new ws.Server({
   noServer: true,
 });
 presenceWss.on('connection', (s, req) => {
-  const {remoteAddress} = req.connection;
-  console.log('got connection', remoteAddress);
+  const o = url.parse(req.url, true);
+  const {c} = o.query;
+  if (c) {
+    const {remoteAddress} = req.connection;
+    console.log('got connection', remoteAddress);
 
-  let connectionId = null;
-  s.on('message', m => {
-    console.log('got message', m);
+    let channel = channels[c];
+    if (!channel) {
+      channel = _makeChannel();
+      channels[c] = channel;
+    }
 
-    const data = _jsonParse(m);
-    if (data) {
-      if (data.method === 'init' && typeof data.connectionId === 'string') {
-        if (!connectionId) {
-          connectionId = data.connectionId;
+    let connectionId = null;
+    s.on('message', m => {
+      console.log('got message', m);
 
-          console.log('send forward sockets', sockets.length);
-          sockets.forEach(s => {
-            s.send(JSON.stringify({
-              method: 'join',
-              connectionId,
-            }));
-          });
+      const data = _jsonParse(m);
+      if (data) {
+        if (data.method === 'init' && typeof data.connectionId === 'string') {
+          if (!connectionId) {
+            connectionId = data.connectionId;
 
-          console.log('send back sockets', connectionIds.length);
-          connectionIds.forEach(connectionId => {
-            s.send(JSON.stringify({
-              method: 'join',
-              connectionId,
-            }));
-          });
+            console.log('send forward sockets', channel.sockets.length);
+            channel.sockets.forEach(s => {
+              s.send(JSON.stringify({
+                method: 'join',
+                connectionId,
+              }));
+            });
 
-          connectionIds.push(connectionId);
-          sockets.push(s);
+            console.log('send back sockets', channel.connectionIds.length);
+            channel.connectionIds.forEach(connectionId => {
+              s.send(JSON.stringify({
+                method: 'join',
+                connectionId,
+              }));
+            });
+
+            channel.connectionIds.push(connectionId);
+            channel.sockets.push(s);
+          } else {
+            console.warn('protocol error');
+            s.close();
+          }
+        } else if (data.method === 'ping') {
+          // nothing
         } else {
-          console.warn('protocol error');
-          s.close();
+          const index = channel.connectionIds.indexOf(data.dst);
+          if (index !== -1) {
+            channel.sockets[index].send(m);
+          }
         }
-      } else if (data.method === 'ping') {
-        // nothing
       } else {
-        const index = connectionIds.indexOf(data.dst);
-        if (index !== -1) {
-          sockets[index].send(m);
-        }
+        console.warn('protocol error');
+        s.close();
       }
-    } else {
-      console.warn('protocol error');
-      s.close();
-    }
-  });
-  s.on('close', () => {
-    console.log('lost connection', remoteAddress, connectionId);
-    const index = connectionIds.indexOf(connectionId);
-    if (index !== -1) {
-      connectionIds.splice(index, 1);
-      sockets.splice(index, 1);
-    }
-    sockets.forEach(s => {
-      s.send(JSON.stringify({
-        method: 'leave',
-        connectionId,
-      }));
     });
-  });
+    s.on('close', () => {
+      console.log('lost connection', remoteAddress, connectionId);
+      const index = channel.connectionIds.indexOf(connectionId);
+      if (index !== -1) {
+        channel.connectionIds.splice(index, 1);
+        channel.sockets.splice(index, 1);
+      }
+      channel.sockets.forEach(s => {
+        s.send(JSON.stringify({
+          method: 'leave',
+          connectionId,
+        }));
+      });
+    });
+  } else {
+    s.destroy();
+  }
 });
 
 const _req = protocol => (req, res) => {
