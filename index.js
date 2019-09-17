@@ -842,6 +842,7 @@ const _makeChannel = name => ({
   name,
   connectionIds: [],
   sockets: [],
+  users: [],
 });
 const channels = {};
 const presenceWss = new ws.Server({
@@ -849,10 +850,10 @@ const presenceWss = new ws.Server({
 });
 presenceWss.on('connection', (s, req) => {
   const o = url.parse(req.url, true);
-  const {c} = o.query;
-  if (c) {
+  const {u, c} = o.query;
+  if (u && c) {
     const {remoteAddress} = req.connection;
-    console.log('got connection', remoteAddress, c);
+    console.log('got connection', remoteAddress, u, c);
 
     let channel = channels[c];
     if (!channel) {
@@ -888,6 +889,7 @@ presenceWss.on('connection', (s, req) => {
 
             channel.connectionIds.push(connectionId);
             channel.sockets.push(s);
+            channel.users.push(u);
           } else {
             console.warn('protocol error');
             s.close();
@@ -911,6 +913,7 @@ presenceWss.on('connection', (s, req) => {
       if (index !== -1) {
         channel.connectionIds.splice(index, 1);
         channel.sockets.splice(index, 1);
+        channel.users.splice(index, 1);
       }
       channel.sockets.forEach(s => {
         s.send(JSON.stringify({
