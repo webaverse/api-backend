@@ -283,7 +283,13 @@ try {
     console.log('presence get request', {method, path: p});
 
     if (p === '/channels') {
-      const result = Object.keys(channels).map(k => channels[k]);
+      const result = Object.keys(channels).map(k => {
+        const {name, users} = channels[k];
+        return {
+          name,
+          users,
+        };
+      });
       _respond(200, JSON.stringify(result));
     } else {
       _respond(404, JSON.stringify({
