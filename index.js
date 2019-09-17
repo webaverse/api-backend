@@ -265,6 +265,45 @@ try {
 }
 };
 
+const _handlePresence = async (req, res) => {
+try {
+  const {method} = req;
+  const {path: p} = url.parse(req.url);
+  console.log('presence request', {method, p});
+
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    // res.setHeader('Access-Control-Allow-Headers', '*');
+    // res.setHeader('Access-Control-Allow-Methods', '*');
+    res.end(body);
+  };
+
+  if (method === 'GET') {
+    console.log('presence get request', {method, path: p});
+
+    if (p === '/channels') {
+      const result = Object.keys(channels).map(k => channels[k]);
+      _respond(200, JSON.stringify(result));
+    } else {
+      _respond(404, JSON.stringify({
+        error: 'not found',
+      }));
+    }
+  } else {
+    _respond(404, JSON.stringify({
+      error: 'not found',
+    }));
+  }
+} catch(err) {
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
+}
+};
+
 const _handleToken = async (req, res) => {
 try {
   const {method} = req;
@@ -891,6 +930,9 @@ try {
   const o = url.parse(protocol + '//' + (req.headers['host'] || '') + req.url);
   if (o.host === 'login.exokit.org') {
     _handleLogin(req, res);
+    return;
+  } else if (o.host === 'presence.exokit.org') {
+    _handlePresence(req, res);
     return;
   } else if (o.host === 'token.exokit.org') {
     _handleToken(req, res);
