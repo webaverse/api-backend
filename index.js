@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const httpProxy = require('http-proxy');
 const ws = require('ws');
 const LRU = require('lru');
+const namegen = require('namegen');
 const AWS = require('aws-sdk');
 // const puppeteer = require('puppeteer');
 const {accessKeyId, secretAccessKey} = require('./config.json');
@@ -156,13 +157,15 @@ try {
                 const end = Date.now();
                 console.log('get address time', end - start, addr);
               }
-              
-              console.log('new item', {tokens, mnemonic, addr});
+
+              const name = namegen(2).map(n => n[0].toUpperCase() + n.slice(1)).join(' ');
+              console.log('new item', {name, tokens, mnemonic, addr});
               
               await ddb.putItem({
                 TableName: 'login',
                 Item: {
                   email: {S: email + '.token'},
+                  name: {S: name},
                   tokens: {S: JSON.stringify(tokens)},
                   mnemonic: {S: mnemonic},
                   addr: {S: addr},
