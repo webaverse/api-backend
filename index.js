@@ -997,6 +997,7 @@ presenceWss.on('connection', async (s, req) => {
           if (!connectionId) {
             connectionId = data.connectionId;
 
+            // console.log('send back state');
             s.send(JSON.stringify({
               method: 'state',
               state: connection.state,
