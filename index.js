@@ -881,6 +881,11 @@ presenceWss.on('connection', (s, req) => {
           if (!connectionId) {
             connectionId = data.connectionId;
 
+            s.send(JSON.stringify({
+              method: 'state',
+              state: connection.state,
+            }));
+
             console.log('send forward to sockets', channel.sockets.length);
             channel.sockets.forEach(s => {
               s.send(JSON.stringify({
