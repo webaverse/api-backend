@@ -895,11 +895,11 @@ const _makeChannel = async name => {
     users: [],
     _pushing: false,
     _queued: false,
-    setHTML(htmlString) {
+    setHtml(htmlString) {
       this.state = _parseHtmlString(htmlString);
       this.pushAsync();
     },
-    editHTML(editSpec) {
+    editState(editSpec) {
       const {keyPath, method, key, value} = editSpec;
       const el = _findElByKeyPath(this.state, keyPath);
       if (el) {
@@ -1028,10 +1028,14 @@ presenceWss.on('connection', async (s, req) => {
           }
         } else if (data.method === 'ping') {
           // nothing
-        } else if (data.method === 'setHTML' && data.html) {
-          channel.setHTML(data.html);
-         } else if (data.method === 'editHTML' && data.spec) {
-          channel.editHTML(data.spec);
+        } else if (data.method === 'setHtml' && data.html) {
+          channel.setHtml(data.html);
+         } else if (data.method === 'editState' && data.spec) {
+           channel.editState(data.spec);
+           s.send(JSON.stringify({
+            method: 'editState',
+            spec: data.spec,
+          }));
         } else {
           const index = channel.connectionIds.indexOf(data.dst);
           if (index !== -1) {
