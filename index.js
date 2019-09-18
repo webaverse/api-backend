@@ -7,9 +7,10 @@ const crypto = require('crypto');
 const httpProxy = require('http-proxy');
 const ws = require('ws');
 const LRU = require('lru');
-const namegen = require('./namegen.js');
+const parse5 = require('parse5');
 const AWS = require('aws-sdk');
 // const puppeteer = require('puppeteer');
+const namegen = require('./namegen.js');
 const {accessKeyId, secretAccessKey} = require('./config.json');
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
