@@ -844,12 +844,16 @@ proxy.on('proxyRes', (proxyRes, req) => {
   proxyRes.headers['access-control-allow-origin'] = '*';
 });
 
-const _makeChannel = name => ({
-  name,
-  connectionIds: [],
-  sockets: [],
-  users: [],
-});
+const _makeChannel = async name => {
+  const state = {};
+  return {
+    name,
+    state,
+    connectionIds: [],
+    sockets: [],
+    users: [],
+  };
+};
 const channels = {};
 const presenceWss = new ws.Server({
   noServer: true,
@@ -863,7 +867,7 @@ presenceWss.on('connection', (s, req) => {
 
     let channel = channels[c];
     if (!channel) {
-      channel = _makeChannel(c);
+      channel = await _makeChannel(c);
       channels[c] = channel;
     }
 
