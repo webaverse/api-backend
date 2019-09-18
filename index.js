@@ -1000,7 +1000,7 @@ presenceWss.on('connection', async (s, req) => {
             // console.log('send back state');
             s.send(JSON.stringify({
               method: 'state',
-              state: connection.state,
+              state: channel.state,
             }));
 
             console.log('send forward to sockets', channel.sockets.length);
