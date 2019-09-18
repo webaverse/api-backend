@@ -848,21 +848,133 @@ proxy.on('proxyRes', (proxyRes, req) => {
   proxyRes.headers['access-control-allow-origin'] = '*';
 });
 
+const _normalizeEl = el => {
+  const result = {
+    nodeName: el.nodeName,
+    tagName: el.tagName,
+    attrs: el.attrs,
+    childNodes: el.childNodes ? el.childNodes.map(childEl => _normalizeEl(childEl)) : [],
+  };
+  return result;
+};
+const _parseHtmlString = htmlString => {
+  const dom = parse5.parseFragment(htmlString);
+  return _normalizeEl(dom);
+  /* let root = dom.childNodes[0];
+  root = _normalizeEl(root);
+  return root; */
+};
+const _findElByKeyPath = (el, keyPath) => {
+  for (let i = 0; i < keyPath.length; i++) {
+    el = el[keyPath[i]];
+    if (!el) {
+      el = null;
+      break;
+    }
+  }
+  return el;
+};
 const _makeChannel = async name => {
-  const state = {};
+  const htmlStringRes = await s3.getObject({
+    Bucket: bucketNames.channels,
+    Key: name,
+  }).promise().catch(err => {
+    if (err.code !== 'NoSuchKey') {
+      console.warn(err.stack);
+    }
+    return null;
+  });
+  const htmlString = htmlStringRes ? htmlStringRes.Body.toString('utf8') : '';
+  const state = _parseHtmlString(htmlString);
+
   return {
     name,
     state,
     connectionIds: [],
     sockets: [],
     users: [],
+    _pushing: false,
+    _queued: false,
+    setHTML(htmlString) {
+      this.state = _parseHtmlString(htmlString);
+      this.pushAsync();
+    },
+    editHTML(editSpec) {
+      const {keyPath, method, key, value} = editSpec;
+      const el = _findElByKeyPath(this.state, keyPath);
+      if (el) {
+        switch (method) {
+          case 'setAttribute': {
+            let attr = el.attrs.find(attr => attr.name === key);
+            if (!attr) {
+              attr = {
+                name: key,
+                value: null,
+              };
+              el.attrs.push(attr);
+            }
+            attr.value = value;
+            break;
+          }
+          case 'removeAttribute': {
+            const index = el.attrs.findIndex(attr => attr.name === key);
+            if (index !== -1) {
+              el.attrs.splice(index, 1);
+            } else {
+              console.warn('remove missing attribute', keyPath, key);
+            }
+            break;
+          }
+          case 'appendChild': {
+            const newEl = parse5.parseFragment(value).childNodes[0];
+            const index = key;
+            el.childNodes.splice(index, 0, newEl);
+            break;
+          }
+          case 'removeChild': {
+            const index = key;
+            if (index < el.childNodes.length) {
+              el.childNodes.splice(index, 1);
+            } else {
+              console.warn('remove missing child', keyPath, key);
+            }
+            break;
+          }
+        }
+        this.pushAsync();
+      } else {
+        console.warn('could not find node', keyPath);
+      }
+    },
+    async pushAsync() {
+      if (!this._pushing) {
+        this._pushing = true;
+
+        await s3.putObject({
+          Bucket: bucketNames.channels,
+          Key: name,
+          ContentType: 'text/html',
+          Body: htmlString,
+        }).promise().catch(err => {
+          console.warn(err.stack);
+        });
+
+        this._pushing = false;
+        if (this._queued) {
+          this._queued = false;
+          this.pushAsync();
+        }
+      } else {
+        this._queued = true;
+      }
+    },
   };
 };
 const channels = {};
 const presenceWss = new ws.Server({
   noServer: true,
 });
-presenceWss.on('connection', (s, req) => {
+presenceWss.on('connection', async (s, req) => {
   const o = url.parse(req.url, true);
   const {u, c} = o.query;
   if (u && c) {
@@ -915,6 +1027,10 @@ presenceWss.on('connection', (s, req) => {
           }
         } else if (data.method === 'ping') {
           // nothing
+        } else if (data.method === 'setHTML' && data.html) {
+          channel.setHTML(data.html);
+         } else if (data.method === 'editHTML' && data.spec) {
+          channel.editHTML(data.spec);
         } else {
           const index = channel.connectionIds.indexOf(data.dst);
           if (index !== -1) {
