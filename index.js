@@ -951,6 +951,8 @@ const _makeChannel = async name => {
       if (!this._pushing) {
         this._pushing = true;
 
+        const htmlString = parse5.serialize(this.state);
+        console.log('push html', {name, htmlString});
         await s3.putObject({
           Bucket: bucketNames.channels,
           Key: name,
