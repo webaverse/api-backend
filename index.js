@@ -853,6 +853,7 @@ const _normalizeEl = el => {
     nodeName: el.nodeName,
     tagName: el.tagName,
     attrs: el.attrs,
+    value: el.value,
     childNodes: el.childNodes ? el.childNodes.map(childEl => _normalizeEl(childEl)) : [],
   };
   return result;
