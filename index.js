@@ -44,7 +44,10 @@ const PRIVKEY = fs.readFileSync('/etc/letsencrypt/live/webaverse.com/privkey.pem
 const PORT = parseInt(process.env.PORT, 10) || 80;
 const PARCEL_SIZE = 8;
 
-const bucketName = 'content.exokit.org';
+const bucketNames = {
+  content: 'content.exokit.org',
+  channels: 'channels.exokit.org',
+};
 
 const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 const codeTestRegex = /^[0-9]{6}$/;
@@ -512,7 +515,7 @@ try {
           if (!hadUrl) {
             const start = Date.now();
             uploadUrl = s3.getSignedUrl('putObject', {
-              Bucket: bucketName,
+              Bucket: bucketNames.content,
               Key: tokenId + '',
               ContentType: type,
               Expires: 5*60,
@@ -579,7 +582,7 @@ try {
             console.log('got files 2', {tokenId, files});
 
             const signedUrls = files.map(file => s3.getSignedUrl('putObject', {
-              Bucket: bucketName,
+              Bucket: bucketNames.content,
               Key: tokenId + '/' + file[0],
               ContentType: file[1],
               Expires: 5*60,
