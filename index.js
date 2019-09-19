@@ -1033,12 +1033,12 @@ presenceWss.on('connection', async (s, req) => {
           // nothing
         } else if (data.method === 'setHtml' && data.html) {
           channel.setHtml(data.html);
-         } else if (data.method === 'editState' && data.spec) {
+        } else if (data.method === 'editState' && data.spec) {
            channel.editState(data.spec);
-           s.send(JSON.stringify({
+           /* s.send(JSON.stringify({
             method: 'editState',
             spec: data.spec,
-          }));
+          })); */
         } else {
           const index = channel.connectionIds.indexOf(data.dst);
           if (index !== -1) {
