@@ -1031,7 +1031,7 @@ presenceWss.on('connection', async (s, req) => {
 
             // console.log('send back state');
             s.send(JSON.stringify({
-              method: 'state',
+              method: 'initState',
               state: channel.state,
             }));
 
