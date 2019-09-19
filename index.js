@@ -880,12 +880,19 @@ const _makeChannel = async name => {
     Bucket: bucketNames.channels,
     Key: name,
   }).promise().catch(err => {
-    if (err.code !== 'NoSuchKey') {
-      console.warn(err.stack);
+    if (err.code === 'NoSuchKey') {
+      return {
+        Body: {
+          toString() {
+            return `<xr-site></xr-site>`;
+          },
+        },
+      };
+    } else {
+      throw err;
     }
-    return null;
   });
-  const htmlString = htmlStringRes ? htmlStringRes.Body.toString('utf8') : '';
+  const htmlString = htmlStringRes.Body.toString('utf8');
   const state = _parseHtmlString(htmlString);
 
   return {
