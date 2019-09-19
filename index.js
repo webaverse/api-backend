@@ -950,8 +950,7 @@ const _makeChannel = async name => {
           }
           case 'appendChild': {
             const newEl = parse5.parseFragment(value).childNodes[0];
-            const index = key;
-            el.childNodes.splice(index, 0, newEl);
+            el.childNodes.push(newEl);
             break;
           }
           case 'removeChild': {
