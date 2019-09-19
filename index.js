@@ -908,10 +908,25 @@ const _makeChannel = async name => {
       this.pushAsync();
     },
     editState(editSpec) {
-      const {keyPath, method, key, value} = editSpec;
+      const {keyPath, method, key, value, values} = editSpec;
       const el = _findElByKeyPath(this.state, keyPath);
       if (el) {
         switch (method) {
+          case 'setAttributes': {
+            for (let i = 0; i < values.length; i++) {
+              const {key, value} = values[i];
+              let attr = el.attrs.find(attr => attr.name === key);
+              if (!attr) {
+                attr = {
+                  name: key,
+                  value: null,
+                };
+                el.attrs.push(attr);
+              }
+              attr.value = value;
+            }
+            break;
+          }
           case 'setAttribute': {
             let attr = el.attrs.find(attr => attr.name === key);
             if (!attr) {
@@ -959,7 +974,6 @@ const _makeChannel = async name => {
         this._pushing = true;
 
         const htmlString = parse5.serialize(this.state);
-        console.log('push html', {name, htmlString});
         await s3.putObject({
           Bucket: bucketNames.channels,
           Key: name,
