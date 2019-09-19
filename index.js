@@ -867,7 +867,7 @@ const _parseHtmlString = htmlString => {
 };
 const _findElByKeyPath = (el, keyPath) => {
   for (let i = 0; i < keyPath.length; i++) {
-    el = el[keyPath[i]];
+    el = el.childNodes[keyPath[i]];
     if (!el) {
       el = null;
       break;
