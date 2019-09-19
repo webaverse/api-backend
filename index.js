@@ -1010,6 +1010,15 @@ presenceWss.on('connection', async (s, req) => {
       channels[c] = channel;
     }
 
+    const _proxyMessage = m => {
+      for (let i = 0; i < channel.sockets.length; i++) {
+        const s2 = channel.sockets[i];
+        if (s2 !== s) {
+          s2.send(m);
+        }
+      }
+    };
+
     let connectionId = null;
     s.on('message', m => {
       console.log('got message', m);
@@ -1053,12 +1062,10 @@ presenceWss.on('connection', async (s, req) => {
           // nothing
         } else if (data.method === 'setHtml' && data.html) {
           channel.setHtml(data.html);
+          _proxyMessage(m);
         } else if (data.method === 'editState' && data.spec) {
-           channel.editState(data.spec);
-           /* s.send(JSON.stringify({
-            method: 'editState',
-            spec: data.spec,
-          })); */
+          channel.editState(data.spec);
+          _proxyMessage(m);
         } else {
           const index = channel.connectionIds.indexOf(data.dst);
           if (index !== -1) {
