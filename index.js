@@ -350,27 +350,26 @@ try {
   if (method === 'GET') {
     console.log('sites get request', {method, path: p});
 
-    if (p === '/channels') {
-      const k = `${userName}/${channelName}`;
-      const htmlStringRes = await s3.getObject({
-        Bucket: bucketNames.channels,
-        Key: k,
-      }).promise().catch(async err => {
-        if (err.code === 'NoSuchKey') {
-          return null;
-        } else {
-          throw err;
-        }
-      });
-      if (htmlStringRes) {
-        res.setHeader('Content-Type', 'text/html');
-        let s = `<!doctype html>\n<html>\n<head>\n<script src="https://web.exokit.org/ew.js" type=module></script>\n</head>\n<body>\n<xr-engine>\n`;
-        s += htmlStringRes.Body.toString('utf8');
-        s += `\n</xr-engine>\n</body>\n</html>\n`;
-        _respond(200, s);
+    const k = `${userName}/${channelName}`;
+    const htmlStringRes = await s3.getObject({
+      Bucket: bucketNames.channels,
+      Key: k,
+    }).promise().catch(async err => {
+      if (err.code === 'NoSuchKey') {
+        return null;
       } else {
-        _respond(404, '');
+        throw err;
       }
+    });
+    if (htmlStringRes) {
+      res.setHeader('Content-Type', 'text/html');
+      let s = `<!doctype html>\n<html>\n<head>\n<script src="https://web.exokit.org/ew.js" type=module></script>\n</head>\n<body>\n<xr-engine>\n`;
+      s += htmlStringRes.Body.toString('utf8');
+      s += `\n</xr-engine>\n</body>\n</html>\n`;
+      _respond(200, s);
+    } else {
+      _respond(404, '');
+    }
   } else {
     _respond(404, '');
   }
