@@ -889,7 +889,23 @@ const _checkProxyApiKey = async req => {
         if (apiKeyItem.Item) {
           keys = JSON.parse(apiKeyItem.Item.keys.S);
         } else {
-          keys = [];
+          const match = domain.match(/^([^\.]+)\.(.+)$/);
+          if (match) {
+            const subdomain = match[2];
+            const apiKeyItem = await ddb.getItem({
+              TableName: 'api-key',
+              Key: {
+                domain: {S: '*.' + subdomain},
+              },
+            }).promise();
+            if (apiKeyItem.Item) {
+              keys = JSON.parse(apiKeyItem.Item.keys.S);
+            } else {
+              keys = [];
+            }
+          } else {
+            keys = [];
+          }
         }
         apiKeyCache.set(domain, keys);
       }
