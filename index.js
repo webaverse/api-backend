@@ -1193,9 +1193,16 @@ try {
   } else if (match = o.host.match(/^([a-z0-9\-]+)\.sites\.exokit\.org$/)) {
     const userName = match[1];
     if (o.path === '/sw.js') {
-      res.statusCode = 302;
-      res.setHeader('Location', 'https://web.exokit.org/sw.js');
-      res.end();
+      proxy.web(req, res, {
+        target: 'https://web.exokit.org',
+        secure: false,
+        changeOrigin: true,
+      }, err => {
+        console.warn(err.stack);
+
+        res.statusCode = 500;
+        res.end();
+      });
       return;
     } else if (match = o.path.match(/^\/([^\/]+)(?:\/(?:index\.html)?)?$/)) {
       const channelName = match[1];
