@@ -82,19 +82,19 @@ function _getKeyFromBindingUrl(u) {
 (async () => {
 
 const _handleLogin = async (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    // res.setHeader('Access-Control-Allow-Headers', '*');
+    // res.setHeader('Access-Control-Allow-Methods', '*');
+    res.end(body);
+  };
+
 try {
     const {method} = req;
     const {query, path: p} = url.parse(req.url, true);
 
     console.log('got login', {method, p, query});
-
-    const _respond = (statusCode, body) => {
-      res.statusCode = statusCode;
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      // res.setHeader('Access-Control-Allow-Headers', '*');
-      // res.setHeader('Access-Control-Allow-Methods', '*');
-      res.end(body);
-    };
 
     if (method === 'POST') {
       let {email, code, token} = query;
@@ -270,11 +270,6 @@ try {
 };
 
 const _handlePresence = async (req, res) => {
-try {
-  const {method} = req;
-  const {path: p} = url.parse(req.url);
-  console.log('presence request', {method, p});
-
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -282,6 +277,11 @@ try {
     // res.setHeader('Access-Control-Allow-Methods', '*');
     res.end(body);
   };
+
+try {
+  const {method} = req;
+  const {path: p} = url.parse(req.url);
+  console.log('presence request', {method, p});
 
   if (method === 'GET') {
     console.log('presence get request', {method, path: p});
@@ -334,11 +334,6 @@ try {
 };
 
 const _handleToken = async (req, res) => {
-try {
-  const {method} = req;
-  const {query, path: p} = url.parse(req.url, true);
-  console.log('token request', {method, query, p});
-
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -346,6 +341,11 @@ try {
     res.setHeader('Access-Control-Allow-Methods', '*');
     res.end(body);
   };
+
+try {
+  const {method} = req;
+  const {query, path: p} = url.parse(req.url, true);
+  console.log('token request', {method, query, p});
 
   if (method === 'GET') {
     console.log('token get request', {method, path: p});
