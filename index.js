@@ -344,11 +344,10 @@ const _handleSites = async (req, res, userName, channelName) => {
 
 try {
   const {method} = req;
-  const {path: p} = url.parse(req.url);
-  console.log('sites request', {method, p});
+  console.log('sites request', {method, userName, channelName});
 
   if (method === 'GET') {
-    console.log('sites get request', {method, path: p});
+    console.log('sites get request', {method});
 
     const k = `${userName}/${channelName}`;
     const htmlStringRes = await s3.getObject({
