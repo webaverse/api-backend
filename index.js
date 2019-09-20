@@ -949,7 +949,7 @@ const _makeChannel = async name => {
             break;
           }
           case 'appendChild': {
-            const newEl = parse5.parseFragment(value).childNodes[0];
+            const newEl = _parseHtmlString(value).childNodes[0];
             el.childNodes.push(newEl);
             break;
           }
