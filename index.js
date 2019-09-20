@@ -287,14 +287,23 @@ try {
     console.log('presence get request', {method, path: p});
 
     if (p === '/channels') {
-      const result = Object.keys(channels).map(k => {
-        const {name, users} = channels[k];
-        return {
-          name,
-          users,
+      const keys = [];
+      const _recurse = async (marker = null) => {
+        const o = {
+          Bucket: bucketNames.channels,
         };
-      });
-      _respond(200, JSON.stringify(result));
+        if (marker) {
+          o.Marker = marker;
+        }
+        const r = await s3.listObjects(o).promise();
+        keys.push.apply(keys, r.Contents.map(item => item.Key));
+        if (r.IsTruncated) {
+          await _recurse(r.NextMarker);
+        }
+      };
+      await _recurse();
+
+      _respond(200, JSON.stringify(keys));
     } else {
       _respond(404, JSON.stringify({
         error: 'not found',
@@ -875,16 +884,27 @@ const _findElByKeyPath = (el, keyPath) => {
   }
   return el;
 };
-const _makeChannel = async name => {
+const _makeChannel = async (userName, channelName) => {
+  const k = `${userName}/${channelName}`;
   const htmlStringRes = await s3.getObject({
     Bucket: bucketNames.channels,
-    Key: name,
-  }).promise().catch(err => {
+    Key: k,
+  }).promise().catch(async err => {
     if (err.code === 'NoSuchKey') {
+      const htmlString = `<xr-site></xr-site>`;
+      await s3.putObject({
+        Bucket: bucketNames.channels,
+        Key: k,
+        ContentType: 'text/html',
+        Body: htmlString,
+      }).promise().catch(err => {
+        console.warn(err.stack);
+      });
+
       return {
         Body: {
           toString() {
-            return `<xr-site></xr-site>`;
+            return htmlString;
           },
         },
       };
@@ -896,8 +916,8 @@ const _makeChannel = async name => {
   const state = _parseHtmlString(htmlString);
 
   return {
-    name,
-    state,
+    userName,
+    channelName,
     connectionIds: [],
     sockets: [],
     users: [],
@@ -975,7 +995,7 @@ const _makeChannel = async name => {
         const htmlString = parse5.serialize(this.state);
         await s3.putObject({
           Bucket: bucketNames.channels,
-          Key: name,
+          Key: k,
           ContentType: 'text/html',
           Body: htmlString,
         }).promise().catch(err => {
@@ -1006,7 +1026,7 @@ presenceWss.on('connection', async (s, req) => {
 
     let channel = channels[c];
     if (!channel) {
-      channel = await _makeChannel(c);
+      channel = await _makeChannel(u, c);
       channels[c] = channel;
     }
 
