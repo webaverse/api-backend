@@ -38,8 +38,8 @@ const bip39 = require('./bip39.js');
 const ethUtil = require('./ethereumjs-util.js');
 const api = require('./api.js');
 
-const CERT = fs.readFileSync('/etc/letsencrypt/live/webaverse.com/fullchain.pem');
-const PRIVKEY = fs.readFileSync('/etc/letsencrypt/live/webaverse.com/privkey.pem');
+const CERT = fs.readFileSync('/etc/letsencrypt/live/exokit.org/fullchain.pem');
+const PRIVKEY = fs.readFileSync('/etc/letsencrypt/live/exokit.org/privkey.pem');
 
 const PORT = parseInt(process.env.PORT, 10) || 80;
 const PARCEL_SIZE = 8;
