@@ -1192,14 +1192,14 @@ try {
     return;
   } else if (match = o.host.match(/^([a-z0-9\-]+)\.sites\.exokit\.org$/)) {
     const userName = match[1];
-    if (match = o.path.match(/^\/([^\/]+)(?:\/(?:index\.html)?)?$/)) {
-      const channelName = match[1];
-      _handleSites(req, res, userName, channelName);
-      return;
-    } else if (o.path === '/sw.js') {
+    if (o.path === '/sw.js') {
       res.statusCode = 302;
       res.setHeader('Location', 'https://web.exokit.org/sw.js');
       res.end();
+      return;
+    } else if (match = o.path.match(/^\/([^\/]+)(?:\/(?:index\.html)?)?$/)) {
+      const channelName = match[1];
+      _handleSites(req, res, userName, channelName);
       return;
     }
   } else if (o.host === 'token.exokit.org') {
