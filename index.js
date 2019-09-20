@@ -152,7 +152,7 @@ try {
               const token = crypto.randomBytes(32).toString('base64');
               tokens.push(token);
               if (!name) {
-                name = namegen(2).map(n => n[0].toUpperCase() + n.slice(1)).join(' ');
+                name = namegen(2).join('-');
               }
               if (!mnemonic) {
                 mnemonic = bip39.entropyToMnemonic(crypto.randomBytes(32));
