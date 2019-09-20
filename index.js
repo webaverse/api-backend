@@ -1190,7 +1190,7 @@ try {
   } else if (o.host === 'presence.exokit.org') {
     _handlePresence(req, res);
     return;
-  } else if (match = o.host.match(/^([a-zA-Z0-9]+)\.sites\.exokit\.org$/)) {
+  } else if (match = o.host.match(/^([a-z0-9\-]+)\.sites\.exokit\.org$/)) {
     const userName = match[1];
     if (match = o.path.match(/^\/([^\/]+)\.html$/)) {
       const channelName = match[1];
