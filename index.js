@@ -297,7 +297,7 @@ try {
         }
         const r = await s3.listObjects(o).promise();
         for (let i = 0; i < r.Contents.length; i++) {
-          const item = r.Contents[i];
+          const item = r.Contents[i].Key;
           const split = item.split('/');
           if (split.length === 2) {
             const [user, channel] = split;
