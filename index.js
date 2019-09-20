@@ -928,6 +928,7 @@ const _makeChannel = async (userName, channelName) => {
   return {
     userName,
     channelName,
+    state,
     connectionIds: [],
     sockets: [],
     users: [],
