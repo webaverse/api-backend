@@ -313,7 +313,7 @@ try {
       };
       await _recurse();
 
-      _respond(200, JSON.stringify(channel));
+      _respond(200, JSON.stringify(channels));
     } else {
       _respond(404, JSON.stringify({
         error: 'not found',
