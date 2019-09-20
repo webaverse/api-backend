@@ -1192,7 +1192,7 @@ try {
     return;
   } else if (match = o.host.match(/^([a-z0-9\-]+)\.sites\.exokit\.org$/)) {
     const userName = match[1];
-    if (match = o.path.match(/^\/([^\/]+)\/index\.html$/)) {
+    if (match = o.path.match(/^\/([^\/]+)(?:\/(?:index\.html)?)?$/)) {
       const channelName = match[1];
       _handleSites(req, res, userName, channelName);
       return;
