@@ -287,7 +287,7 @@ try {
     console.log('presence get request', {method, path: p});
 
     if (p === '/channels') {
-      const keys = [];
+      const channels = [];
       const _recurse = async (marker = null) => {
         const o = {
           Bucket: bucketNames.channels,
@@ -296,14 +296,24 @@ try {
           o.Marker = marker;
         }
         const r = await s3.listObjects(o).promise();
-        keys.push.apply(keys, r.Contents.map(item => item.Key));
+        for (let i = 0; i < r.Contents.length; i++) {
+          const item = r.Contents[i];
+          const split = item.split('/');
+          if (split.length === 2) {
+            const [user, channel] = split;
+            channels.push({
+              user,
+              channel,
+            });
+          }
+        }
         if (r.IsTruncated) {
           await _recurse(r.NextMarker);
         }
       };
       await _recurse();
 
-      _respond(200, JSON.stringify(keys));
+      _respond(200, JSON.stringify(channel));
     } else {
       _respond(404, JSON.stringify({
         error: 'not found',
