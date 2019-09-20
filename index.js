@@ -333,6 +333,56 @@ try {
 }
 };
 
+const _handleSites = async (req, res, userName, channelName) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    // res.setHeader('Access-Control-Allow-Headers', '*');
+    // res.setHeader('Access-Control-Allow-Methods', '*');
+    res.end(body);
+  };
+
+try {
+  const {method} = req;
+  const {path: p} = url.parse(req.url);
+  console.log('sites request', {method, p});
+
+  if (method === 'GET') {
+    console.log('sites get request', {method, path: p});
+
+    if (p === '/channels') {
+      const k = `${userName}/${channelName}`;
+      const htmlStringRes = await s3.getObject({
+        Bucket: bucketNames.channels,
+        Key: k,
+      }).promise().catch(async err => {
+        if (err.code === 'NoSuchKey') {
+          return null;
+        } else {
+          throw err;
+        }
+      });
+      if (htmlStringRes) {
+        res.setHeader('Content-Type', 'text/html');
+        let s = `<!doctype html>\n<html>\n<head>\n<script src="https://web.exokit.org/ew.js" type=module></script>\n</head>\n<body>\n<xr-engine>\n`;
+        s += htmlStringRes.Body.toString('utf8');
+        s += `\n</xr-engine>\n</body>\n</html>\n`;
+        _respond(200, s);
+      } else {
+        _respond(404, '');
+      }
+  } else {
+    _respond(404, '');
+  }
+} catch(err) {
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
+}
+};
+
 const _handleToken = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -1135,12 +1185,20 @@ const _req = protocol => (req, res) => {
 try {
 
   const o = url.parse(protocol + '//' + (req.headers['host'] || '') + req.url);
+  let match;
   if (o.host === 'login.exokit.org') {
     _handleLogin(req, res);
     return;
   } else if (o.host === 'presence.exokit.org') {
     _handlePresence(req, res);
     return;
+  } else if (match = o.host.match(/^([a-zA-Z0-9]+)\.sites\.exokit\.org$/)) {
+    const userName = match[1];
+    if (match = o.path.match(/^\/([^\/]+)\.html$/)) {
+      const channelName = match[1];
+      _handleSites(req, res, userName, channelName);
+      return;
+    }
   } else if (o.host === 'token.exokit.org') {
     _handleToken(req, res);
     return;
@@ -1149,8 +1207,7 @@ try {
     return;
   } */
 
-  const match = o.host.match(/^(.+)\.proxy\.exokit.org$/);
-  if (match) {
+  if (match = o.host.match(/^(.+)\.proxy\.exokit.org$/)) {
     const raw = match[1];
     const match2 = raw.match(/^(https?-)(.+?)(-[0-9]+)?$/);
     if (match2) {
