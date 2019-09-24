@@ -871,7 +871,7 @@ try {
 }
 }; */
 
-const _checkProxyApiKey = async req => {
+/* const _checkProxyApiKey = async req => {
   const referer = req.headers['referer'];
   if (referer) {
     const o = url.parse(referer, true);
@@ -916,7 +916,7 @@ const _checkProxyApiKey = async req => {
   } else {
     return false;
   }
-};
+}; */
 
 const proxy = httpProxy.createProxyServer({});
 proxy.on('proxyRes', (proxyRes, req) => {
@@ -1237,41 +1237,33 @@ try {
     const raw = match[1];
     const match2 = raw.match(/^(https?-)(.+?)(-[0-9]+)?$/);
     if (match2) {
-      _checkProxyApiKey(req)
-        .then(ok => {
-          if (ok) {
-            if (req.method === 'OPTIONS') {
-              res.statusCode = 200;
-              res.setHeader('Access-Control-Allow-Origin', '*');
-              res.setHeader('Access-Control-Allow-Methods', '*');
-              res.setHeader('Access-Control-Allow-Headers', '*');
-              res.end();
-            } else {
-              o.protocol = match2[1].replace(/-/g, ':');
-              o.host = match2[2].replace(/--/g, '=').replace(/-/g, '.').replace(/=/g, '-').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
-              const oldUrl = req.url;
-              req.url = url.format(o);
+      if (req.method === 'OPTIONS') {
+        res.statusCode = 200;
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', '*');
+        res.setHeader('Access-Control-Allow-Headers', '*');
+        res.end();
+      } else {
+        o.protocol = match2[1].replace(/-/g, ':');
+        o.host = match2[2].replace(/--/g, '=').replace(/-/g, '.').replace(/=/g, '-').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
+        const oldUrl = req.url;
+        req.url = url.format(o);
 
-              console.log(oldUrl, '->', req.url);
+        console.log(oldUrl, '->', req.url);
 
-              delete req.headers['referer'];
+        delete req.headers['referer'];
 
-              proxy.web(req, res, {
-                target: o.protocol + '//' + o.host,
-                secure: false,
-                changeOrigin: true,
-              }, err => {
-                console.warn(err.stack);
+        proxy.web(req, res, {
+          target: o.protocol + '//' + o.host,
+          secure: false,
+          changeOrigin: true,
+        }, err => {
+          console.warn(err.stack);
 
-                res.statusCode = 500;
-                res.end();
-              });
-            }
-          } else {
-            res.statusCode = 403;
-            res.end('invalid domain or api key');
-          }
+          res.statusCode = 500;
+          res.end();
         });
+      }
       return;
     }
   }
@@ -1292,14 +1284,7 @@ const _ws = (req, socket, head) => {
       presenceWss.emit('connection', s, req);
     });
   } else {
-    _checkProxyApiKey(req)
-      .then(ok => {
-        if (ok) {
-          proxy.ws(req, socket, head);
-        } else {
-          socket.destroy();
-        }
-      });
+    proxy.ws(req, socket, head);
   }
 };
 
