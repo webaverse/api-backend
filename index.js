@@ -390,6 +390,7 @@ try {
 };
 
 const client_id = 'ca_Bj6O5x5CFVCOELBhyjbiJxwUfW6l8ozd';
+const client_secret = 'sk_test_WMysffATw60L1FhYxKDphPgO';
 const _handlePayments = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -442,7 +443,7 @@ try {
           form: { 
             grant_type: 'authorization_code',
             client_id,
-            client_secret: 'sk_test_WMysffATw60L1FhYxKDphPgO',
+            client_secret,
             code: o.query.code,
           },
           json: true
