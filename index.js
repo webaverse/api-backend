@@ -405,7 +405,7 @@ try {
 
   const o = url.parse(req.url, true);
   if (o.pathname === '/authorize' && o.query.email && o.query.token) {
-    let {email, token} = query;
+    let {email, token} = o.query;
     const tokenItem = await ddb.getItem({
       TableName: 'login',
       Key: {
