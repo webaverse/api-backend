@@ -405,7 +405,7 @@ try {
 
   const o = url.parse(req.url, true);
   if (o.pathname === '/authorize' && o.query.email && o.query.token) {
-    let {email, token} = o.query;
+    let {email, token, redirectUrl} = o.query;
     const tokenItem = await ddb.getItem({
       TableName: 'login',
       Key: {
@@ -413,9 +413,11 @@ try {
       }
     }).promise();
 
+    console.log('got item', JSON.stringify(token), tokenItem && tokenItem.Item);
+
     const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
     if (tokens.includes(token)) {
-      const state = _randomString();
+      const state = email + ':' + tokenItem.Item.state.S + ':' + redirectUrl;
 
       console.log('got token login', tokenItem.Item);
 
@@ -424,7 +426,7 @@ try {
         state,
       };
       parameters = Object.assign(parameters, {
-        redirect_uri: `http://127.0.0.1/token`,
+        // redirect_uri: `http://127.0.0.1/token`,
         'stripe_user[business_type]': 'individual',
         'stripe_user[business_name]': 'Exokit Lol',
         'stripe_user[first_name]': 'A',
@@ -435,44 +437,70 @@ try {
       res.statusCode = 301;
       res.setHeader('Location', 'https://connect.stripe.com/express/oauth/authorize?' + querystring.stringify(parameters));
       res.end();
-    } else if (o.pathname === '/token') {
-      console.log('got query', o.query);
-
-      const proxyRes = await request.post({
-        uri: 'https://connect.stripe.com/oauth/token',
-        form: { 
-          grant_type: 'authorization_code',
-          client_id,
-          client_secret,
-          code: o.query.code,
-        },
-        json: true
-      });
-
-      const j = await new Promise((accept, reject) => {
-        const bs = [];
-        proxyRes.on('data', b => {
-          bs.push(b);
-        });
-        proxyRes.on('end', () => {
-          accept(JSON.parse(Buffer.concat(bs)));
-        });
-        proxyRes.on('error', err => {
-          reject(err);
-        });
-      });
-
-      const {
-        access_token,
-        stripe_publishable_key,
-        stripe_user_id,
-      } = j;
-
-      console.log('got json', j);
-
-      _respond(200, 'lol');
     } else {
       _respond(401, 'not authorized');
+    }
+  } else if (o.pathname === '/token') {
+    console.log('got query', o.query);
+
+    const proxyRes = await request.post({
+      uri: 'https://connect.stripe.com/oauth/token',
+      form: { 
+        grant_type: 'authorization_code',
+        client_id,
+        client_secret,
+        code: o.query.code,
+      },
+      json: true
+    });
+
+    const j = await new Promise((accept, reject) => {
+      const bs = [];
+      proxyRes.on('data', b => {
+        bs.push(b);
+      });
+      proxyRes.on('end', () => {
+        accept(JSON.parse(Buffer.concat(bs)));
+      });
+      proxyRes.on('error', err => {
+        reject(err);
+      });
+    });
+
+    console.log('got json 2', j);
+
+    const {
+      access_token,
+      stripe_publishable_key,
+      stripe_user_id,
+    } = j;
+
+    const match = o.query.state.match(/^([^:]+):([^:]+):(.+)$/);
+    if (match) {
+      const queryEmail = match[1];
+      const queryState = match[2];
+      const queryUrl = match[3];
+
+      const tokenItem = await ddb.getItem({
+        TableName: 'login',
+        Key: {
+          email: {S: queryEmail + '.token'},
+        }
+      }).promise();
+      const dbState = tokenItem.Item ? tokenItem.Item.state.S : null;
+      console.log('logging in', queryEmail, queryState, queryUrl, dbState, tokenItem.Item);
+
+      if (dbState === queryState) {
+        console.log('got json 2', queryEmail, queryState);
+
+        res.statusCode = 301;
+        res.setHeader('Location', queryUrl);
+        res.end();
+      } else {
+        _respond(400, 'not authorized');
+      }
+    } else {
+      _respond(400, 'invalid parameters');
     }
   } else {
     _respond(404, 'not found');
