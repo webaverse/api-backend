@@ -1,5 +1,6 @@
 const fs = require('fs');
 const url = require('url');
+const querystring = require('querystring');
 const http = require('http');
 const https = require('https');
 const crypto = require('crypto');
@@ -8,6 +9,7 @@ const httpProxy = require('http-proxy');
 const ws = require('ws');
 const LRU = require('lru');
 const parse5 = require('parse5');
+const request = require('request');
 const AWS = require('aws-sdk');
 // const puppeteer = require('puppeteer');
 const namegen = require('./namegen.js');
@@ -378,6 +380,100 @@ try {
   _respond(500, JSON.stringify({
     error: err.stack,
   }));
+}
+};
+
+const client_id = 'ca_Bj6O5x5CFVCOELBhyjbiJxwUfW6l8ozd';
+const _handlePayments = async (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+    res.end(body);
+  };
+
+try {
+  console.log('got payments req', req.url, req.headers);
+
+  if (req.url === '/authorize') {
+    // Generate a random string as `state` to protect from CSRF and include it in the session
+    const state = Math.random()
+      .toString(36)
+      .slice(2);
+    // Define the mandatory Stripe parameters: make sure to include our platform's client ID
+    let parameters = {
+      client_id,
+      state,
+    };
+    // Optionally, the Express onboarding flow accepts `first_name`, `last_name`, `email`,
+    // and `phone` in the query parameters: those form fields will be prefilled
+    parameters = Object.assign(parameters, {
+      redirect_uri: `http://127.0.0.1/token`,
+      'stripe_user[business_type]': 'individual',
+      'stripe_user[business_name]': 'Exokit Lol',
+      'stripe_user[first_name]': 'A',
+      'stripe_user[last_name]': 'B',
+      'stripe_user[email]': 'lol@lol.com',
+    });
+    console.log('Starting Express flow:', parameters);
+    // Redirect to Stripe to start the Express onboarding flow
+    res.statusCode = 301;
+    res.setHeader('Location', 'https://connect.stripe.com/express/oauth/authorize?' + querystring.stringify(parameters));
+    res.end();
+  } else {
+    const o = url.parse(req.url, true);
+    if (o.pathname === '/token') {
+      console.log('got query', o.query);
+
+      /* if (req.session.state != req.query.state) {
+        return res.redirect('/pilots/signup');
+      } */
+      try {
+        // Post the authorization code to Stripe to complete the Express onboarding flow
+        const proxyRes = await request.post({
+          uri: 'https://connect.stripe.com/oauth/token',
+          form: { 
+            grant_type: 'authorization_code',
+            client_id,
+            client_secret: 'sk_test_WMysffATw60L1FhYxKDphPgO',
+            code: o.query.code,
+          },
+          json: true
+        });
+
+        const j = await new Promise((accept, reject) => {
+          const bs = [];
+          proxyRes.on('data', b => {
+            bs.push(b);
+          });
+          proxyRes.on('end', () => {
+            accept(JSON.parse(Buffer.concat(bs)));
+          });
+          proxyRes.on('error', err => {
+            reject(err);
+          });
+        });
+
+        const {
+          access_token,
+          stripe_publishable_key,
+          stripe_user_id,
+        } = j;
+
+        console.log('got json', j);
+
+        _respond(200, 'lol');
+      } catch (err) {
+        console.log('The Stripe onboarding process has not succeeded.', err);
+        _respond(500, err.stack);
+      }
+    } else {
+      _respond(404, 'not found');
+    }
+  }
+} catch (err) {
+  console.warn(err.stack);
 }
 };
 
@@ -1225,6 +1321,9 @@ try {
       _handleSites(req, res, userName, channelName);
       return;
     }
+  } else if (o.host === 'payments.exokit.org') {
+    _handlePayments(req, res);
+    return;
   } else if (o.host === 'token.exokit.org') {
     _handleToken(req, res);
     return;
