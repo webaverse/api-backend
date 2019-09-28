@@ -148,6 +148,7 @@ try {
               let name = (tokenItem.Item && tokenItem.Item.name) ? tokenItem.Item.name.S : null;
               let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
               let addr = (tokenItem.Item && tokenItem.Item.addr) ? tokenItem.Item.addr.S : null;
+              let state = (tokenItem.Item && tokenItem.Item.state) ? tokenItem.Item.state.S : null;
               
               console.log('old item', tokenItem, {tokens, mnemonic});
 
@@ -167,6 +168,9 @@ try {
                 const end = Date.now();
                 console.log('get address time', end - start, addr);
               }
+              if (!state) {
+                state = _randomString();
+              }
 
               console.log('new item', {name, tokens, mnemonic, addr});
               
@@ -178,6 +182,7 @@ try {
                   tokens: {S: JSON.stringify(tokens)},
                   mnemonic: {S: mnemonic},
                   addr: {S: addr},
+                  state: {S: state},
                   whitelisted: {BOOL: true},
                 }
               }).promise();
@@ -188,6 +193,7 @@ try {
                 name,
                 mnemonic,
                 addr,
+                state,
               }));
             } else {
               _respond(403, JSON.stringify({
