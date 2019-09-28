@@ -403,81 +403,79 @@ const _handlePayments = async (req, res) => {
 try {
   console.log('got payments req', req.url, req.headers);
 
-  if (req.url === '/authorize') {
-    // Generate a random string as `state` to protect from CSRF and include it in the session
-    const state = Math.random()
-      .toString(36)
-      .slice(2);
-    // Define the mandatory Stripe parameters: make sure to include our platform's client ID
-    let parameters = {
-      client_id,
-      state,
-    };
-    // Optionally, the Express onboarding flow accepts `first_name`, `last_name`, `email`,
-    // and `phone` in the query parameters: those form fields will be prefilled
-    parameters = Object.assign(parameters, {
-      redirect_uri: `http://127.0.0.1/token`,
-      'stripe_user[business_type]': 'individual',
-      'stripe_user[business_name]': 'Exokit Lol',
-      'stripe_user[first_name]': 'A',
-      'stripe_user[last_name]': 'B',
-      'stripe_user[email]': 'lol@lol.com',
-    });
-    console.log('Starting Express flow:', parameters);
-    // Redirect to Stripe to start the Express onboarding flow
-    res.statusCode = 301;
-    res.setHeader('Location', 'https://connect.stripe.com/express/oauth/authorize?' + querystring.stringify(parameters));
-    res.end();
-  } else {
-    const o = url.parse(req.url, true);
-    if (o.pathname === '/token') {
+  const o = url.parse(req.url, true);
+  if (o.pathname === '/authorize' && o.query.email && o.query.token) {
+    let {email, token} = query;
+    const tokenItem = await ddb.getItem({
+      TableName: 'login',
+      Key: {
+        email: {S: email + '.token'},
+      }
+    }).promise();
+
+    const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+    if (tokens.includes(token)) {
+      const state = _randomString();
+
+      console.log('got token login', tokenItem.Item);
+
+      let parameters = {
+        client_id,
+        state,
+      };
+      parameters = Object.assign(parameters, {
+        redirect_uri: `http://127.0.0.1/token`,
+        'stripe_user[business_type]': 'individual',
+        'stripe_user[business_name]': 'Exokit Lol',
+        'stripe_user[first_name]': 'A',
+        'stripe_user[last_name]': 'B',
+        'stripe_user[email]': 'lol@lol.com',
+      });
+
+      res.statusCode = 301;
+      res.setHeader('Location', 'https://connect.stripe.com/express/oauth/authorize?' + querystring.stringify(parameters));
+      res.end();
+    } else if (o.pathname === '/token') {
       console.log('got query', o.query);
 
-      /* if (req.session.state != req.query.state) {
-        return res.redirect('/pilots/signup');
-      } */
-      try {
-        // Post the authorization code to Stripe to complete the Express onboarding flow
-        const proxyRes = await request.post({
-          uri: 'https://connect.stripe.com/oauth/token',
-          form: { 
-            grant_type: 'authorization_code',
-            client_id,
-            client_secret,
-            code: o.query.code,
-          },
-          json: true
+      const proxyRes = await request.post({
+        uri: 'https://connect.stripe.com/oauth/token',
+        form: { 
+          grant_type: 'authorization_code',
+          client_id,
+          client_secret,
+          code: o.query.code,
+        },
+        json: true
+      });
+
+      const j = await new Promise((accept, reject) => {
+        const bs = [];
+        proxyRes.on('data', b => {
+          bs.push(b);
         });
-
-        const j = await new Promise((accept, reject) => {
-          const bs = [];
-          proxyRes.on('data', b => {
-            bs.push(b);
-          });
-          proxyRes.on('end', () => {
-            accept(JSON.parse(Buffer.concat(bs)));
-          });
-          proxyRes.on('error', err => {
-            reject(err);
-          });
+        proxyRes.on('end', () => {
+          accept(JSON.parse(Buffer.concat(bs)));
         });
+        proxyRes.on('error', err => {
+          reject(err);
+        });
+      });
 
-        const {
-          access_token,
-          stripe_publishable_key,
-          stripe_user_id,
-        } = j;
+      const {
+        access_token,
+        stripe_publishable_key,
+        stripe_user_id,
+      } = j;
 
-        console.log('got json', j);
+      console.log('got json', j);
 
-        _respond(200, 'lol');
-      } catch (err) {
-        console.log('The Stripe onboarding process has not succeeded.', err);
-        _respond(500, err.stack);
-      }
+      _respond(200, 'lol');
     } else {
-      _respond(404, 'not found');
+      _respond(401, 'not authorized');
     }
+  } else {
+    _respond(404, 'not found');
   }
 } catch (err) {
   console.warn(err.stack);
