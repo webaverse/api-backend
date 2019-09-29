@@ -502,14 +502,14 @@ try {
         await ddb.putItem({
           TableName: 'login',
           Item: {
-            email: {S: tokenItem.Item.email},
-            name: {S: tokenItem.Item.name},
-            tokens: {S: tokenItem.Item.tokens},
-            mnemonic: {S: tokenItem.Item.mnemonic},
-            addr: {S: tokenItem.Item.addr},
-            state: {S: tokenItem.Item.state},
+            email: {S: tokenItem.Item.email.S},
+            name: {S: tokenItem.Item.name.S},
+            tokens: {S: tokenItem.Item.tokens.S},
+            mnemonic: {S: tokenItem.Item.mnemonic.S},
+            addr: {S: tokenItem.Item.addr.S},
+            state: {S: tokenItem.Item.state.S},
             stripeState: {S: JSON.stringify(stripeState)},
-            whitelisted: {BOOL: tokenItem.Item.whitelisted},
+            whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
           }
         }).promise();
 
@@ -535,14 +535,14 @@ try {
       await ddb.putItem({
         TableName: 'login',
         Item: {
-          email: {S: tokenItem.Item.email},
-          name: {S: tokenItem.Item.name},
-          tokens: {S: tokenItem.Item.tokens},
-          mnemonic: {S: tokenItem.Item.mnemonic},
-          addr: {S: tokenItem.Item.addr},
-          state: {S: tokenItem.Item.state},
+          email: {S: tokenItem.Item.email.S},
+          name: {S: tokenItem.Item.name.S},
+          tokens: {S: tokenItem.Item.tokens.S},
+          mnemonic: {S: tokenItem.Item.mnemonic.S},
+          addr: {S: tokenItem.Item.addr.S},
+          state: {S: tokenItem.Item.state.S},
           stripeState: {S: JSON.stringify(null)},
-          whitelisted: {BOOL: tokenItem.Item.whitelisted},
+          whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
         }
       }).promise();
 
