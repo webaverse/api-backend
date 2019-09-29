@@ -149,6 +149,7 @@ try {
               let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
               let addr = (tokenItem.Item && tokenItem.Item.addr) ? tokenItem.Item.addr.S : null;
               let state = (tokenItem.Item && tokenItem.Item.state) ? tokenItem.Item.state.S : null;
+              let stripeState = (tokenItem.Item && tokenItem.Item.stripeState) ? tokenItem.Item.stripeState.S : null;
               
               console.log('old item', tokenItem, {tokens, mnemonic});
 
@@ -171,6 +172,9 @@ try {
               if (!state) {
                 state = _randomString();
               }
+              if (!stripeState) {
+                stripeState = null;
+              }
 
               console.log('new item', {name, tokens, mnemonic, addr});
               
@@ -183,6 +187,7 @@ try {
                   mnemonic: {S: mnemonic},
                   addr: {S: addr},
                   state: {S: state},
+                  stripeState: {S: JSON.stringify(stripeState)},
                   whitelisted: {BOOL: true},
                 }
               }).promise();
@@ -194,6 +199,7 @@ try {
                 mnemonic,
                 addr,
                 state,
+                stripeState: !!stripeState,
               }));
             } else {
               _respond(403, JSON.stringify({
@@ -454,7 +460,7 @@ try {
       json: true
     });
 
-    const j = await new Promise((accept, reject) => {
+    const stripeState = await new Promise((accept, reject) => {
       const bs = [];
       proxyRes.on('data', b => {
         bs.push(b);
@@ -466,14 +472,14 @@ try {
         reject(err);
       });
     });
+    
+    console.log('got json 2', stripeState);
 
-    console.log('got json 2', j);
-
-    const {
+    /* const {
       access_token,
       stripe_publishable_key,
       stripe_user_id,
-    } = j;
+    } = stripeState; */
 
     const match = o.query.state.match(/^([^:]+):([^:]+):(.+)$/);
     if (match) {
@@ -492,6 +498,20 @@ try {
 
       if (dbState === queryState) {
         console.log('got json 2', queryEmail, queryState);
+
+        await ddb.putItem({
+          TableName: 'login',
+          Item: {
+            email: {S: tokenItem.Item.email},
+            name: {S: tokenItem.Item.name},
+            tokens: {S: tokenItem.Item.tokens},
+            mnemonic: {S: tokenItem.Item.mnemonic},
+            addr: {S: tokenItem.Item.addr},
+            state: {S: stokenItem.Item.tate},
+            stripeState: {S: JSON.stringify(stripeState)},
+            whitelisted: {BOOL: tokenItem.Item},
+          }
+        }).promise();
 
         res.statusCode = 301;
         res.setHeader('Location', queryUrl);
