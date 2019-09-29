@@ -522,8 +522,8 @@ try {
     } else {
       _respond(400, 'invalid parameters');
     }
-  } else if (o.pathname === '/untoken' && o.query.email && o.query.code) {
-    const {email, code} = o.query;
+  } else if (o.pathname === '/untoken' && o.query.email && o.query.token) {
+    const {email, token} = o.query;
     const tokenItem = await ddb.getItem({
       TableName: 'login',
       Key: {
@@ -531,7 +531,8 @@ try {
       }
     }).promise();
 
-    if (tokenItem.Item && tokenItem.Item.code.S === code) {
+    const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+    if (tokens.includes(token)) {
       await ddb.putItem({
         TableName: 'login',
         Item: {
