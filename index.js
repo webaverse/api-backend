@@ -497,7 +497,7 @@ try {
       console.log('logging in', queryEmail, queryState, queryUrl, dbState, tokenItem.Item);
 
       if (dbState === queryState) {
-        console.log('got json 2', queryEmail, queryState);
+        console.log('got json 2', queryEmail, queryState, stripeState);
 
         await ddb.putItem({
           TableName: 'login',
