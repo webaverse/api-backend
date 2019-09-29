@@ -509,7 +509,7 @@ try {
             addr: {S: tokenItem.Item.addr},
             state: {S: tokenItem.Item.state},
             stripeState: {S: JSON.stringify(stripeState)},
-            whitelisted: {BOOL: tokenItem.Item},
+            whitelisted: {BOOL: tokenItem.Item.whitelisted},
           }
         }).promise();
 
@@ -540,9 +540,9 @@ try {
           tokens: {S: tokenItem.Item.tokens},
           mnemonic: {S: tokenItem.Item.mnemonic},
           addr: {S: tokenItem.Item.addr},
-          state: {S: stokenItem.Item.tate},
+          state: {S: tokenItem.Item.state},
           stripeState: {S: JSON.stringify(null)},
-          whitelisted: {BOOL: tokenItem.Item},
+          whitelisted: {BOOL: tokenItem.Item.whitelisted},
         }
       }).promise();
 
