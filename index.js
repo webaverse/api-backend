@@ -113,7 +113,15 @@ try {
 
           const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
           if (tokens.includes(token)) {
-            _respond(200, JSON.stringify({}));
+            _respond(200, JSON.stringify({
+              email,
+              token,
+              name: tokenItem.Item.name.S,
+              mnemonic: tokenItem.Item.mnemonic.S,
+              addr: tokenItem.Item.addr.S,
+              state: tokenItem.Item.state.S,
+              stripeState: !!JSON.parse(tokenItem.Item.stripeState.S),
+            }));
           } else {
             _respond(401, JSON.stringify({
               error: 'invalid token',
@@ -497,7 +505,16 @@ try {
       console.log('logging in', queryEmail, queryState, queryUrl, dbState, tokenItem.Item);
 
       if (dbState === queryState) {
-        console.log('got json 2', queryEmail, queryState, stripeState);
+        console.log('got json 2', queryEmail, queryState, stripeState, {
+          email: {S: tokenItem.Item.email.S},
+          name: {S: tokenItem.Item.name.S},
+          tokens: {S: tokenItem.Item.tokens.S},
+          mnemonic: {S: tokenItem.Item.mnemonic.S},
+          addr: {S: tokenItem.Item.addr.S},
+          state: {S: tokenItem.Item.state.S},
+          stripeState: {S: JSON.stringify(stripeState)},
+          whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
+        });
 
         await ddb.putItem({
           TableName: 'login',
