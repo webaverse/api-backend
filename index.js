@@ -120,7 +120,7 @@ try {
               mnemonic: tokenItem.Item.mnemonic.S,
               addr: tokenItem.Item.addr.S,
               state: tokenItem.Item.state.S,
-              stripeState: !!JSON.parse(tokenItem.Item.stripeState.S),
+              stripeConnectState: !!JSON.parse(tokenItem.Item.stripeConnectState.S),
             }));
           } else {
             _respond(401, JSON.stringify({
@@ -157,7 +157,7 @@ try {
               let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
               let addr = (tokenItem.Item && tokenItem.Item.addr) ? tokenItem.Item.addr.S : null;
               let state = (tokenItem.Item && tokenItem.Item.state) ? tokenItem.Item.state.S : null;
-              let stripeState = (tokenItem.Item && tokenItem.Item.stripeState) ? tokenItem.Item.stripeState.S : null;
+              let stripeConnectState = (tokenItem.Item && tokenItem.Item.stripeConnectState) ? tokenItem.Item.stripeConnectState.S : null;
               
               console.log('old item', tokenItem, {tokens, mnemonic});
 
@@ -180,8 +180,8 @@ try {
               if (!state) {
                 state = _randomString();
               }
-              if (!stripeState) {
-                stripeState = null;
+              if (!stripeConnectState) {
+                stripeConnectState = null;
               }
 
               console.log('new item', {name, tokens, mnemonic, addr});
@@ -195,7 +195,7 @@ try {
                   mnemonic: {S: mnemonic},
                   addr: {S: addr},
                   state: {S: state},
-                  stripeState: {S: JSON.stringify(stripeState)},
+                  stripeConnectState: {S: JSON.stringify(stripeConnectState)},
                   whitelisted: {BOOL: true},
                 }
               }).promise();
@@ -207,7 +207,7 @@ try {
                 mnemonic,
                 addr,
                 state,
-                stripeState: !!stripeState,
+                stripeConnectState: !!stripeConnectState,
               }));
             } else {
               _respond(403, JSON.stringify({
@@ -468,7 +468,7 @@ try {
       json: true
     });
 
-    const stripeState = await new Promise((accept, reject) => {
+    const stripeConnectState = await new Promise((accept, reject) => {
       const bs = [];
       proxyRes.on('data', b => {
         bs.push(b);
@@ -481,13 +481,13 @@ try {
       });
     });
     
-    console.log('got json 2', stripeState);
+    console.log('got json 2', stripeConnectState);
 
     /* const {
       access_token,
       stripe_publishable_key,
       stripe_user_id,
-    } = stripeState; */
+    } = stripeConnectState; */
 
     const match = o.query.state.match(/^([^:]+):([^:]+):(.+)$/);
     if (match) {
@@ -505,14 +505,14 @@ try {
       console.log('logging in', queryEmail, queryState, queryUrl, dbState, tokenItem.Item);
 
       if (dbState === queryState) {
-        console.log('got json 2', queryEmail, queryState, stripeState, {
+        console.log('got json 2', queryEmail, queryState, stripeConnectState, {
           email: {S: tokenItem.Item.email.S},
           name: {S: tokenItem.Item.name.S},
           tokens: {S: tokenItem.Item.tokens.S},
           mnemonic: {S: tokenItem.Item.mnemonic.S},
           addr: {S: tokenItem.Item.addr.S},
           state: {S: tokenItem.Item.state.S},
-          stripeState: {S: JSON.stringify(stripeState)},
+          stripeConnectState: {S: JSON.stringify(stripeConnectState)},
           whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
         });
 
@@ -525,7 +525,7 @@ try {
             mnemonic: {S: tokenItem.Item.mnemonic.S},
             addr: {S: tokenItem.Item.addr.S},
             state: {S: tokenItem.Item.state.S},
-            stripeState: {S: JSON.stringify(stripeState)},
+            stripeConnectState: {S: JSON.stringify(stripeConnectState)},
             whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
           }
         }).promise();
@@ -559,7 +559,7 @@ try {
           mnemonic: {S: tokenItem.Item.mnemonic.S},
           addr: {S: tokenItem.Item.addr.S},
           state: {S: tokenItem.Item.state.S},
-          stripeState: {S: JSON.stringify(null)},
+          stripeConnectState: {S: JSON.stringify(null)},
           whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
         }
       }).promise();
