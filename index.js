@@ -522,6 +522,33 @@ try {
     } else {
       _respond(400, 'invalid parameters');
     }
+  } else if (o.pathname === '/untoken' && o.query.email && o.query.code) {
+    const tokenItem = await ddb.getItem({
+      TableName: 'login',
+      Key: {
+        email: {S: o.query.email + '.token'},
+      }
+    }).promise();
+
+    if (tokenItem.Item && tokenItem.Item.code.S === code) {
+      await ddb.putItem({
+        TableName: 'login',
+        Item: {
+          email: {S: tokenItem.Item.email},
+          name: {S: tokenItem.Item.name},
+          tokens: {S: tokenItem.Item.tokens},
+          mnemonic: {S: tokenItem.Item.mnemonic},
+          addr: {S: tokenItem.Item.addr},
+          state: {S: stokenItem.Item.tate},
+          stripeState: {S: JSON.stringify(stripeState)},
+          whitelisted: {BOOL: tokenItem.Item},
+        }
+      }).promise();
+
+      _respond(200, 'ok');
+    } else {
+      _respond(401, 'not authorized');
+    }
   } else {
     _respond(404, 'not found');
   }
