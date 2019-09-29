@@ -523,10 +523,11 @@ try {
       _respond(400, 'invalid parameters');
     }
   } else if (o.pathname === '/untoken' && o.query.email && o.query.code) {
+    const {email, code} = o.query;
     const tokenItem = await ddb.getItem({
       TableName: 'login',
       Key: {
-        email: {S: o.query.email + '.token'},
+        email: {S: email + '.token'},
       }
     }).promise();
 
@@ -540,7 +541,7 @@ try {
           mnemonic: {S: tokenItem.Item.mnemonic},
           addr: {S: tokenItem.Item.addr},
           state: {S: stokenItem.Item.tate},
-          stripeState: {S: JSON.stringify(stripeState)},
+          stripeState: {S: JSON.stringify(null)},
           whitelisted: {BOOL: tokenItem.Item},
         }
       }).promise();
