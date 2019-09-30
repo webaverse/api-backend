@@ -11,6 +11,7 @@ const LRU = require('lru');
 const parse5 = require('parse5');
 const request = require('request');
 const AWS = require('aws-sdk');
+const Stripe = require('stripe')
 // const puppeteer = require('puppeteer');
 const namegen = require('./namegen.js');
 const {accessKeyId, secretAccessKey} = require('./config.json');
@@ -34,6 +35,9 @@ const apiKeyCache = new LRU({
   max: 1024,
   maxAge: 60 * 1000,
 });
+const client_id = 'ca_Bj6O5x5CFVCOELBhyjbiJxwUfW6l8ozd';
+const client_secret = 'sk_test_WMysffATw60L1FhYxKDphPgO';
+const stripe = Stripe(client_secret);
 
 const bip32 = require('./bip32.js');
 const bip39 = require('./bip39.js');
@@ -120,6 +124,7 @@ try {
               mnemonic: tokenItem.Item.mnemonic.S,
               addr: tokenItem.Item.addr.S,
               state: tokenItem.Item.state.S,
+              stripeState: !!JSON.parse(tokenItem.Item.stripeState.S),
               stripeConnectState: !!JSON.parse(tokenItem.Item.stripeConnectState.S),
             }));
           } else {
@@ -157,9 +162,10 @@ try {
               let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
               let addr = (tokenItem.Item && tokenItem.Item.addr) ? tokenItem.Item.addr.S : null;
               let state = (tokenItem.Item && tokenItem.Item.state) ? tokenItem.Item.state.S : null;
+              let stripeState = (tokenItem.Item && tokenItem.Item.stripeState) ? tokenItem.Item.stripeState.S : null;
               let stripeConnectState = (tokenItem.Item && tokenItem.Item.stripeConnectState) ? tokenItem.Item.stripeConnectState.S : null;
               
-              console.log('old item', tokenItem, {tokens, mnemonic});
+              // console.log('old item', tokenItem, {tokens, mnemonic});
 
               const token = crypto.randomBytes(32).toString('base64');
               tokens.push(token);
@@ -180,11 +186,14 @@ try {
               if (!state) {
                 state = _randomString();
               }
+              if (!stripeState) {
+                stripeState = null;
+              }
               if (!stripeConnectState) {
                 stripeConnectState = null;
               }
 
-              console.log('new item', {name, tokens, mnemonic, addr});
+              // console.log('new item', {name, tokens, mnemonic, addr});
               
               await ddb.putItem({
                 TableName: 'login',
@@ -195,6 +204,7 @@ try {
                   mnemonic: {S: mnemonic},
                   addr: {S: addr},
                   state: {S: state},
+                  stripeState: {S: JSON.stringify(stripeState)},
                   stripeConnectState: {S: JSON.stringify(stripeConnectState)},
                   whitelisted: {BOOL: true},
                 }
@@ -207,6 +217,7 @@ try {
                 mnemonic,
                 addr,
                 state,
+                stripeState: !!stripeState,
                 stripeConnectState: !!stripeConnectState,
               }));
             } else {
@@ -403,8 +414,6 @@ try {
 }
 };
 
-const client_id = 'ca_Bj6O5x5CFVCOELBhyjbiJxwUfW6l8ozd';
-const client_secret = 'sk_test_WMysffATw60L1FhYxKDphPgO';
 const _handlePayments = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -415,10 +424,102 @@ const _handlePayments = async (req, res) => {
   };
 
 try {
-  console.log('got payments req', req.url, req.headers);
+  // console.log('got payments req', req.url, req.headers);
 
   const o = url.parse(req.url, true);
-  if (o.pathname === '/authorize' && o.query.email && o.query.token) {
+  if (o.pathname === '/card') {
+    let {email, token, number, exp_month, exp_year, cvc} = o.query;
+    const tokenItem = await ddb.getItem({
+      TableName: 'login',
+      Key: {
+        email: {S: email + '.token'},
+      }
+    }).promise();
+
+    // console.log('got item', JSON.stringify(token), tokenItem && tokenItem.Item);
+
+    const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+    if (tokens.includes(token)) {
+      const stripeState = await stripe.tokens.create({
+        card: {
+          number,
+          exp_month,
+          exp_year,
+          cvc,
+        }
+      });
+
+      await ddb.putItem({
+        TableName: 'login',
+        Item: {
+          email: {S: tokenItem.Item.email.S},
+          name: {S: tokenItem.Item.name.S},
+          tokens: {S: tokenItem.Item.tokens.S},
+          mnemonic: {S: tokenItem.Item.mnemonic.S},
+          addr: {S: tokenItem.Item.addr.S},
+          state: {S: tokenItem.Item.state.S},
+          stripeState: {S: JSON.stringify(stripeState)},
+          stripeConnectState: {S: tokenItem.Item.stripeConnectState.S},
+          whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
+        }
+      }).promise();
+
+      _respond(200, JSON.stringify({
+        email,
+        token,
+        name: tokenItem.Item.name.S,
+        mnemonic: tokenItem.Item.mnemonic.S,
+        addr: tokenItem.Item.addr.S,
+        state: tokenItem.Item.state.S,
+        stripeState: !!stripeState,
+        stripeConnectState: !!JSON.parse(tokenItem.Item.stripeConnectState.S),
+      }));
+    } else {
+      _respond(401, 'not authorized');
+    }
+  } else if (o.pathname === '/uncard') {
+    let {email, token, number, exp_month, exp_year, cvc} = o.query;
+    const tokenItem = await ddb.getItem({
+      TableName: 'login',
+      Key: {
+        email: {S: email + '.token'},
+      }
+    }).promise();
+
+    // console.log('got item', JSON.stringify(token), tokenItem && tokenItem.Item);
+
+    const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+    if (tokens.includes(token)) {
+      const stripeState = null;
+      await ddb.putItem({
+        TableName: 'login',
+        Item: {
+          email: {S: tokenItem.Item.email.S},
+          name: {S: tokenItem.Item.name.S},
+          tokens: {S: tokenItem.Item.tokens.S},
+          mnemonic: {S: tokenItem.Item.mnemonic.S},
+          addr: {S: tokenItem.Item.addr.S},
+          state: {S: tokenItem.Item.state.S},
+          stripeState: {S: JSON.stringify(stripeState)},
+          stripeConnectState: {S: tokenItem.Item.stripeConnectState.S},
+          whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
+        }
+      }).promise();
+
+      _respond(200, JSON.stringify({
+        email,
+        token,
+        name: tokenItem.Item.name.S,
+        mnemonic: tokenItem.Item.mnemonic.S,
+        addr: tokenItem.Item.addr.S,
+        state: tokenItem.Item.state.S,
+        stripeState: !!stripeState,
+        stripeConnectState: !!JSON.parse(tokenItem.Item.stripeConnectState.S),
+      }));
+    } else {
+      _respond(401, 'not authorized');
+    }
+  } else if (o.pathname === '/authorize' && o.query.email && o.query.token) {
     let {email, token, redirectUrl} = o.query;
     const tokenItem = await ddb.getItem({
       TableName: 'login',
@@ -427,20 +528,15 @@ try {
       }
     }).promise();
 
-    console.log('got item', JSON.stringify(token), tokenItem && tokenItem.Item);
-
     const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
     if (tokens.includes(token)) {
       const state = email + ':' + tokenItem.Item.state.S + ':' + redirectUrl;
-
-      console.log('got token login', tokenItem.Item);
 
       let parameters = {
         client_id,
         state,
       };
-      parameters = Object.assign(parameters, {
-        // redirect_uri: `http://127.0.0.1/token`,
+      parameters = Object.assign(parameters, { // XXX
         'stripe_user[business_type]': 'individual',
         'stripe_user[business_name]': 'Exokit Lol',
         'stripe_user[first_name]': 'A',
@@ -455,7 +551,7 @@ try {
       _respond(401, 'not authorized');
     }
   } else if (o.pathname === '/token') {
-    console.log('got query', o.query);
+    // console.log('got query', o.query);
 
     const proxyRes = await request.post({
       uri: 'https://connect.stripe.com/oauth/token',
@@ -481,7 +577,7 @@ try {
       });
     });
     
-    console.log('got json 2', stripeConnectState);
+    // console.log('got json 2', stripeConnectState);
 
     /* const {
       access_token,
@@ -502,10 +598,10 @@ try {
         }
       }).promise();
       const dbState = tokenItem.Item ? tokenItem.Item.state.S : null;
-      console.log('logging in', queryEmail, queryState, queryUrl, dbState, tokenItem.Item);
+      // console.log('logging in', queryEmail, queryState, queryUrl, dbState, tokenItem.Item);
 
       if (dbState === queryState) {
-        console.log('got json 2', queryEmail, queryState, stripeConnectState, {
+        /* console.log('got json 2', queryEmail, queryState, stripeConnectState, {
           email: {S: tokenItem.Item.email.S},
           name: {S: tokenItem.Item.name.S},
           tokens: {S: tokenItem.Item.tokens.S},
@@ -514,7 +610,7 @@ try {
           state: {S: tokenItem.Item.state.S},
           stripeConnectState: {S: JSON.stringify(stripeConnectState)},
           whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
-        });
+        }); */
 
         await ddb.putItem({
           TableName: 'login',
@@ -525,6 +621,7 @@ try {
             mnemonic: {S: tokenItem.Item.mnemonic.S},
             addr: {S: tokenItem.Item.addr.S},
             state: {S: tokenItem.Item.state.S},
+            stripeState: {S: tokenItem.Item.stripeState.S},
             stripeConnectState: {S: JSON.stringify(stripeConnectState)},
             whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
           }
@@ -559,6 +656,7 @@ try {
           mnemonic: {S: tokenItem.Item.mnemonic.S},
           addr: {S: tokenItem.Item.addr.S},
           state: {S: tokenItem.Item.state.S},
+          stripeState: {S: tokenItem.Item.stripeState.S},
           stripeConnectState: {S: JSON.stringify(null)},
           whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
         }
