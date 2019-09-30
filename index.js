@@ -429,6 +429,8 @@ try {
   const o = url.parse(req.url, true);
   if (o.pathname === '/card') {
     let {email, token, number, exp_month, exp_year, cvc} = o.query;
+    exp_month = parseInt(exp_month, 10);
+    exp_year = parseInt(exp_year, 10);
     const tokenItem = await ddb.getItem({
       TableName: 'login',
       Key: {
