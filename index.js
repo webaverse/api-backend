@@ -508,7 +508,7 @@ try {
 
     const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
     if (tokens.includes(token)) {
-      inventory.splice(inventory.indexOf(index), 1);
+      inventory.splice(index, 1);
 
       _respond(200, JSON.stringify({
         email,
