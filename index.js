@@ -455,9 +455,9 @@ try {
   } else if (o.pathname === '/add' && o.query.email && o.query.token && o.query.src && o.query.name) {
     let {email, token, src, name} = o.query;
     const tokenItem = await ddb.getItem({
-      TableName: 'inventory',
+      TableName: 'login',
       Key: {
-        email: {S: email},
+        email: {S: email + '.token'},
       }
     }).promise();
 
@@ -499,8 +499,8 @@ try {
   } else if (o.pathname === '/remove' && o.query.email && o.query.token && o.query.index) {
     let {email, token, index} = o.query;
     index = parseInt(index, 10);
-    const tokenItem = await ddb.getItem({
-      TableName: 'inventory',
+     const tokenItem = await ddb.getItem({
+      TableName: 'login',
       Key: {
         email: {S: email + '.token'},
       }
