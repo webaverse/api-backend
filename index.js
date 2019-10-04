@@ -448,10 +448,7 @@ try {
 
       const inventory = inventoryItem.Item ? JSON.parse(inventoryItem.Item.inventory.S) : [];
 
-      _respond(200, JSON.stringify({
-        email,
-        inventory,
-      }));
+      _respond(200, JSON.stringify(inventory));
     } else {
       _respond(401, 'not authorized');
     }
@@ -495,10 +492,7 @@ try {
         }
       }).promise();
 
-      _respond(200, JSON.stringify({
-        email,
-        inventory,
-      }));
+      _respond(200, JSON.stringify(inventory));
     } else {
       _respond(401, 'not authorized');
     }
@@ -521,10 +515,7 @@ try {
         inventory,
       }));
 
-      _respond(200, JSON.stringify({
-        email,
-        inventory,
-      }));
+      _respond(200, JSON.stringify(inventory));
     } else {
       _respond(401, 'not authorized');
     }
