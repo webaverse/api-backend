@@ -473,7 +473,7 @@ try {
       }).promise();
 
       const inventory = inventoryItem.Item ? JSON.parse(inventoryItem.Item.inventory.S) : [];
-      const index = inventory.findIndex(item => item.src === src);
+      const item = inventory.find(item => item.src === src);
       if (index !== -1) {
         item.src = src;
         item.name = name;
