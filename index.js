@@ -424,9 +424,8 @@ const _handleInventory = async (req, res) => {
   };
 
 try {
-  // console.log('got payments req', req.url, req.headers);
-
   const o = url.parse(req.url, true);
+  console.log('got inventory req', o);
   if (o.pathname === '/' && o.query.email && o.query.token) {
     let {email, token} = o.query;
     const tokenItem = await ddb.getItem({
