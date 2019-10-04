@@ -477,10 +477,16 @@ try {
       }).promise();
 
       const inventory = inventoryItem.Item ? JSON.parse(inventoryItem.Item.inventory.S) : [];
-      inventory.push({
-        src,
-        name,
-      });
+      const index = inventory.findIndex(item => item.src === src);
+      if (index !== -1) {
+        item.src = src;
+        item.name = name;
+      } else {
+        inventory.push({
+          src,
+          name,
+        });
+      }
 
       await ddb.putItem({
         TableName: 'inventory',
