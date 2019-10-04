@@ -414,6 +414,123 @@ try {
 }
 };
 
+const _handleInventory = async (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+    res.end(body);
+  };
+
+try {
+  // console.log('got payments req', req.url, req.headers);
+
+  const o = url.parse(req.url, true);
+  if (o.pathname === '/' && o.query.email && o.query.token) {
+    let {email, token} = o.query;
+    const tokenItem = await ddb.getItem({
+      TableName: 'login',
+      Key: {
+        email: {S: email + '.token'},
+      }
+    }).promise();
+
+    // console.log('got item', JSON.stringify(token), tokenItem && tokenItem.Item);
+
+    const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+    if (tokens.includes(token)) {
+      const inventoryItem = await ddb.getItem({
+        TableName: 'inventory',
+        Key: {
+          email: {S: email},
+        }
+      }).promise();
+
+      const inventory = inventoryItem.Item ? JSON.parse(inventoryItem.Item.inventory.S) : [];
+
+      _respond(200, JSON.stringify({
+        email,
+        inventory,
+      }));
+    } else {
+      _respond(401, 'not authorized');
+    }
+  } else if (o.pathname === '/add' && o.query.email && o.query.token && o.query.src && o.query.name) {
+    let {email, token, src, name} = o.query;
+    const tokenItem = await ddb.getItem({
+      TableName: 'inventory',
+      Key: {
+        email: {S: email},
+      }
+    }).promise();
+
+    // console.log('got item', JSON.stringify(token), tokenItem && tokenItem.Item);
+
+    const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+    if (tokens.includes(token)) {
+      const inventoryItem = await ddb.getItem({
+        TableName: 'inventory',
+        Key: {
+          email: {S: email},
+        }
+      }).promise();
+
+      const inventory = inventoryItem.Item ? JSON.parse(inventoryItem.Item.inventory.S) : [];
+      inventory.push({
+        src,
+        name,
+      });
+
+      await ddb.putItem({
+        TableName: 'inventory',
+        Item: {
+          email: {S: email},
+          inventory: {S: JSON.stringify(inventory)},
+        }
+      }).promise();
+
+      _respond(200, JSON.stringify({
+        email,
+        inventory,
+      }));
+    } else {
+      _respond(401, 'not authorized');
+    }
+  } else if (o.pathname === '/remove' && o.query.email && o.query.token && o.query.index) {
+    let {email, token, index} = o.query;
+    index = parseInt(index, 10);
+    const tokenItem = await ddb.getItem({
+      TableName: 'inventory',
+      Key: {
+        email: {S: email + '.token'},
+      }
+    }).promise();
+
+    const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+    if (tokens.includes(token)) {
+      inventory.splice(inventory.indexOf(index), 1);
+
+      _respond(200, JSON.stringify({
+        email,
+        inventory,
+      }));
+
+      _respond(200, JSON.stringify({
+        email,
+        inventory,
+      }));
+    } else {
+      _respond(401, 'not authorized');
+    }
+  } else {
+    _respond(404, 'not found');
+  }
+} catch (err) {
+  console.warn(err.stack);
+}
+};
+
 const _handlePayments = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -1520,6 +1637,9 @@ try {
       _handleSites(req, res, userName, channelName);
       return;
     }
+  } else if (o.host === 'inventory.exokit.org') {
+    _handleInventory(req, res);
+    return;
   } else if (o.host === 'payments.exokit.org') {
     _handlePayments(req, res);
     return;
