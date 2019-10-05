@@ -341,7 +341,7 @@ try {
           } else if (split.length === 1) {
             const [channel] = split;
             channels.push({
-              user: null,
+              user: '',
               channel,
             });
           }
