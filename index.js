@@ -1358,9 +1358,17 @@ const _parseHtmlString = htmlString => {
 };
 const _findElByKeyPath = (el, keyPath) => {
   for (let i = 0; i < keyPath.length; i++) {
-    el = el.childNodes[keyPath[i]];
-    if (!el) {
+    const key = keyPath[i];
+    let match;
+    if (typeof key === 'number') {
+      el = el.childNodes[key] || null;
+    } else if (typeof key === 'string' && (match = key.match(/^#(.+)$/))) {
+      const id = match[1];
+      el = el.childNodes.find(childEl => childEl.attrs.some(attr => attr.name === 'id' && attr.value === id)) || null;
+    } else {
       el = null;
+    }
+    if (!el) {
       break;
     }
   }
