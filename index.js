@@ -338,12 +338,6 @@ try {
               user,
               channel,
             });
-          } else if (split.length === 1) {
-            const [channel] = split;
-            channels.push({
-              user: '',
-              channel,
-            });
           }
         }
         if (r.IsTruncated) {
