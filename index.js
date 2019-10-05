@@ -1417,6 +1417,9 @@ const _makeChannel = async channelName => {
       this.state = _parseHtmlString(htmlString);
       this.pushAsync();
     },
+    isEmpty(htmlString) {
+      return this.state.childNodes[0].childNodes.length === 0;
+    },
     editState(editSpec) {
       const {keyPath, method, key, value, values} = editSpec;
       const el = _findElByKeyPath(this.state, keyPath);
@@ -1573,6 +1576,11 @@ presenceWss.on('connection', async (s, req) => {
         } else if (data.method === 'setHtml' && data.html) {
           channel.setHtml(data.html);
           _proxyMessage(m);
+        } else if (data.method === 'setInitialHtml' && data.html) {
+          if (channel.isEmpty()) {
+            channel.setHtml(data.html);
+            _proxyMessage(m);
+          }
         } else if (data.method === 'editState' && data.spec) {
           channel.editState(data.spec);
           _proxyMessage(m);
