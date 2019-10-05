@@ -1374,8 +1374,8 @@ const _findElByKeyPath = (el, keyPath) => {
   }
   return el;
 };
-const _makeChannel = async (userName, channelName) => {
-  const k = `${userName}/${channelName}`;
+const _makeChannel = async channelName => {
+  const k = channelName;
   const htmlStringRes = await s3.getObject({
     Bucket: bucketNames.channels,
     Key: k,
@@ -1517,7 +1517,7 @@ presenceWss.on('connection', async (s, req) => {
 
     let channel = channels[c];
     if (!channel) {
-      channel = await _makeChannel(u, c);
+      channel = await _makeChannel(c);
       channels[c] = channel;
     }
 
