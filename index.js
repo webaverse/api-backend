@@ -1412,7 +1412,6 @@ const _makeChannel = async channelName => {
   const state = _parseHtmlString(htmlString);
 
   return {
-    userName,
     channelName,
     state,
     connectionIds: [],
