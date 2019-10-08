@@ -1357,6 +1357,7 @@ const _parseHtmlString = htmlString => {
   return root; */
 };
 const _findElByKeyPath = (el, keyPath) => {
+  // console.log('find el by keypath', JSON.stringify(el), keyPath);
   for (let i = 0; i < keyPath.length; i++) {
     const key = keyPath[i];
     let match;
@@ -1364,7 +1365,7 @@ const _findElByKeyPath = (el, keyPath) => {
       el = el.childNodes[key] || null;
     } else if (typeof key === 'string' && (match = key.match(/^#(.+)$/))) {
       const id = match[1];
-      el = el.childNodes.find(childEl => childEl.attrs.some(attr => attr.name === 'id' && attr.value === id)) || null;
+      el = el.childNodes.find(childEl => childEl.attrs && childEl.attrs.some(attr => attr.name === 'id' && attr.value === id)) || null;
     } else {
       el = null;
     }
@@ -1376,11 +1377,13 @@ const _findElByKeyPath = (el, keyPath) => {
 };
 const _makeChannel = async channelName => {
   const k = channelName;
+  // console.log('make channel', k);
   const htmlStringRes = await s3.getObject({
     Bucket: bucketNames.channels,
     Key: k,
   }).promise().catch(async err => {
     if (err.code === 'NoSuchKey') {
+      // console.log('new channel', k);
       const htmlString = `<xr-site></xr-site>`;
       await s3.putObject({
         Bucket: bucketNames.channels,
@@ -1428,15 +1431,23 @@ const _makeChannel = async channelName => {
           case 'setAttributes': {
             for (let i = 0; i < values.length; i++) {
               const {key, value} = values[i];
-              let attr = el.attrs.find(attr => attr.name === key);
-              if (!attr) {
-                attr = {
-                  name: key,
-                  value: null,
-                };
-                el.attrs.push(attr);
+              if (value !== null && value !== undefined) {
+                let attr = el.attrs.find(attr => attr.name === key);
+                if (!attr) {
+                  attr = {
+                    name: key,
+                    value: null,
+                  };
+                  el.attrs.push(attr);
+                }
+                // console.log('set attr', attr, value);
+                attr.value = value;
+              } else {
+                const index = el.attrs.findIndex(attr => attr.name === key);
+                if (index !== -1) {
+                  el.attrs.splice(index, 1);
+                }
               }
-              attr.value = value;
             }
             break;
           }
@@ -1534,7 +1545,7 @@ presenceWss.on('connection', async (s, req) => {
 
     let connectionId = null;
     s.on('message', m => {
-      console.log('got message', m);
+      // console.log('got message', m);
 
       const data = _jsonParse(m);
       if (data) {
@@ -1542,7 +1553,7 @@ presenceWss.on('connection', async (s, req) => {
           if (!connectionId) {
             connectionId = data.connectionId;
 
-            // console.log('send back state');
+            // console.log('send back state', channel.state);
             s.send(JSON.stringify({
               method: 'initState',
               state: channel.state,
