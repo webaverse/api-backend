@@ -162,8 +162,8 @@ try {
               let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
               let addr = (tokenItem.Item && tokenItem.Item.addr) ? tokenItem.Item.addr.S : null;
               let state = (tokenItem.Item && tokenItem.Item.state) ? tokenItem.Item.state.S : null;
-              let stripeState = (tokenItem.Item && tokenItem.Item.stripeState) ? tokenItem.Item.stripeState.S : null;
-              let stripeConnectState = (tokenItem.Item && tokenItem.Item.stripeConnectState) ? tokenItem.Item.stripeConnectState.S : null;
+              let stripeState = (tokenItem.Item && tokenItem.Item.stripeState) ? JSON.parse(tokenItem.Item.stripeState.S) : null;
+              let stripeConnectState = (tokenItem.Item && tokenItem.Item.stripeConnectState) ? JSON.parse(tokenItem.Item.stripeConnectState.S) : null;
               
               // console.log('old item', tokenItem, {tokens, mnemonic});
 
