@@ -792,6 +792,55 @@ try {
 }
 };
 
+const _handleOauth = async (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+    res.end(body);
+  };
+
+try {
+  // console.log('got payments req', req.url, req.headers);
+
+  const {method} = req;
+  const o = url.parse(req.url, true);
+  if (method === 'GET' && o.pathname === '/github') {
+    const {state = '', code} = o.query;
+    const match = state.match(/^(.+?):(.+?)$/);
+    if (match && code) {
+      const email = match[1];
+      const token = match[2];
+
+      const tokenItem = await ddb.getItem({
+        TableName: 'login',
+        Key: {
+          email: {S: email + '.token'},
+        }
+      }).promise();
+
+      // console.log('got item', JSON.stringify(token), tokenItem && tokenItem.Item);
+
+      const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+      if (tokens.includes(token)) {
+        res.statusCode = 301;
+        res.setHeader('Location', 'http://127.0.0.1:5500/index.html');
+        res.end();
+      } else {
+        _respond(401, 'not authorized');
+      }
+    } else {
+      _respond(400, 'invalid parameters');
+    }
+  } else {
+    _respond(404, 'not found');
+  }
+} catch (err) {
+  console.warn(err.stack);
+}
+};
+
 const _handleToken = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -2082,6 +2131,9 @@ try {
     return;
   } else if (o.host === 'payments.exokit.org') {
     _handlePayments(req, res);
+    return;
+  } else if (o.host === 'oauth.exokit.org') {
+    _handleOauth(req, res);
     return;
   } else if (o.host === 'token.exokit.org') {
     _handleToken(req, res);
