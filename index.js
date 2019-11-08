@@ -14,7 +14,7 @@ const AWS = require('aws-sdk');
 const Stripe = require('stripe');
 // const puppeteer = require('puppeteer');
 const namegen = require('./namegen.js');
-const {accessKeyId, secretAccessKey, githubUsername, githubApiKey, githubPagesDomain} = require('./config.json');
+const {accessKeyId, secretAccessKey, githubUsername, githubApiKey, githubPagesDomain, githubClientId, githubClientSecret} = require('./config.json');
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
     accessKeyId,
@@ -124,8 +124,9 @@ try {
               mnemonic: tokenItem.Item.mnemonic.S,
               addr: tokenItem.Item.addr.S,
               state: tokenItem.Item.state.S,
-              stripeState: !!JSON.parse(tokenItem.Item.stripeState.S),
-              stripeConnectState: !!JSON.parse(tokenItem.Item.stripeConnectState.S),
+              stripeState: tokenItem.Item.stripeState.S ? !!JSON.parse(tokenItem.Item.stripeState.S) : false,
+              stripeConnectState: tokenItem.Item.stripeConnectState.S ? !!JSON.parse(tokenItem.Item.stripeConnectState.S) : false,
+              githubOauthState: tokenItem.Item.githubOauthState.S ? !!JSON.parse(tokenItem.Item.githubOauthState.S) : false,
             }));
           } else {
             _respond(401, JSON.stringify({
@@ -164,6 +165,7 @@ try {
               let state = (tokenItem.Item && tokenItem.Item.state) ? tokenItem.Item.state.S : null;
               let stripeState = (tokenItem.Item && tokenItem.Item.stripeState) ? JSON.parse(tokenItem.Item.stripeState.S) : null;
               let stripeConnectState = (tokenItem.Item && tokenItem.Item.stripeConnectState) ? JSON.parse(tokenItem.Item.stripeConnectState.S) : null;
+              let githubOauthState = (tokenItem.Item && tokenItem.Item.githubOauthState) ? JSON.parse(tokenItem.Item.githubOauthState.S) : null;
               
               // console.log('old item', tokenItem, {tokens, mnemonic});
 
@@ -195,6 +197,9 @@ try {
               if (!stripeConnectState) {
                 stripeConnectState = null;
               }
+              if (!githubOauthState) {
+                githubOauthState = null;
+              }
 
               // console.log('new item', {name, tokens, mnemonic, addr});
               
@@ -209,6 +214,7 @@ try {
                   state: {S: state},
                   stripeState: {S: JSON.stringify(stripeState)},
                   stripeConnectState: {S: JSON.stringify(stripeConnectState)},
+                  githubOauthState: {S: JSON.stringify(githubOauthState)},
                   whitelisted: {BOOL: true},
                 }
               }).promise();
@@ -222,6 +228,7 @@ try {
                 state,
                 stripeState: !!stripeState,
                 stripeConnectState: !!stripeConnectState,
+                githubOauthState: !!githubOauthState,
               }));
             } else {
               _respond(403, JSON.stringify({
@@ -578,6 +585,7 @@ try {
           state: {S: tokenItem.Item.state.S},
           stripeState: {S: JSON.stringify(stripeState)},
           stripeConnectState: {S: tokenItem.Item.stripeConnectState.S},
+          githubOauthState: {S: tokenItem.Item.githubOauthState.S},
           whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
         }
       }).promise();
@@ -591,6 +599,7 @@ try {
         state: tokenItem.Item.state.S,
         stripeState: !!stripeState,
         stripeConnectState: !!JSON.parse(tokenItem.Item.stripeConnectState.S),
+        githubOauthState: !!JSON.parse(tokenItem.Item.githubOauthState.S),
       }));
     } else {
       _respond(401, 'not authorized');
@@ -620,6 +629,7 @@ try {
           state: {S: tokenItem.Item.state.S},
           stripeState: {S: JSON.stringify(stripeState)},
           stripeConnectState: {S: tokenItem.Item.stripeConnectState.S},
+          githubOauthState: {S: tokenItem.Item.githubOauthState.S},
           whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
         }
       }).promise();
@@ -633,6 +643,7 @@ try {
         state: tokenItem.Item.state.S,
         stripeState: !!stripeState,
         stripeConnectState: !!JSON.parse(tokenItem.Item.stripeConnectState.S),
+        githubOauthState: !!JSON.parse(tokenItem.Item.githubOauthState.S),
       }));
     } else {
       _respond(401, 'not authorized');
@@ -688,7 +699,7 @@ try {
         bs.push(b);
       });
       proxyRes.on('end', () => {
-        accept(JSON.parse(Buffer.concat(bs)));
+        accept(JSON.parse(Buffer.concat(bs).toString('utf8')));
       });
       proxyRes.on('error', err => {
         reject(err);
@@ -741,6 +752,7 @@ try {
             state: {S: tokenItem.Item.state.S},
             stripeState: {S: tokenItem.Item.stripeState.S},
             stripeConnectState: {S: JSON.stringify(stripeConnectState)},
+            githubOauthState: {S: tokenItem.Item.githubOauthState.S},
             whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
           }
         }).promise();
@@ -776,6 +788,7 @@ try {
           state: {S: tokenItem.Item.state.S},
           stripeState: {S: tokenItem.Item.stripeState.S},
           stripeConnectState: {S: JSON.stringify(null)},
+          githubOauthState: {S: tokenItem.Item.githubOauthState.S},
           whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
         }
       }).promise();
@@ -809,10 +822,11 @@ try {
   if (method === 'GET' && o.pathname === '/github') {
     const {state, code} = o.query;
     console.log('handle github oauth', {state, code});
-    const match = state ? state.match(/^(.+?):(.+?)$/) : null;
+    const match = state ? state.match(/^(.+?):(.+?):(.+?)$/) : null;
     if (match && code) {
       const email = match[1];
       const token = match[2];
+      const redirect = match[3];
 
       const tokenItem = await ddb.getItem({
         TableName: 'login',
@@ -827,9 +841,58 @@ try {
       if (tokens.includes(token)) {
         console.log('github oauth ok', tokenItem.Item);
 
-        res.statusCode = 301;
-        res.setHeader('Location', 'http://127.0.0.1:5500/index.html');
-        res.end();
+        const proxyReq = await https.request({
+          method: 'POST',
+          host: 'github.com',
+          path: '/login/oauth/access_token',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            // 'User-Agent': 'exokit-server',
+          },
+        }, async proxyRes => {
+          const githubOauthState = await new Promise((accept, reject) => {
+            const bs = [];
+            proxyRes.on('data', b => {
+              bs.push(b);
+            });
+            proxyRes.on('end', () => {
+              accept(JSON.parse(Buffer.concat(bs).toString('utf8')));
+            });
+            proxyRes.on('error', err => {
+              reject(err);
+            });
+          });
+
+          await ddb.putItem({
+            TableName: 'login',
+            Item: {
+              email: {S: tokenItem.Item.email.S},
+              name: {S: tokenItem.Item.name.S},
+              tokens: {S: tokenItem.Item.tokens.S},
+              mnemonic: {S: tokenItem.Item.mnemonic.S},
+              addr: {S: tokenItem.Item.addr.S},
+              state: {S: tokenItem.Item.state.S},
+              stripeState: {S: tokenItem.Item.stripeState.S},
+              stripeConnectState: {S: tokenItem.Item.stripeConnectState.S},
+              githubOauthState: {S: JSON.stringify(githubOauthState)},
+              whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
+            }
+          }).promise();
+
+          res.statusCode = 301;
+          res.setHeader('Location', redirect);
+          res.end();
+        });
+        proxyReq.on('error', err => {
+          _respond(500, err.stack);
+        });
+        proxyReq.end(JSON.stringify({
+          client_id: githubClientId,
+          client_secret: githubClientSecret,
+          code,
+          state,
+        }));
       } else {
         _respond(401, 'not authorized');
       }
