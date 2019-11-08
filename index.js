@@ -124,9 +124,9 @@ try {
               mnemonic: tokenItem.Item.mnemonic.S,
               addr: tokenItem.Item.addr.S,
               state: tokenItem.Item.state.S,
-              stripeState: tokenItem.Item.stripeState.S ? !!JSON.parse(tokenItem.Item.stripeState.S) : false,
-              stripeConnectState: tokenItem.Item.stripeConnectState.S ? !!JSON.parse(tokenItem.Item.stripeConnectState.S) : false,
-              githubOauthState: tokenItem.Item.githubOauthState.S ? !!JSON.parse(tokenItem.Item.githubOauthState.S) : false,
+              stripeState: (tokenItem.Item.stripeState && tokenItem.Item.stripeState.S) ? !!JSON.parse(tokenItem.Item.stripeState.S) : false,
+              stripeConnectState: (tokenItem.Item.stripeConnectState && tokenItem.Item.stripeConnectState.S) ? !!JSON.parse(tokenItem.Item.stripeConnectState.S) : false,
+              githubOauthState: (tokenItem.Item.githubOauthState && tokenItem.Item.githubOauthState.S) ? !!JSON.parse(tokenItem.Item.githubOauthState.S) : false,
             }));
           } else {
             _respond(401, JSON.stringify({
