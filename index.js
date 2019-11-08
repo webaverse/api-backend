@@ -169,6 +169,9 @@ try {
 
               const token = crypto.randomBytes(32).toString('base64');
               tokens.push(token);
+              while (tokens.length > 10) {
+                tokens.shift();
+              }
               if (!name) {
                 name = namegen(2).join('-');
               }
