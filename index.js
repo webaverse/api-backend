@@ -807,8 +807,9 @@ try {
   const {method} = req;
   const o = url.parse(req.url, true);
   if (method === 'GET' && o.pathname === '/github') {
-    const {state = '', code} = o.query;
-    const match = state.match(/^(.+?):(.+?)$/);
+    const {state, code} = o.query;
+    console.log('handle github oauth', {state, code});
+    const match = state ? state.match(/^(.+?):(.+?)$/) : null;
     if (match && code) {
       const email = match[1];
       const token = match[2];
@@ -824,6 +825,8 @@ try {
 
       const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
       if (tokens.includes(token)) {
+        console.log('github oauth ok', tokenItem.Item);
+
         res.statusCode = 301;
         res.setHeader('Location', 'http://127.0.0.1:5500/index.html');
         res.end();
