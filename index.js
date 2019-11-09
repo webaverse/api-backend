@@ -1717,6 +1717,148 @@ try {
 }
 };
 
+const _handleRepos = async (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+
+try {
+  const {method} = req;
+  const {query, pathname: p} = url.parse(req.url, true);
+  console.log('repos request', {method, query, p});
+
+  const tokenItem = await (async () => {
+    const {email, token} = query;
+    if (email && token) {
+      const tokenItem = await ddb.getItem({
+        TableName: 'login',
+        Key: {
+          email: {S: email + '.token'},
+        }
+      }).promise();
+      const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+      if (tokens.includes(token)) {
+        return tokenItem;
+      } else {
+        return null;
+      }
+    } else {
+      return null;
+    }
+  })();
+  const tokenName = (tokenItem && tokenItem.Item.name) ? tokenItem.Item.name.S : null;
+  const tokenGithubOauth = (tokenItem && tokenItem.Item.githubOauthState) ? JSON.parse(tokenItem.Item.githubOauthState.S) : null;
+
+  if (method === 'GET') {
+    const match = p.match(/^\/repos\/(.+)$/);
+    if (match) {
+      const repoUsername = match[1];
+      const isAuthorized = tokenName === repoUsername && !!tokenGithubOauth;
+
+      console.log('was authorized', {repoUsername, tokenName, tokenGithubOauth, isAuthorized});
+
+      if (isAuthorized) {
+        const proxyReq = https.request({
+          method: 'GET',
+          host: 'api.github.com',
+          path: `/user/repos?visibility=all`,
+          headers: {
+            Authorization: `Token ${tokenGithubOauth.access_token}`,
+            Accept: 'application/json',
+            'User-Agent': 'exokit-server',
+          },
+        }, proxyRes => {
+          console.log('got res 1', res.statusCode);
+
+          res.statusCode = proxyRes.statusCode;
+          _setCorsHeaders(res);
+          proxyRes.pipe(res);
+          proxyRes.on('error', err => {
+            _respond(500, JSON.stringify({
+              error: err.stack
+            }));
+          });
+        });
+        proxyReq.on('error', err => {
+          _respond(500, JSON.stringify({
+            error: err.stack
+          }));
+        });
+        proxyReq.end();
+      } else {
+        const proxyReq = https.request({
+          method: 'GET',
+          host: 'api.github.com',
+          path: `/user/repos?visibility=public`,
+          headers: {
+            Authorization: githubAuthorization,
+            Accept: 'application/json',
+            'User-Agent': 'exokit-server',
+          },
+        }, proxyRes => {
+          console.log('got res 1', res.statusCode);
+
+          res.statusCode = proxyRes.statusCode;
+          proxyRes.pipe(res);
+          proxyRes.on('error', err => {
+            _respond(500, JSON.stringify({
+              error: err.stack
+            }));
+          });
+        });
+        proxyReq.on('error', err => {
+          _respond(500, JSON.stringify({
+            error: err.stack
+          }));
+        });
+        proxyReq.end();
+      }
+    } else {
+      _respond(404, JSON.stringify({
+        error: 'not found',
+      }));
+    }
+  } else if (method === 'PUT') {
+    const match = p.match(/^\/repos\/([^\/]+)\/([^\/]+)$/);
+    if (match) {
+      const repoUsername = match[1];
+      const repoName = match[2];
+
+      throw new Error('not implemented'); // XXX
+    } else {
+      _respond(404, JSON.stringify({
+        error: 'not found',
+      }));
+    }
+  } else if (method === 'DELETE') {
+     const match = p.match(/^\/repos\/([^\/]+)\/([^\/]+)$/);
+    if (match) {
+      const repoUsername = match[1];
+      const repoName = match[2];
+
+      throw new Error('not implemented'); // XXX
+    } else {
+      _respond(404, JSON.stringify({
+        error: 'not found',
+      }));
+    }
+  } else {
+    _respond(404, JSON.stringify({
+      error: 'not found',
+    }));
+  }
+} catch(err) {
+  console.warn(err.stack);
+}
+};
+
 /* const browser = await puppeteer.launch({
   // args,
   defaultViewport: {
@@ -2203,6 +2345,9 @@ try {
     return;
   } else if (o.host === 'token.exokit.org') {
     _handleToken(req, res);
+    return;
+  } else if (o.host === 'repos.exokit.org') {
+    _handleRepos(req, res);
     return;
   } else if (o.host === 'git.exokit.org') {
     _handleGit(req, res);
