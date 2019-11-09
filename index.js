@@ -1336,116 +1336,153 @@ try {
       }).promise();
       const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
       if (tokens.includes(password)) {
-        console.log('git request 4');
-        const match3 = req.url.match(/^\/([^\/]*)\/([^\/]*)\.git/);
-        if (match3) {
-          const repoUsername = match3[1];
-          const repoName = match3[2];
-          console.log('git request 5', repoUsername, repoName, tokenItem.Item.name.S);
-          if (repoUsername === tokenItem.Item.name.S && repoName === 'home') {
-            const mangledRepoName = `${repoUsername}-${repoName}`;
-            console.log('git request 6', mangledRepoName);
+        const tokenGithubOauth = (tokenItem && tokenItem.Item.githubOauthState) ? JSON.parse(tokenItem.Item.githubOauthState.S) : null;
+        console.log('git request 4', tokenGithubOauth);
+        if (tokenGithubOauth) {
+          console.log('git request 5', req.url);
 
-            req.url = req.url.replace(/^(\/[^\/]*\/[^\/]*\.git)/, `/${githubUsername}/${mangledRepoName}.git`);
-            req.headers.authorization = githubAuthorization;
-            const proxy = httpProxy.createProxyServer({});
-            proxy
-              .web(req, res, {
-                target: 'https://github.com',
-                // secure: false,
-                changeOrigin: true,
-              }, err => {
-                console.warn(err.stack);
+          const match3 = req.url.match(/^\/([^\/]*)\/([^\/]*)\.git/);
+          if (match3) {
+            const repoUsername = match3[1];
+            const repoName = match3[2];
+            console.log('git request 6', repoUsername, repoName, tokenItem.Item.name.S);
 
-                res.statusCode = 500;
-                res.end();
+            if (repoUsername === tokenItem.Item.name.S) {
+              const githubUser = await new Promise((accept, reject) => {
+                const proxyReq = https.request({
+                  method: 'GET',
+                  host: 'api.github.com',
+                  path: `/user`,
+                  headers: {
+                    Authorization: `Token ${tokenGithubOauth.access_token}`,
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'exokit-server',
+                  },
+                }, proxyRes => {
+                  const bs = [];
+                  proxyRes.on('data', b => {
+                    bs.push(b);
+                  });
+                  proxyRes.on('end', () => {
+                    accept(JSON.parse(Buffer.concat(bs).toString('utf8')));
+                  });
+                  proxyRes.on('error', err => {
+                    reject(err);
+                  });
+                });
+                proxyReq.on('error', reject);
+                proxyReq.end();
               });
-            proxy.on('proxyRes', (proxyRes, req) => {
-              console.log('got proxy res', proxyRes.statusCode);
+              const githubUsername = githubUser.login;
 
-              proxyRes.on('end', () => {
-                console.log('got finish');
+              req.url = req.url.replace(/^\/[^\/]*\/[^\/]*\.git/, `/${githubUsername}/${repoName}.git`);
 
-                if (method === 'POST') {
-                  console.log('got post');
+              console.log('git request 7', githubUsername, repoName, req.url);
 
-                  const _enablePages = () => new Promise((accept, reject) => {
-                    const req = https.request({
-                      method: 'POST',
-                      host: 'api.github.com',
-                      path: `/repos/${githubUsername}/${mangledRepoName}/pages`,
-                      headers: {
-                        Authorization: githubAuthorization,
-                        Accept: 'application/vnd.github.switcheroo-preview+json',
-                        'Content-Type': 'application/json',
-                        'User-Agent': 'exokit-server',
-                      },
-                    }, res => {
-                      console.log('got res 1', res.statusCode);
+              const githubAuthorization = `Basic ${new Buffer(`${githubUsername}:${tokenGithubOauth.access_token}`).toString('base64')}`;
+              req.headers.authorization = githubAuthorization;
+              const proxy = httpProxy.createProxyServer({});
+              proxy
+                .web(req, res, {
+                  target: 'https://github.com',
+                  // secure: false,
+                  changeOrigin: true,
+                }, err => {
+                  console.warn(err.stack);
 
-                      const bs = [];
-                      res.on('data', b => {
-                        bs.push(b);
-                      });
-                      res.on('end', () => {
-                        const b = Buffer.concat(bs);
-                        const s = b.toString('utf8');
-                        console.log('got post 1', s);
+                  res.statusCode = 500;
+                  res.end();
+                });
+              proxy.on('proxyRes', (proxyRes, req) => {
+                console.log('got proxy res', proxyRes.statusCode);
 
-                        accept(b);
+                proxyRes.on('end', () => {
+                  console.log('got finish');
+
+                  if (method === 'POST') {
+                    console.log('got post');
+
+                    const _enablePages = () => new Promise((accept, reject) => {
+                      const req = https.request({
+                        method: 'POST',
+                        host: 'api.github.com',
+                        path: `/repos/${githubUsername}/${repoName}/pages`,
+                        headers: {
+                          Authorization: githubAuthorization,
+                          Accept: 'application/vnd.github.switcheroo-preview+json',
+                          'Content-Type': 'application/json',
+                          'User-Agent': 'exokit-server',
+                        },
+                      }, res => {
+                        console.log('got res 1', res.statusCode);
+
+                        const bs = [];
+                        res.on('data', b => {
+                          bs.push(b);
+                        });
+                        res.on('end', () => {
+                          const b = Buffer.concat(bs);
+                          const s = b.toString('utf8');
+                          console.log('got post 1', s);
+
+                          accept(b);
+                        });
+                        req.on('error', reject);
                       });
                       req.on('error', reject);
+                      req.end(JSON.stringify({
+                        source: {
+                          branch: 'master',
+                          path: '',
+                        },
+                      }));
                     });
-                    req.on('error', reject);
-                    req.end(JSON.stringify({
-                      source: {
-                        branch: 'master',
-                        path: '',
-                      },
-                    }));
-                  });
-                  const _setPagesCname = () => new Promise((accept, reject) => {
-                    const req = https.request({
-                      method: 'PUT',
-                      host: 'api.github.com',
-                      path: `/repos/${githubUsername}/${mangledRepoName}/pages`,
-                      headers: {
-                        Authorization: githubAuthorization,
-                        Accept: 'application/vnd.github.switcheroo-preview+json',
-                        'Content-Type': 'application/json',
-                        'User-Agent': 'exokit-server',
-                      },
-                    }, res => {
-                      console.log('got res 2', res.statusCode);
+                    const _setPagesCname = () => new Promise((accept, reject) => {
+                      const req = https.request({
+                        method: 'PUT',
+                        host: 'api.github.com',
+                        path: `/repos/${githubUsername}/${repoName}/pages`,
+                        headers: {
+                          Authorization: githubAuthorization,
+                          Accept: 'application/vnd.github.switcheroo-preview+json',
+                          'Content-Type': 'application/json',
+                          'User-Agent': 'exokit-server',
+                        },
+                      }, res => {
+                        console.log('got res 2', res.statusCode);
 
-                      const bs = [];
-                      res.on('data', b => {
-                        bs.push(b);
-                      });
-                      res.on('end', () => {
-                        const b = Buffer.concat(bs);
-                        const s = b.toString('utf8');
-                        console.log('got post 2', s);
+                        const bs = [];
+                        res.on('data', b => {
+                          bs.push(b);
+                        });
+                        res.on('end', () => {
+                          const b = Buffer.concat(bs);
+                          const s = b.toString('utf8');
+                          console.log('got post 2', s);
 
-                        accept(b);
+                          accept(b);
+                        });
+                        req.on('error', reject);
                       });
                       req.on('error', reject);
+                      req.end(JSON.stringify({
+                        cname: `${repoUsername}-${repoName}.${githubPagesDomain}`,
+                      }));
                     });
-                    req.on('error', reject);
-                    req.end(JSON.stringify({
-                      cname: `${mangledRepoName}.${githubPagesDomain}`,
-                    }));
-                  });
 
-                  _enablePages()
-                    .then(() => {
-                      _setPagesCname();
-                    });
-                }
+                    _enablePages()
+                      .then(() => {
+                        _setPagesCname();
+                      });
+                  }
+                });
               });
-            });
+            } else {
+              _respond(403, 'forbidden');
+            }
           } else {
-            _respond(403, 'forbidden');
+            _respond(404, 'not found');
           }
         } else {
           _respond(404, 'not found');
@@ -1481,236 +1518,349 @@ try {
 
   console.log('files request 1', {method, url: req.url, p, authorization});
 
-  const match = authorization.match(/^Basic (.+)$/i);
+  const match = p.match(/^\/([^\/]*)\/([^\/]*)(\/.*)/);
   if (match) {
-    console.log('files request 2');
-    const authString = Buffer.from(match[1], 'base64').toString('utf8');
-    const match2 = authString.match(/^(.*?):(.*?)$/);
-    if (match2) {
-      const username = match2[1];
-      const password = match2[2];
+    const username = match[1];
+    const reponame = match[2];
+    const repopathname = match[3];
 
-      console.log('files request 3', username, password);
+    console.log('files request 2', username, reponame, repopathname);
 
-      const tokenItem = await ddb.getItem({
-        TableName: 'login',
-        Key: {
-          email: {S: username + '.token'},
-        }
-      }).promise();
-      const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
-      if (tokens.includes(password)) {
-        const match = p.match(/^\/([^\/]*)\/([^\/]*)(\/.*)/);
-        if (match) {
-          const username = match[1];
-          const reponame = match[2];
-          const p = match[3];
+    if (method === 'GET' && reponame === 'webxr-home' && /^\/public\//.test(repopathname)) {
+      const tokenItem = await (async () => {
+        const result = await ddb.query({
+          TableName : 'login',
+          IndexName: 'name-index',
+          KeyConditionExpression: '#name = :repoUsername',
+          ExpressionAttributeNames: {
+            '#name': 'name',
+          },
+          ExpressionAttributeValues: {
+            ':repoUsername': {S: username},
+          },
+        }).promise();
+        return result.Items.length > 0 ? {Item: result.Items[0]} : null;
+      })();
+      const tokenGithubOauth = (tokenItem && tokenItem.Item.githubOauthState) ? JSON.parse(tokenItem.Item.githubOauthState.S) : null;
 
-          console.log('files request 4', {username, reponame, p});
+      console.log('files request 3', tokenGithubOauth);
 
-          const mangledRepoName = `${username}-${reponame}`;
+      if (tokenGithubOauth) {
+        const githubUser = await new Promise((accept, reject) => {
+        const proxyReq = https.request({
+            method: 'GET',
+            host: 'api.github.com',
+            path: `/user`,
+            headers: {
+              Authorization: `Token ${tokenGithubOauth.access_token}`,
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+              'User-Agent': 'exokit-server',
+            },
+          }, proxyRes => {
+            const bs = [];
+            proxyRes.on('data', b => {
+              bs.push(b);
+            });
+            proxyRes.on('end', () => {
+              accept(JSON.parse(Buffer.concat(bs).toString('utf8')));
+            });
+            proxyRes.on('error', err => {
+              reject(err);
+            });
+          });
+          proxyReq.on('error', reject);
+          proxyReq.end();
+        });
+        const githubUsername = githubUser.login;
 
-          switch (method) {
-            case 'GET': {
-              console.log('proxy target', {username, reponame, p});
+        console.log('files request 4', githubUsername);
 
-              const proxyReq = https.request({
-                method: 'GET',
-                host: 'api.github.com',
-                path: `/repos/${githubUsername}/${mangledRepoName}/contents${p}`,
-                headers: {
-                  Authorization: `Token ${githubApiKey}`,
-                  'Accept': 'application/vnd.github.v3.raw',
-                  'User-Agent': 'exokit-server',
-                },
-              }, proxyRes => {
-                res.statusCode = proxyRes.statusCode;
-                proxyRes.pipe(res);
-              });
-              proxyReq.on('error', err => {
-                res.statusCode = 500;
-                res.end(err.stack);
-              });
-              proxyReq.end();
-              break;
+        const proxyReq = https.request({
+          method: 'GET',
+          host: 'api.github.com',
+          path: `/repos/${githubUsername}/${reponame}/contents${repopathname}`,
+          headers: {
+            Authorization: `Token ${tokenGithubOauth.access_token}`,
+            'Accept': 'application/vnd.github.v3.raw',
+            'User-Agent': 'exokit-server',
+          },
+        }, proxyRes => {
+          res.statusCode = proxyRes.statusCode;
+          proxyRes.pipe(res);
+        });
+        proxyReq.on('error', err => {
+          res.statusCode = 500;
+          res.end(err.stack);
+        });
+        proxyReq.end();
+      } else {
+        _respond(404, JSON.stringify({
+          error: 'not found',
+        }));
+      }
+    } else {
+      const match2 = authorization.match(/^Basic (.+)$/i);
+      console.log('files request 5', authorization, match2);
+      if (match2) {
+        console.log('files request 6');
+        const authString = Buffer.from(match2[1], 'base64').toString('utf8');
+        const match3 = authString.match(/^(.*?):(.*?)$/);
+        if (match3) {
+          const username = match3[1];
+          const password = match3[2];
+
+          console.log('files request 7', username, password);
+
+          const tokenItem = await ddb.getItem({
+            TableName: 'login',
+            Key: {
+              email: {S: username + '.token'},
             }
-            case 'PUT': {
-              const _getContent = () => new Promise((accept, reject) => {
-                const req = https.request({
+          }).promise();
+          const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+          if (tokens.includes(password)) {
+            const tokenName = (tokenItem && tokenItem.Item.name) ? tokenItem.Item.name.S : null;
+            const tokenGithubOauth = (tokenItem && tokenItem.Item.githubOauthState) ? JSON.parse(tokenItem.Item.githubOauthState.S) : null;
+
+            if (tokenGithubOauth) {
+              const githubUser = await new Promise((accept, reject) => {
+              const proxyReq = https.request({
                   method: 'GET',
                   host: 'api.github.com',
-                  path: `/repos/${githubUsername}/${mangledRepoName}/contents${p}`,
+                  path: `/user`,
                   headers: {
-                    Authorization: githubAuthorization,
+                    Authorization: `Token ${tokenGithubOauth.access_token}`,
+                    Accept: 'application/json',
                     'Content-Type': 'application/json',
                     'User-Agent': 'exokit-server',
                   },
-                }, res => {
-                  console.log('got res 2', res.statusCode);
-
+                }, proxyRes => {
                   const bs = [];
-                  res.on('data', b => {
+                  proxyRes.on('data', b => {
                     bs.push(b);
                   });
-                  res.on('end', () => {
-                    const b = Buffer.concat(bs);
-                    const s = b.toString('utf8');
-                    const j = JSON.parse(s);
-
-                    console.log('get 1', j);
-
-                    accept(j);
+                  proxyRes.on('end', () => {
+                    accept(JSON.parse(Buffer.concat(bs).toString('utf8')));
                   });
-                  res.on('error', reject);
-                });
-                req.on('error', reject);
-                req.end();
-              });
-              const _readRequestBody = () => new Promise((accept, reject) => {
-                console.log('req request body 1');
-                const bs = [];
-                req.on('data', b => {
-                  console.log('got data', b.length);
-                  bs.push(b);
-                });
-                req.on('end', () => {
-                  const b = Buffer.concat(bs);
-                  console.log('get 2', b.length);
-                  accept(b);
-                });
-                req.on('error', reject);
-              });
-              const _putContent = (sha, content) => new Promise((accept, reject) => {
-                console.log('put content 1', sha, content.toString('utf8'));
-
-                const req = https.request({
-                  method: 'PUT',
-                  host: 'api.github.com',
-                  path: `/repos/${githubUsername}/${mangledRepoName}/contents${p}`,
-                  headers: {
-                    Authorization: githubAuthorization,
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'exokit-server',
-                  },
-                }, res => {
-                  const {statusCode} = res;
-                  console.log('get 3', statusCode);
-
-                  const bs = [];
-                  res.on('data', b => {
-                    bs.push(b);
+                  proxyRes.on('error', err => {
+                    reject(err);
                   });
-                  res.on('end', () => {
-                    const b = Buffer.concat(bs);
-                    const s = b.toString('utf8');
-                    console.log('get 5', s);
-
-                    accept({statusCode, b});
-                  });
-                  res.on('error', reject);
                 });
-                req.on('error', reject);
-                req.end(JSON.stringify({
-                  message: `put ${p}`,
-                  sha,
-                  content: content.toString('base64'),
-                }));
+                proxyReq.on('error', reject);
+                proxyReq.end();
               });
-              _getContent()
-                .then(o => {
-                  return _readRequestBody()
-                    .then(content => _putContent(o.sha, content))
+              const githubUsername = githubUser.login;
+
+              switch (method) {
+                case 'GET': {
+                  console.log('proxy target', {username, reponame, repopathname});
+
+                  const proxyReq = https.request({
+                    method: 'GET',
+                    host: 'api.github.com',
+                    path: `/repos/${githubUsername}/${reponame}/contents${repopathname}`,
+                    headers: {
+                      Authorization: `Token ${tokenGithubOauth.access_token}`,
+                      'Accept': 'application/vnd.github.v3.raw',
+                      'User-Agent': 'exokit-server',
+                    },
+                  }, proxyRes => {
+                    res.statusCode = proxyRes.statusCode;
+                    proxyRes.pipe(res);
+                  });
+                  proxyReq.on('error', err => {
+                    res.statusCode = 500;
+                    res.end(err.stack);
+                  });
+                  proxyReq.end();
+                  break;
+                }
+                case 'PUT': {
+                  const _getContent = () => new Promise((accept, reject) => {
+                    const req = https.request({
+                      method: 'GET',
+                      host: 'api.github.com',
+                      path: `/repos/${githubUsername}/${reponame}/contents${repopathname}`,
+                      headers: {
+                        Authorization: `Token ${tokenGithubOauth.access_token}`,
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'exokit-server',
+                      },
+                    }, res => {
+                      console.log('got res 2', res.statusCode);
+
+                      const bs = [];
+                      res.on('data', b => {
+                        bs.push(b);
+                      });
+                      res.on('end', () => {
+                        const b = Buffer.concat(bs);
+                        const s = b.toString('utf8');
+                        const j = JSON.parse(s);
+
+                        console.log('get 1', j);
+
+                        accept(j);
+                      });
+                      res.on('error', reject);
+                    });
+                    req.on('error', reject);
+                    req.end();
+                  });
+                  const _readRequestBody = () => new Promise((accept, reject) => {
+                    console.log('req request body 1');
+                    const bs = [];
+                    req.on('data', b => {
+                      console.log('got data', b.length);
+                      bs.push(b);
+                    });
+                    req.on('end', () => {
+                      const b = Buffer.concat(bs);
+                      console.log('get 2', b.length);
+                      accept(b);
+                    });
+                    req.on('error', reject);
+                  });
+                  const _putContent = (sha, content) => new Promise((accept, reject) => {
+                    console.log('put content 1', sha, content.toString('utf8'));
+
+                    const req = https.request({
+                      method: 'PUT',
+                      host: 'api.github.com',
+                      path: `/repos/${githubUsername}/${reponame}/contents${repopathname}`,
+                      headers: {
+                        Authorization: `Token ${tokenGithubOauth.access_token}`,
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'exokit-server',
+                      },
+                    }, res => {
+                      const {statusCode} = res;
+                      console.log('get 3', statusCode);
+
+                      const bs = [];
+                      res.on('data', b => {
+                        bs.push(b);
+                      });
+                      res.on('end', () => {
+                        const b = Buffer.concat(bs);
+                        const s = b.toString('utf8');
+                        console.log('get 5', s);
+
+                        accept({statusCode, b});
+                      });
+                      res.on('error', reject);
+                    });
+                    req.on('error', reject);
+                    req.end(JSON.stringify({
+                      message: `put ${p}`,
+                      sha,
+                      content: content.toString('base64'),
+                    }));
+                  });
+                  _getContent()
+                    .then(o => {
+                      return _readRequestBody()
+                        .then(content => _putContent(o.sha, content))
+                        .then(({statusCode, b}) => {
+                          res.statusCode = statusCode;
+                          res.end(b);
+                        });
+                    });
+                  break;
+                }
+                case 'DELETE': {
+                  const _getContent = () => new Promise((accept, reject) => {
+                    const req = https.request({
+                      method: 'GET',
+                      host: 'api.github.com',
+                      path: `/repos/${githubUsername}/${reponame}/contents${repopathname}`,
+                      headers: {
+                        Authorization: `Token ${tokenGithubOauth.access_token}`,
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'exokit-server',
+                      },
+                    }, res => {
+                      console.log('got res 2', res.statusCode);
+
+                      const bs = [];
+                      res.on('data', b => {
+                        bs.push(b);
+                      });
+                      res.on('end', () => {
+                        const b = Buffer.concat(bs);
+                        const s = b.toString('utf8');
+                        const j = JSON.parse(s);
+
+                        console.log('get 1', j);
+
+                        accept(j);
+                      });
+                      res.on('error', reject);
+                    });
+                    req.on('error', reject);
+                    req.end();
+                  });
+                  const _deleteContent = sha => new Promise((accept, reject) => {
+                    console.log('delete content 1', sha);
+
+                    const req = https.request({
+                      method: 'DELETE',
+                      host: 'api.github.com',
+                      path: `/repos/${githubUsername}/${reponame}/contents${repopathname}?message=${encodeURIComponent(`delete ${repopathname}`)}&sha=${sha}`,
+                      headers: {
+                        Authorization: `Token ${tokenGithubOauth.access_token}`,
+                        'User-Agent': 'exokit-server',
+                      },
+                    }, res => {
+                      const {statusCode} = res;
+                      console.log('get 3', statusCode);
+
+                      const bs = [];
+                      res.on('data', b => {
+                        bs.push(b);
+                      });
+                      res.on('end', () => {
+                        const b = Buffer.concat(bs);
+                        const s = b.toString('utf8');
+                        console.log('get 5', s);
+
+                        accept({statusCode, b});
+                      });
+                      res.on('error', reject);
+                    });
+                    req.on('error', reject);
+                    req.end();
+                  });
+                  _getContent()
+                    .then(o => _deleteContent(o.sha))
                     .then(({statusCode, b}) => {
                       res.statusCode = statusCode;
                       res.end(b);
                     });
-                });
-              break;
+                  break;
+                }
+              }
+            } else {
+              _respond(404, JSON.stringify({
+                error: 'not found',
+              }));
             }
-            case 'DELETE': {
-              const _getContent = () => new Promise((accept, reject) => {
-                const req = https.request({
-                  method: 'GET',
-                  host: 'api.github.com',
-                  path: `/repos/${githubUsername}/${mangledRepoName}/contents${p}`,
-                  headers: {
-                    Authorization: githubAuthorization,
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'exokit-server',
-                  },
-                }, res => {
-                  console.log('got res 2', res.statusCode);
-
-                  const bs = [];
-                  res.on('data', b => {
-                    bs.push(b);
-                  });
-                  res.on('end', () => {
-                    const b = Buffer.concat(bs);
-                    const s = b.toString('utf8');
-                    const j = JSON.parse(s);
-
-                    console.log('get 1', j);
-
-                    accept(j);
-                  });
-                  res.on('error', reject);
-                });
-                req.on('error', reject);
-                req.end();
-              });
-              const _deleteContent = sha => new Promise((accept, reject) => {
-                console.log('delete content 1', sha);
-
-                const req = https.request({
-                  method: 'DELETE',
-                  host: 'api.github.com',
-                  path: `/repos/${githubUsername}/${mangledRepoName}/contents${p}?message=${encodeURIComponent(`delete ${p}`)}&sha=${sha}`,
-                  headers: {
-                    Authorization: githubAuthorization,
-                    'User-Agent': 'exokit-server',
-                  },
-                }, res => {
-                  const {statusCode} = res;
-                  console.log('get 3', statusCode);
-
-                  const bs = [];
-                  res.on('data', b => {
-                    bs.push(b);
-                  });
-                  res.on('end', () => {
-                    const b = Buffer.concat(bs);
-                    const s = b.toString('utf8');
-                    console.log('get 5', s);
-
-                    accept({statusCode, b});
-                  });
-                  res.on('error', reject);
-                });
-                req.on('error', reject);
-                req.end();
-              });
-              _getContent()
-                .then(o => _deleteContent(o.sha))
-                .then(({statusCode, b}) => {
-                  res.statusCode = statusCode;
-                  res.end(b);
-                });
-              break;
-            }
+          } else {
+            _respond(403, 'invalid credentials');
           }
         } else {
-          _respond(404, 'not found');
-        }
+          _respond(400, 'malformed credentials');
+        }    
       } else {
-        _respond(403, 'invalid credentials');
+        res.setHeader('WWW-Authenticate', 'Basic realm="exokit"');
+        _respond(401, 'not authorized');
       }
-    } else {
-      _respond(400, 'malformed credentials');
     }
   } else {
-    res.setHeader('WWW-Authenticate', 'Basic realm="exokit"');
-    _respond(401, 'not authorized');
+    _respond(404, JSON.stringify({
+      error: 'not found',
+    }))
   }
 } catch(err) {
   console.warn(err.stack);
@@ -1834,7 +1984,7 @@ try {
           }).promise();
           return result.Items.length > 0 ? {Item: result.Items[0]} : null;
         })();
-        console.log('query token item', tokenItem);
+        // console.log('query token item', tokenItem);
         const tokenGithubOauth = (tokenItem && tokenItem.Item.githubOauthState) ? JSON.parse(tokenItem.Item.githubOauthState.S) : null;
 
         if (tokenGithubOauth) {
