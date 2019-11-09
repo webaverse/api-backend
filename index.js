@@ -51,6 +51,7 @@ const PRIVKEY = fs.readFileSync('/etc/letsencrypt/live/exokit.org/privkey.pem');
 const PORT = parseInt(process.env.PORT, 10) || 80;
 const PARCEL_SIZE = 8;
 const maxChunkSize = 25*1024*1024;
+const filterTopic = 'webxr-site';
 
 const bucketNames = {
   content: 'content.exokit.org',
@@ -1995,7 +1996,7 @@ try {
 
         const _parseRepos = repos => repos.map(repo => {
           const {name, html_url, private, topics, has_pages} = repo;
-          if (topics.includes('webxr-site')) {
+          if (topics.includes(filterTopic)) {
             return {
               name,
               private,
@@ -2073,7 +2074,7 @@ try {
                 'User-Agent': 'exokit-server',
               },
             }, async proxyRes => {
-              console.log('got res 1', res.statusCode);
+              // console.log('got res 1', proxyRes.statusCode);
 
               if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
                 let repos = await _readResponseBodyJson(proxyRes);
@@ -2126,16 +2127,35 @@ try {
               'User-Agent': 'exokit-server',
             },
           }, proxyRes => {
-            console.log('got res 1', res.statusCode);
-
-            res.statusCode = proxyRes.statusCode;
-            _setCorsHeaders(res);
-            proxyRes.pipe(res);
-            proxyRes.on('error', err => {
-              _respond(500, JSON.stringify({
-                error: err.stack
+            if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
+              const proxyReq = https.request({
+                method: 'PUT',
+                host: 'api.github.com',
+                path: `/repos/${repoUsername}/${repoName}/topics`,
+                headers: {
+                  Authorization: `Token ${tokenGithubOauth.access_token}`,
+                  Accept: 'application/vnd.github.mercy-preview+json',
+                  'Content-Type': 'application/json',
+                  'User-Agent': 'exokit-server',
+                },
+              }, proxyRes => {
+                res.statusCode = proxyRes.statusCode;
+                _setCorsHeaders(res);
+                res.end();
+              });
+              proxyReq.on('error', err => {
+                _respond(500, JSON.stringify({
+                  error: err.stack
+                }));
+              });
+              proxyReq.end(JSON.stringify({
+                names: [filterTopic],
               }));
-            });
+            } else {
+              res.statusCode = proxyRes.statusCode;
+              _setCorsHeaders(res);
+              proxyRes.pipe(res);
+            }
           });
           proxyReq.on('error', err => {
             _respond(500, JSON.stringify({
@@ -2194,37 +2214,74 @@ try {
           const githubUsername = githubUser.login;
           console.log('got gh username', githubUsername, repoName);
 
-          const proxyReq = https.request({
-            method: 'DELETE',
-            host: 'api.github.com',
-            path: `/repos/${githubUsername}/${repoName}`,
-            headers: {
-              Authorization: `Token ${tokenGithubOauth.access_token}`,
-              Accept: 'application/json',
-              'Content-Type': 'application/json',
-              'User-Agent': 'exokit-server',
-            },
-          }, proxyRes => {
-            console.log('got res 1', res.statusCode);
+          const isWebxrSiteRepo = await new Promise((accept, reject) => {
+            const proxyReq = https.request({
+              method: 'GET',
+              host: 'api.github.com',
+              path: `/repos/${githubUsername}/${repoName}`,
+              headers: {
+                Authorization: `Token ${tokenGithubOauth.access_token}`,
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'User-Agent': 'exokit-server',
+              },
+            }, proxyRes => {
+              if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
+                const bs = [];
+                proxyRes.on('data', b => {
+                  bs.push(b);
+                });
+                proxyRes.on('end', () => {
+                  const j = JSON.parse(Buffer.concat(bs).toString('utf8'));
+                  accept(j.topics.includes(filterTopic));
+                });
+                proxyRes.on('error', err => {
+                  reject(err);
+                });
+              } else {
+                accept(false);
+              }
+            });
+            proxyReq.on('error', reject);
+            proxyReq.end();
+          });
+          if (isWebxrSiteRepo) {
+            const proxyReq = https.request({
+              method: 'DELETE',
+              host: 'api.github.com',
+              path: `/repos/${githubUsername}/${repoName}`,
+              headers: {
+                Authorization: `Token ${tokenGithubOauth.access_token}`,
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'User-Agent': 'exokit-server',
+              },
+            }, proxyRes => {
+              // console.log('got res 1', proxyRes.statusCode);
 
-            res.statusCode = proxyRes.statusCode;
-            _setCorsHeaders(res);
-            proxyRes.pipe(res);
-            proxyRes.on('error', err => {
+              res.statusCode = proxyRes.statusCode;
+              _setCorsHeaders(res);
+              proxyRes.pipe(res);
+              proxyRes.on('error', err => {
+                _respond(500, JSON.stringify({
+                  error: err.stack
+                }));
+              });
+            });
+            proxyReq.on('error', err => {
               _respond(500, JSON.stringify({
                 error: err.stack
               }));
             });
-          });
-          proxyReq.on('error', err => {
-            _respond(500, JSON.stringify({
-              error: err.stack
+            proxyReq.end(JSON.stringify({
+              name: repoName,
+              private,
             }));
-          });
-          proxyReq.end(JSON.stringify({
-            name: repoName,
-            private,
-          }));
+          } else {
+            _respond(404, JSON.stringify({
+              error: 'not found',
+            }));
+          }
         } else {
           _respond(403, JSON.stringify({
             error: 'forbidden',
