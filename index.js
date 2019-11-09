@@ -1302,7 +1302,7 @@ try {
 }
 };
 
-const githubAuthorization = `Basic ${Buffer.from(`${githubUsername}:${githubApiKey}`).toString('base64')}`;
+// const globalGithubAuthorization = `Basic ${Buffer.from(`${githubUsername}:${githubApiKey}`).toString('base64')}`;
 const _handleGit = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
