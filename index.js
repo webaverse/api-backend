@@ -2025,6 +2025,7 @@ try {
           });
           proxyReq.end();
         } else {
+          _setCorsHeaders(res);
           res.end(JSON.stringify([]));
         }
       }
