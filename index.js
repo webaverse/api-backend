@@ -14,7 +14,7 @@ const AWS = require('aws-sdk');
 const Stripe = require('stripe');
 // const puppeteer = require('puppeteer');
 const namegen = require('./namegen.js');
-const {accessKeyId, secretAccessKey, githubUsername, githubApiKey, githubPagesDomain, githubClientId, githubClientSecret} = require('./config.json');
+const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret} = require('./config.json');
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
     accessKeyId,
