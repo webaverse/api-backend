@@ -1793,9 +1793,9 @@ try {
                     }));
                   });
                   _getRepoFileSha(githubUsername, reponame, repopathname, tokenGithubOauth.access_token)
-                    .then(o => {
+                    .then(sha => {
                       return _readRequestBody()
-                        .then(content => _putContent(o.sha, content))
+                        .then(content => _putContent(sha, content))
                         .then(({statusCode, b}) => {
                           res.statusCode = statusCode;
                           res.end(b);
