@@ -1792,35 +1792,54 @@ try {
           }));
         });
         proxyReq.end();
-      } else if (tokenGithubOauth) {
-        const proxyReq = https.request({
-          method: 'GET',
-          host: 'api.github.com',
-          path: `/users/repos?visibility=public`,
-          headers: {
-            Authorization: `Token ${tokenGithubOauth.access_token}`,
-            Accept: 'application/json',
-            'User-Agent': 'exokit-server',
-          },
-        }, proxyRes => {
-          console.log('got res 1', res.statusCode);
+      } else {
+        const tokenItem = await (async () => {
+          const result = await ddb.query({
+            TableName : 'login',
+            IndexName: 'name-index',
+            KeyConditionExpression: '#name = :repoUsername',
+            ExpressionAttributeNames: {
+              '#name': 'name',
+            },
+            ExpressionAttributeValues: {
+              ':repoUsername': {S: repoUsername},
+            },
+          }).promise();
+          return result.Items.length > 0 ? {Item: result.Items[0]} : null;
+        })();
+        console.log('query token item', tokenItem);
+        const tokenGithubOauth = (tokenItem && tokenItem.Item.githubOauthState) ? JSON.parse(tokenItem.Item.githubOauthState.S) : null;
 
-          res.statusCode = proxyRes.statusCode;
-          proxyRes.pipe(res);
-          proxyRes.on('error', err => {
+        if (tokenGithubOauth) {
+          const proxyReq = https.request({
+            method: 'GET',
+            host: 'api.github.com',
+            path: `/user/repos?visibility=public`,
+            headers: {
+              Authorization: `Token ${tokenGithubOauth.access_token}`,
+              Accept: 'application/json',
+              'User-Agent': 'exokit-server',
+            },
+          }, proxyRes => {
+            console.log('got res 1', res.statusCode);
+
+            res.statusCode = proxyRes.statusCode;
+            proxyRes.pipe(res);
+            proxyRes.on('error', err => {
+              _respond(500, JSON.stringify({
+                error: err.stack
+              }));
+            });
+          });
+          proxyReq.on('error', err => {
             _respond(500, JSON.stringify({
               error: err.stack
             }));
           });
-        });
-        proxyReq.on('error', err => {
-          _respond(500, JSON.stringify({
-            error: err.stack
-          }));
-        });
-        proxyReq.end();
-      } else {
-        res.end(JSON.stringify([]));
+          proxyReq.end();
+        } else {
+          res.end(JSON.stringify([]));
+        }
       }
     } else {
       _respond(404, JSON.stringify({
