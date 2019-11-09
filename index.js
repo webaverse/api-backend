@@ -1398,9 +1398,9 @@ try {
                     });
                     req.on('error', reject);
                     req.end(JSON.stringify({
-                      "source": {
-                        "branch": "master",
-                        "path": "",
+                      source: {
+                        branch: 'master',
+                        path: '',
                       },
                     }));
                   });
