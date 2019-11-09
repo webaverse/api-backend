@@ -1609,10 +1609,11 @@ const _handleFiles = async (req, res) => {
   };
 
 try {
-  const {method, headers} = req;
+  const {method} = req;
+
+  const {headers} = req;
   const {pathname: p} = url.parse(req.url);
   const {authorization = ''} = headers;
-
   console.log('files request 0', {method, url: req.url, p, authorization});
 
   const match = p.match(/^\/([^\/]*)\/([^\/]*)(\/.*)/);
