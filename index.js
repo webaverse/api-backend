@@ -1728,6 +1728,18 @@ const _handleRepos = async (req, res) => {
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
+  const _readResponseBodyJson = res => new Promise((accept, reject) => {
+    const bs = [];
+    res.on('data', b => {
+      bs.push(b);
+    });
+    res.on('end', () => {
+      accept(JSON.parse(Buffer.concat(bs).toString('utf8')));
+    });
+    res.on('error', err => {
+      reject(err);
+    });
+  });
 
 try {
   const {method} = req;
@@ -1764,6 +1776,15 @@ try {
 
       console.log('was authorized', {repoUsername, tokenName, tokenGithubOauth, isAuthorized});
 
+      const _parseRepos = repos => repos.map(repo => {
+        const {name, private, has_pages} = repo;
+        return {
+          name,
+          private,
+          webxrUrl: has_pages ? `https://${tokenName}-${name}.${githubPagesDomain}/` : null,
+        };
+      });
+
       if (isAuthorized) {
         const proxyReq = https.request({
           method: 'GET',
@@ -1774,17 +1795,23 @@ try {
             Accept: 'application/json',
             'User-Agent': 'exokit-server',
           },
-        }, proxyRes => {
+        }, async proxyRes => {
           console.log('got res 1', res.statusCode);
 
-          res.statusCode = proxyRes.statusCode;
-          _setCorsHeaders(res);
-          proxyRes.pipe(res);
-          proxyRes.on('error', err => {
-            _respond(500, JSON.stringify({
-              error: err.stack
-            }));
-          });
+          if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
+            let repos = await _readResponseBodyJson(proxyRes);
+            repos = _parseRepos(repos);
+            _setCorsHeaders(res);
+            res.end(JSON.stringify(repos));
+          } else {
+            res.statusCode = proxyRes.statusCode;
+            proxyRes.pipe(res);
+            proxyRes.on('error', err => {
+              _respond(500, JSON.stringify({
+                error: err.stack
+              }));
+            });
+          }
         });
         proxyReq.on('error', err => {
           _respond(500, JSON.stringify({
@@ -1820,16 +1847,23 @@ try {
               Accept: 'application/json',
               'User-Agent': 'exokit-server',
             },
-          }, proxyRes => {
+          }, async proxyRes => {
             console.log('got res 1', res.statusCode);
 
-            res.statusCode = proxyRes.statusCode;
-            proxyRes.pipe(res);
-            proxyRes.on('error', err => {
-              _respond(500, JSON.stringify({
-                error: err.stack
-              }));
-            });
+            if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
+              let repos = await _readResponseBodyJson(proxyRes);
+              repos = _parseRepos(repos);
+              _setCorsHeaders(res);
+              res.end(JSON.stringify(repos));
+            } else {
+              res.statusCode = proxyRes.statusCode;
+              proxyRes.pipe(res);
+              proxyRes.on('error', err => {
+                _respond(500, JSON.stringify({
+                  error: err.stack
+                }));
+              });
+            }
           });
           proxyReq.on('error', err => {
             _respond(500, JSON.stringify({
