@@ -1994,16 +1994,21 @@ try {
         console.log('was authorized', {repoUsername, tokenName, tokenGithubOauth, isAuthorized});
 
         const _parseRepos = repos => repos.map(repo => {
-          const {name, html_url, private, has_pages} = repo;
-          return {
-            name,
-            private,
-            webxrUrl: has_pages ? `https://${tokenName}-${name}.${githubPagesDomain}/` : null,
-            previewUrl: 'https://raw.githubusercontent.com/exokitxr/exokit/master/assets/icon.png',
-            cloneUrl: `https://git.exokit.org/${encodeURIComponent(repoUsername)}/${encodeURIComponent(name)}`,
-            repoUrl: html_url,
-          };
-        });
+          const {name, html_url, private, topics, has_pages} = repo;
+          if (topics.includes('webxr-site')) {
+            return {
+              name,
+              private,
+              webxrUrl: has_pages ? `https://${tokenName}-${name}.${githubPagesDomain}/` : null,
+              previewUrl: 'https://raw.githubusercontent.com/exokitxr/exokit/master/assets/icon.png',
+              cloneUrl: `https://git.exokit.org/${encodeURIComponent(repoUsername)}/${encodeURIComponent(name)}`,
+              repoUrl: html_url,
+              topics,
+            };
+          } else {
+            return null;
+          }
+        }).filter(repo => repo !== null);
 
         if (isAuthorized) {
           const proxyReq = https.request({
