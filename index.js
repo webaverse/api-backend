@@ -14,6 +14,7 @@ const AWS = require('aws-sdk');
 const Stripe = require('stripe');
 // const puppeteer = require('puppeteer');
 const namegen = require('./namegen.js');
+const Base64Encoder = require('./encoder.js').Encoder;
 const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret} = require('./config.json');
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
@@ -1755,20 +1756,8 @@ try {
                     break;
                   }
                   case 'PUT': {
-                    const _readRequestBody = () => new Promise((accept, reject) => {
-                      const bs = [];
-                      req.on('data', b => {
-                        bs.push(b);
-                      });
-                      req.on('end', () => {
-                        const b = Buffer.concat(bs);
-                        // console.log('read request body', b.length);
-                        accept(b);
-                      });
-                      req.on('error', reject);
-                    });
-                    const _putContent = (sha, content) => new Promise((accept, reject) => {
-                      console.log('put content 1', sha, content.length);
+                    const _putContent = sha => new Promise((accept, reject) => {
+                      console.log('put content 1', sha);
 
                       const proxyReq = https.request({
                         method: 'PUT',
@@ -1794,16 +1783,17 @@ try {
                         res.on('error', reject);
                       });
                       proxyReq.on('error', reject);
-                      proxyReq.end(JSON.stringify({
-                        message: `put ${p}`,
-                        sha,
-                        content: content.toString('base64'),
-                      }));
+
+                      proxyReq.write(`{"message":${JSON.stringify(`put ${p}`)},"sha":${JSON.stringify(sha)},"content":"`);
+                      const encoder = new Base64Encoder();
+                      req.pipe(encoder).pipe(proxyReq, {end: false});
+                      encoder.on('end', () => {
+                        proxyReq.end(`"}`);
+                      });
                     });
                     _getRepoFileSha(githubUsername, reponame, repopathname, tokenGithubOauth.access_token)
                       .then(sha => {
-                        return _readRequestBody()
-                          .then(content => _putContent(sha, content))
+                        return _putContent(sha)
                           .then(({statusCode, b}) => {
                             res.statusCode = statusCode;
                             res.end(b);
