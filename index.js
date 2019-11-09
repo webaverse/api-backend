@@ -1343,8 +1343,8 @@ try {
 
           const match3 = req.url.match(/^\/([^\/]*)\/([^\/]*)\.git/);
           if (match3) {
-            const repoUsername = match3[1];
-            const repoName = match3[2];
+            const repoUsername = decodeURIComponent(match3[1]);
+            const repoName = decodeURIComponent(match3[2]);
             console.log('git request 6', repoUsername, repoName, tokenItem.Item.name.S);
 
             if (repoUsername === tokenItem.Item.name.S) {
@@ -1924,7 +1924,7 @@ try {
   if (method === 'GET') {
     const match = p.match(/^\/repos\/(.+)$/);
     if (match) {
-      const repoUsername = match[1];
+      const repoUsername = decodeURIComponent(match[1]);
       const isAuthorized = tokenName === repoUsername && !!tokenGithubOauth;
 
       console.log('was authorized', {repoUsername, tokenName, tokenGithubOauth, isAuthorized});
@@ -2037,8 +2037,8 @@ try {
   } else if (method === 'PUT') {
     const match = p.match(/^\/repos\/([^\/]+)\/([^\/]+)$/);
     if (match) {
-      const repoUsername = match[1];
-      const repoName = match[2];
+      const repoUsername = decodeURIComponent(match[1]);
+      const repoName = decodeURIComponent(match[2]);
       const private = !!query.private;
       const isAuthorized = tokenName === repoUsername && !!tokenGithubOauth;
 
@@ -2086,8 +2086,8 @@ try {
   } else if (method === 'DELETE') {
     const match = p.match(/^\/repos\/([^\/]+)\/([^\/]+)$/);
     if (match) {
-      const repoUsername = match[1];
-      const repoName = match[2];
+      const repoUsername = decodeURIComponent(match[1]);
+      const repoName = decodeURIComponent(match[2]);
       const private = !!query.private;
       const isAuthorized = tokenName === repoUsername && !!tokenGithubOauth;
 
