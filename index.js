@@ -50,6 +50,7 @@ const PRIVKEY = fs.readFileSync('/etc/letsencrypt/live/exokit.org/privkey.pem');
 
 const PORT = parseInt(process.env.PORT, 10) || 80;
 const PARCEL_SIZE = 8;
+const maxChunkSize = 25*1024*1024;
 
 const bucketNames = {
   content: 'content.exokit.org',
@@ -1561,52 +1562,44 @@ const _handleFiles = async (req, res) => {
     }
   });
   const _respondRepoData = (username, reponame, pathname, access_token) => {
-    const proxyReq = https.request({
-      method: 'GET',
-      host: 'api.github.com',
-      path: `/repos/${username}/${reponame}/contents${pathname}`,
-      headers: {
-        Authorization: `Token ${access_token}`,
-        Accept: 'application/vnd.github.v3.raw',
-        'User-Agent': 'exokit-server',
-      },
-    }, async proxyRes => {
-      if (proxyRes.statusCode === 403) { // file too large, need to use git data api
-        const sha = await _getRepoFileSha(username, reponame, pathname, access_token);
-        if (sha) {
-          const proxyReq = https.request({
-            method: 'GET',
-            host: 'api.github.com',
-            path: `/repos/${username}/${reponame}/git/blobs/${sha}`,
-            headers: {
-              Authorization: `Token ${access_token}`,
-              Accept: 'application/vnd.github.v3.raw',
-              'User-Agent': 'exokit-server',
-            },
-          }, proxyRes => {
-            res.statusCode = proxyRes.statusCode;
+    const _doIteration = i => {
+      const fullPathname = pathname + (i === 0 ? '' : `.${i}`);
+      const proxyReq = https.request({
+        method: 'GET',
+        host: 'raw.githubusercontent.com',
+        path: `/${username}/${reponame}/master${fullPathname}`,
+        headers: {
+          Authorization: `Token ${access_token}`,
+          // Accept: 'application/vnd.github.v3.raw',
+          'User-Agent': 'exokit-server',
+        },
+      }, proxyRes => {
+        if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
+          res.statusCode = proxyRes.statusCode;
+          const contentLength = parseInt(proxyRes.headers['content-length'], 10);
+          // console.log('check content length', contentLength, maxChunkSize);
+          if (contentLength === maxChunkSize) {
+            proxyRes.pipe(res, {end: false});
+            proxyRes.on('end', () => {
+              _doIteration(i + 1);
+            });
+          } else {
             proxyRes.pipe(res);
-          });
-          proxyReq.on('error', err => {
-            res.statusCode = 500;
-            res.end(err.stack);
-          });
-          proxyReq.end();
+          }
+        } else if (proxyRes.statusCode === 404 && i !== 0) {
+          res.end();
         } else {
-          _respond(404, JSON.stringify({
-            error: 'not found',
-          }));
+          res.statusCode = proxyRes.statusCode;
+          proxyRes.pipe(res);
         }
-      } else {
-        res.statusCode = proxyRes.statusCode;
-        proxyRes.pipe(res);
-      }
-    });
-    proxyReq.on('error', err => {
-      res.statusCode = 500;
-      res.end(err.stack);
-    });
-    proxyReq.end();
+      });
+      proxyReq.on('error', err => {
+        res.statusCode = 500;
+        res.end(err.stack);
+      });
+      proxyReq.end();
+    };
+    _doIteration(0);
   };
 
 try {
@@ -1759,37 +1752,101 @@ try {
                     const _putContent = sha => new Promise((accept, reject) => {
                       console.log('put content 1', sha);
 
-                      const proxyReq = https.request({
-                        method: 'PUT',
-                        host: 'api.github.com',
-                        path: `/repos/${githubUsername}/${reponame}/contents${repopathname}`,
-                        headers: {
-                          Authorization: `Token ${tokenGithubOauth.access_token}`,
-                          'Content-Type': 'application/octet-stream',
-                          'User-Agent': 'exokit-server',
-                        },
-                      }, res => {
-                        const {statusCode} = res;
-                        console.log('put content 2', statusCode);
-
-                        const bs = [];
-                        res.on('data', b => {
-                          bs.push(b);
+                      const _makePromise = () => {
+                        let accept, reject;
+                        const p = new Promise((a, r) => {
+                          accept = a;
+                          reject = r;
                         });
-                        res.on('end', () => {
-                          const b = Buffer.concat(bs);
-                          accept({statusCode, b});
-                        });
-                        res.on('error', reject);
-                      });
-                      proxyReq.on('error', reject);
+                        p.accept = accept;
+                        p.reject = reject;
+                        return p;
+                      };
+                      const _doIteration = i => {
+                        console.log('put content 2', i);
 
-                      proxyReq.write(`{"message":${JSON.stringify(`put ${p}`)},"sha":${JSON.stringify(sha)},"content":"`);
-                      const encoder = new Base64Encoder();
-                      req.pipe(encoder).pipe(proxyReq, {end: false});
-                      encoder.on('end', () => {
-                        proxyReq.end(`"}`);
-                      });
+                        let encoder, proxyReq, responsePromise;
+
+                        let bytesRead = 0;
+                        const _doRead = () => {
+                          const _data = d => {
+                            console.log('data', d.length, bytesRead, !!encoder);
+                            _cleanup();
+
+                            const dOk = d.slice(0, Math.max(maxChunkSize - bytesRead, 0));
+                            bytesRead += dOk.length;
+
+                            if (!encoder) {
+                              const fullRepoPathname = repopathname + (i === 0 ? '' : `.${i}`);
+                              responsePromise = _makePromise();
+                              proxyReq = https.request({
+                                method: 'PUT',
+                                host: 'api.github.com',
+                                path: `/repos/${githubUsername}/${reponame}/contents${fullRepoPathname}`,
+                                headers: {
+                                  Authorization: `Token ${tokenGithubOauth.access_token}`,
+                                  'Content-Type': 'application/octet-stream',
+                                  'User-Agent': 'exokit-server',
+                                },
+                              }, responsePromise.accept);
+                              proxyReq.on('error', reject);
+                              proxyReq.write(`{"message":${JSON.stringify(`put ${fullRepoPathname}`)},"sha":${JSON.stringify(sha)},"content":"`);
+                              encoder = new Base64Encoder();
+                              encoder.pipe(proxyReq, {end: false});
+                            }
+                            encoder.write(dOk);
+
+                            if (bytesRead < maxChunkSize) {
+                              _doRead();
+                            } else {
+                              const dOverflow = d.slice(dOk.length);
+                              req.pause();
+                              req.unshift(dOverflow);
+
+                              console.log('flushing', bytesRead, maxChunkSize);
+
+                              encoder.end();
+                              encoder.on('end', () => {
+                                proxyReq.end(`"}`);
+                                responsePromise.then(() => {
+                                  _doIteration(i + 1);
+                                });
+                              });
+                            }
+                          };
+                          req.on('data', _data);
+                          const _end = () => {
+                            console.log('end', bytesRead, !!encoder);
+                            _cleanup();
+
+                            const _respondDone = () => {
+                              _respond(200, JSON.stringify({
+                                ok: true,
+                              }));
+                            };
+
+                            if (encoder) {
+                              encoder.end();
+                              encoder.on('end', () => {
+                                proxyReq.end(`"}`);
+                                responsePromise.then(() => {
+                                  _respondDone();
+                                });
+                              });
+                            } else {
+                              _respondDone();
+                            }
+                          };
+                          req.on('end', _end);
+                          const _cleanup = () => {
+                            req.removeListener('data', _data);
+                            req.removeListener('end', _end);
+                          };
+                          req.resume();
+                        };
+                        _doRead();
+                      };
+                      _doIteration(0);
                     });
                     _getRepoFileSha(githubUsername, reponame, repopathname, tokenGithubOauth.access_token)
                       .then(sha => {
