@@ -1792,13 +1792,13 @@ try {
           }));
         });
         proxyReq.end();
-      } else {
+      } else if (tokenGithubOauth) {
         const proxyReq = https.request({
           method: 'GET',
           host: 'api.github.com',
-          path: `/user/repos?visibility=public`,
+          path: `/users/repos?visibility=public`,
           headers: {
-            Authorization: githubAuthorization,
+            Authorization: `Token ${tokenGithubOauth.access_token}`,
             Accept: 'application/json',
             'User-Agent': 'exokit-server',
           },
@@ -1819,6 +1819,8 @@ try {
           }));
         });
         proxyReq.end();
+      } else {
+        res.end(JSON.stringify([]));
       }
     } else {
       _respond(404, JSON.stringify({
