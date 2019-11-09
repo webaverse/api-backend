@@ -1851,20 +1851,123 @@ try {
     if (match) {
       const repoUsername = match[1];
       const repoName = match[2];
+      const private = !!query.private;
+      const isAuthorized = tokenName === repoUsername && !!tokenGithubOauth;
 
-      throw new Error('not implemented'); // XXX
+      if (isAuthorized) {
+        const proxyReq = https.request({
+          method: 'POST',
+          host: 'api.github.com',
+          path: `/user/repos`,
+          headers: {
+            Authorization: `Token ${tokenGithubOauth.access_token}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'exokit-server',
+          },
+        }, proxyRes => {
+          console.log('got res 1', res.statusCode);
+
+          res.statusCode = proxyRes.statusCode;
+          proxyRes.pipe(res);
+          proxyRes.on('error', err => {
+            _respond(500, JSON.stringify({
+              error: err.stack
+            }));
+          });
+        });
+        proxyReq.on('error', err => {
+          _respond(500, JSON.stringify({
+            error: err.stack
+          }));
+        });
+        proxyReq.end(JSON.stringify({
+          name: repoName,
+          private,
+        }));
+      } else {
+        _respond(403, JSON.stringify({
+          error: 'forbidden',
+        }));
+      }
     } else {
       _respond(404, JSON.stringify({
         error: 'not found',
       }));
     }
   } else if (method === 'DELETE') {
-     const match = p.match(/^\/repos\/([^\/]+)\/([^\/]+)$/);
+    const match = p.match(/^\/repos\/([^\/]+)\/([^\/]+)$/);
     if (match) {
       const repoUsername = match[1];
       const repoName = match[2];
+      const private = !!query.private;
+      const isAuthorized = tokenName === repoUsername && !!tokenGithubOauth;
 
-      throw new Error('not implemented'); // XXX
+      if (isAuthorized) {
+        const githubUser = await new Promise((accept, reject) => {
+          const proxyReq = https.request({
+            method: 'GET',
+            host: 'api.github.com',
+            path: `/user`,
+            headers: {
+              Authorization: `Token ${tokenGithubOauth.access_token}`,
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+              'User-Agent': 'exokit-server',
+            },
+          }, proxyRes => {
+            const bs = [];
+            proxyRes.on('data', b => {
+              bs.push(b);
+            });
+            proxyRes.on('end', () => {
+              accept(JSON.parse(Buffer.concat(bs).toString('utf8')));
+            });
+            proxyRes.on('error', err => {
+              reject(err);
+            });
+          });
+          proxyReq.on('error', reject);
+          proxyReq.end();
+        });
+        const githubUsername = githubUser.login;
+        console.log('got gh username', githubUsername, repoName);
+
+        const proxyReq = https.request({
+          method: 'DELETE',
+          host: 'api.github.com',
+          path: `/repos/${githubUsername}/${repoName}`,
+          headers: {
+            Authorization: `Token ${tokenGithubOauth.access_token}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'exokit-server',
+          },
+        }, proxyRes => {
+          console.log('got res 1', res.statusCode);
+
+          res.statusCode = proxyRes.statusCode;
+          proxyRes.pipe(res);
+          proxyRes.on('error', err => {
+            _respond(500, JSON.stringify({
+              error: err.stack
+            }));
+          });
+        });
+        proxyReq.on('error', err => {
+          _respond(500, JSON.stringify({
+            error: err.stack
+          }));
+        });
+        proxyReq.end(JSON.stringify({
+          name: repoName,
+          private,
+        }));
+      } else {
+        _respond(403, JSON.stringify({
+          error: 'forbidden',
+        }));
+      }
     } else {
       _respond(404, JSON.stringify({
         error: 'not found',
