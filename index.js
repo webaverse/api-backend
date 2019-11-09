@@ -2060,6 +2060,7 @@ try {
           console.log('got res 1', res.statusCode);
 
           res.statusCode = proxyRes.statusCode;
+          _setCorsHeaders(res);
           proxyRes.pipe(res);
           proxyRes.on('error', err => {
             _respond(500, JSON.stringify({
@@ -2138,6 +2139,7 @@ try {
           console.log('got res 1', res.statusCode);
 
           res.statusCode = proxyRes.statusCode;
+          _setCorsHeaders(res);
           proxyRes.pipe(res);
           proxyRes.on('error', err => {
             _respond(500, JSON.stringify({
