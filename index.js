@@ -98,7 +98,7 @@ const _handleLogin = async (req, res) => {
 
 try {
     const {method} = req;
-    const {query, path: p} = url.parse(req.url, true);
+    const {query, pathname: p} = url.parse(req.url, true);
 
     console.log('got login', {method, p, query});
 
@@ -323,7 +323,7 @@ const _handlePresence = async (req, res) => {
 
 try {
   const {method} = req;
-  const {path: p} = url.parse(req.url);
+  const {pathname: p} = url.parse(req.url);
   console.log('presence request', {method, p});
 
   if (method === 'GET') {
@@ -918,7 +918,7 @@ const _handleToken = async (req, res) => {
 
 try {
   const {method} = req;
-  const {query, path: p} = url.parse(req.url, true);
+  const {query, pathname: p} = url.parse(req.url, true);
   console.log('token request', {method, query, p});
 
   if (method === 'GET') {
@@ -1476,7 +1476,7 @@ const _handleFiles = async (req, res) => {
 
 try {
   const {method, headers} = req;
-  const {path: p} = url.parse(req.url);
+  const {pathname: p} = url.parse(req.url);
   const {authorization = ''} = headers;
 
   console.log('files request 1', {method, url: req.url, p, authorization});
@@ -1751,7 +1751,7 @@ try {
     console.warn('pageerror', err);
   });
 
-  const {query, path: p} = url.parse(req.url, true);
+  const {query, pathname: p} = url.parse(req.url, true);
   if (query && query.u) {
     try {
       await page.goto(query.u);
