@@ -1935,6 +1935,7 @@ try {
           name,
           private,
           webxrUrl: has_pages ? `https://${tokenName}-${name}.${githubPagesDomain}/` : null,
+          previewUrl: 'https://raw.githubusercontent.com/exokitxr/exokit/master/assets/icon.png',
         };
       });
 
