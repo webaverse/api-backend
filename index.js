@@ -2565,9 +2565,9 @@ presenceWss.on('connection', async (s, req) => {
           connectionId,
         }));
       });
-      if (channel.connectionIds.length === 0) {
+      /* if (channel.connectionIds.length === 0) {
         delete channels[c];
-      }
+      } */
     });
   } else {
     s.close();
