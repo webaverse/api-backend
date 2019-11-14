@@ -2586,7 +2586,7 @@ try {
   } else if (o.host === 'presence.exokit.org') {
     _handlePresence(req, res);
     return;
-  } else if (match = o.host.match(/^([a-z0-9\-]+)\.sites\.exokit\.org$/)) {
+  /* } else if (match = o.host.match(/^([a-z0-9\-]+)\.sites\.exokit\.org$/)) {
     const userName = match[1];
     if (o.path === '/sw.js') {
       proxy.web(req, res, {
@@ -2604,7 +2604,7 @@ try {
       const channelName = match[1];
       _handleSites(req, res, userName, channelName);
       return;
-    }
+    } */
   } else if (o.host === 'inventory.exokit.org') {
     _handleInventory(req, res);
     return;
