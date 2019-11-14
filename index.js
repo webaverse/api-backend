@@ -8,7 +8,6 @@ const crypto = require('crypto');
 const httpProxy = require('http-proxy');
 const ws = require('ws');
 const LRU = require('lru');
-const parse5 = require('parse5');
 const request = require('request');
 const AWS = require('aws-sdk');
 const Stripe = require('stripe');
