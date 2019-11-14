@@ -2509,7 +2509,7 @@ presenceWss.on('connection', async (s, req) => {
             connectionId = data.connectionId;
 
             // console.log('send back state', channel.state);
-            channel.htmlServer.connect(connectionId);
+            channel.htmlServer.connect(s);
 
             console.log('send forward to sockets', channel.sockets.length);
             channel.sockets.forEach(s => {
@@ -2557,7 +2557,7 @@ presenceWss.on('connection', async (s, req) => {
         channel.sockets.splice(index, 1);
         channel.users.splice(index, 1);
 
-        channel.htmlServer.disconnect(connectionId);
+        channel.htmlServer.disconnect(s);
       }
       channel.sockets.forEach(s => {
         s.send(JSON.stringify({
