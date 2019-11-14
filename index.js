@@ -15,6 +15,7 @@ const Stripe = require('stripe');
 // const puppeteer = require('puppeteer');
 const namegen = require('./namegen.js');
 const Base64Encoder = require('./encoder.js').Encoder;
+const {HTMLServer, CustomEvent} = require('./sync-server.js');
 const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret} = require('./config.json');
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
@@ -2458,182 +2459,13 @@ proxy.on('proxyRes', (proxyRes, req) => {
   proxyRes.headers['access-control-allow-origin'] = '*';
 });
 
-const _normalizeEl = el => {
-  const result = {
-    nodeName: el.nodeName,
-    tagName: el.tagName,
-    attrs: el.attrs,
-    value: el.value,
-    childNodes: el.childNodes ? el.childNodes.map(childEl => _normalizeEl(childEl)) : [],
-  };
-  return result;
-};
-const _parseHtmlString = htmlString => {
-  const dom = parse5.parseFragment(htmlString);
-  return _normalizeEl(dom);
-  /* let root = dom.childNodes[0];
-  root = _normalizeEl(root);
-  return root; */
-};
-const _findElByKeyPath = (el, keyPath) => {
-  // console.log('find el by keypath', JSON.stringify(el), keyPath);
-  for (let i = 0; i < keyPath.length; i++) {
-    const key = keyPath[i];
-    let match;
-    if (typeof key === 'number') {
-      el = el.childNodes[key] || null;
-    } else if (typeof key === 'string' && (match = key.match(/^#(.+)$/))) {
-      const id = match[1];
-      el = el.childNodes.find(childEl => childEl.attrs && childEl.attrs.some(attr => attr.name === 'id' && attr.value === id)) || null;
-    } else {
-      el = null;
-    }
-    if (!el) {
-      break;
-    }
-  }
-  return el;
-};
-const _makeChannel = async channelName => {
-  const k = channelName;
-  // console.log('make channel', k);
-  const htmlStringRes = await s3.getObject({
-    Bucket: bucketNames.channels,
-    Key: k,
-  }).promise().catch(async err => {
-    if (err.code === 'NoSuchKey') {
-      // console.log('new channel', k);
-      const htmlString = `<xr-site></xr-site>`;
-      await s3.putObject({
-        Bucket: bucketNames.channels,
-        Key: k,
-        ContentType: 'text/html',
-        Body: htmlString,
-      }).promise().catch(err => {
-        console.warn(err.stack);
-      });
-
-      return {
-        Body: {
-          toString() {
-            return htmlString;
-          },
-        },
-      };
-    } else {
-      throw err;
-    }
-  });
-  const htmlString = htmlStringRes.Body.toString('utf8');
-  const state = _parseHtmlString(htmlString);
-
+const _makeChannel = channelName => {
   return {
     channelName,
-    state,
     connectionIds: [],
     sockets: [],
     users: [],
-    _pushing: false,
-    _queued: false,
-    setHtml(htmlString) {
-      this.state = _parseHtmlString(htmlString);
-      this.pushAsync();
-    },
-    isEmpty(htmlString) {
-      return this.state.childNodes[0].childNodes.length === 0;
-    },
-    editState(editSpec) {
-      const {keyPath, method, key, value, values} = editSpec;
-      const el = _findElByKeyPath(this.state, keyPath);
-      if (el) {
-        switch (method) {
-          case 'setAttributes': {
-            for (let i = 0; i < values.length; i++) {
-              const {key, value} = values[i];
-              if (value !== null && value !== undefined) {
-                let attr = el.attrs.find(attr => attr.name === key);
-                if (!attr) {
-                  attr = {
-                    name: key,
-                    value: null,
-                  };
-                  el.attrs.push(attr);
-                }
-                // console.log('set attr', attr, value);
-                attr.value = value;
-              } else {
-                const index = el.attrs.findIndex(attr => attr.name === key);
-                if (index !== -1) {
-                  el.attrs.splice(index, 1);
-                }
-              }
-            }
-            break;
-          }
-          case 'setAttribute': {
-            let attr = el.attrs.find(attr => attr.name === key);
-            if (!attr) {
-              attr = {
-                name: key,
-                value: null,
-              };
-              el.attrs.push(attr);
-            }
-            attr.value = value;
-            break;
-          }
-          case 'removeAttribute': {
-            const index = el.attrs.findIndex(attr => attr.name === key);
-            if (index !== -1) {
-              el.attrs.splice(index, 1);
-            } else {
-              console.warn('remove missing attribute', keyPath, key);
-            }
-            break;
-          }
-          case 'appendChild': {
-            const newEl = _parseHtmlString(value).childNodes[0];
-            el.childNodes.push(newEl);
-            break;
-          }
-          case 'removeChild': {
-            const index = key;
-            if (index < el.childNodes.length) {
-              el.childNodes.splice(index, 1);
-            } else {
-              console.warn('remove missing child', keyPath, key);
-            }
-            break;
-          }
-        }
-        this.pushAsync();
-      } else {
-        console.warn('could not find node', keyPath);
-      }
-    },
-    async pushAsync() {
-      if (!this._pushing) {
-        this._pushing = true;
-
-        const htmlString = parse5.serialize(this.state);
-        await s3.putObject({
-          Bucket: bucketNames.channels,
-          Key: k,
-          ContentType: 'text/html',
-          Body: htmlString,
-        }).promise().catch(err => {
-          console.warn(err.stack);
-        });
-
-        this._pushing = false;
-        if (this._queued) {
-          this._queued = false;
-          this.pushAsync();
-        }
-      } else {
-        this._queued = true;
-      }
-    },
+    htmlServer: new HTMLServer(`<xr-site></xr-site>`),
   };
 };
 const channels = {};
@@ -2649,7 +2481,12 @@ presenceWss.on('connection', async (s, req) => {
 
     let channel = channels[c];
     if (!channel) {
-      channel = await _makeChannel(c);
+      channel = _makeChannel(c);
+      channel.htmlServer.addEventListener('send', e => {
+        const data = e.detail;
+        const {connection: socket, message} = data;
+        socket.send(JSON.stringify(message));
+      });
       channels[c] = channel;
     }
 
@@ -2673,10 +2510,7 @@ presenceWss.on('connection', async (s, req) => {
             connectionId = data.connectionId;
 
             // console.log('send back state', channel.state);
-            s.send(JSON.stringify({
-              method: 'initState',
-              state: channel.state,
-            }));
+            channel.htmlServer.connect(connectionId);
 
             console.log('send forward to sockets', channel.sockets.length);
             channel.sockets.forEach(s => {
@@ -2703,17 +2537,8 @@ presenceWss.on('connection', async (s, req) => {
           }
         } else if (data.method === 'ping') {
           // nothing
-        } else if (data.method === 'setHtml' && data.html) {
-          channel.setHtml(data.html);
-          _proxyMessage(m);
-        } else if (data.method === 'setInitialHtml' && data.html) {
-          if (channel.isEmpty()) {
-            channel.setHtml(data.html);
-            _proxyMessage(m);
-          }
-        } else if (data.method === 'editState' && data.spec) {
-          channel.editState(data.spec);
-          _proxyMessage(m);
+        } else if (data.method === 'ops' && Array.isArray(data.ops) && typeof data.baseIndex === 'number') {
+          channel.htmlServer.pushOps(data.ops, data.baseIndex, s);
         } else {
           const index = channel.connectionIds.indexOf(data.dst);
           if (index !== -1) {
@@ -2732,6 +2557,8 @@ presenceWss.on('connection', async (s, req) => {
         channel.connectionIds.splice(index, 1);
         channel.sockets.splice(index, 1);
         channel.users.splice(index, 1);
+
+        channel.htmlServer.disconnect(connectionId);
       }
       channel.sockets.forEach(s => {
         s.send(JSON.stringify({
