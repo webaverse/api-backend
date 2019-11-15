@@ -361,10 +361,11 @@ try {
     }
   } else if (method === 'PUT') {
     const match = p.match(/^\/channels\/([^\/]+)\/([^\/]+)$/);
-    const channelName = match[1];
-    const fileName = match[2];
     if (match) {
+      const channelName = match[1];
+      const fileName = match[2];
       const channel = channels[channelName];
+      console.log('match channel', channelName, fileName, !!channel)
       if (channel) {
         await channel.upload(fileName, req);
 
