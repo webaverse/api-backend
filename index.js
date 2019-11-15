@@ -318,10 +318,13 @@ try {
 const _handlePresence = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
-    res.end(body);
   };
 
 try {
@@ -340,6 +343,7 @@ try {
       if (channel) {
         const bs = channel.files[fileName];
         if (bs) {
+          _setCorsHeaders(res);
           for (let i = 0; i < bs.length; i++) {
             res.write(bs[i]);
           }
