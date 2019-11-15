@@ -369,7 +369,7 @@ try {
         await channel.upload(fileName, req);
 
         _respond(200, JSON.stringify({
-          ok: true,
+          url: `https://presence.exokit.org/channels/${channelName}/${fileName}`,
         }));
       } else {
         _respond(404, JSON.stringify({
