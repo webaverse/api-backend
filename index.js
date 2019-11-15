@@ -2495,6 +2495,7 @@ const _makeChannel = channelName => {
         });
         req.on('end', () => {
           this.files[fileName] = bs;
+          accept();
         });
         req.on('error', reject);
       });
