@@ -319,8 +319,8 @@ const _handlePresence = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     res.setHeader('Access-Control-Allow-Origin', '*');
-    // res.setHeader('Access-Control-Allow-Headers', '*');
-    // res.setHeader('Access-Control-Allow-Methods', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
     res.end(body);
   };
 
@@ -330,41 +330,61 @@ try {
   console.log('presence request', {method, p});
 
   if (method === 'GET') {
-    console.log('presence get request', {method, path: p});
-
+    let match;
     if (p === '/channels') {
-      const channels = [];
-      const _recurse = async (marker = null) => {
-        const o = {
-          Bucket: bucketNames.channels,
-        };
-        if (marker) {
-          o.Marker = marker;
-        }
-        const r = await s3.listObjects(o).promise();
-        for (let i = 0; i < r.Contents.length; i++) {
-          const item = r.Contents[i].Key;
-          const split = item.split('/');
-          if (split.length === 2) {
-            const [user, channel] = split;
-            channels.push({
-              user,
-              channel,
-            });
+      _respond(200, JSON.stringify(Object.keys(channels)));
+    } else if (match = p.match(/^\/channels\/([^\/]+)\/([^\/]+)$/)) {
+      const channelName = match[1];
+      const fileName = match[2];
+      const channel = channels[c];
+      if (channel) {
+        const bs = channel.files[fileName];
+        if (bs) {
+          for (let i = 0; i < bs.length; i++) {
+            res.write(bs[i]);
           }
+          res.end();
+        } else {
+          _respond(404, JSON.stringify({
+            error: 'not found',
+          }));
         }
-        if (r.IsTruncated) {
-          await _recurse(r.NextMarker);
-        }
-      };
-      await _recurse();
-
-      _respond(200, JSON.stringify(channels));
+      } else {
+        _respond(404, JSON.stringify({
+          error: 'not found',
+        }));
+      }
     } else {
       _respond(404, JSON.stringify({
         error: 'not found',
       }));
     }
+  } else if (method === 'PUT') {
+    const match = p.match(/^\/channels\/([^\/]+)\/([^\/]+)$/);
+    const channelName = match[1];
+    const fileName = match[2];
+    if (match) {
+      const channel = channels[channelName];
+      if (channel) {
+        await channel.upload(fileName, req);
+
+        _respond(200, JSON.stringify({
+          ok: true,
+        }));
+      } else {
+        _respond(404, JSON.stringify({
+          error: 'not found',
+        }));
+      }
+    } else {
+      _respond(404, JSON.stringify({
+        error: 'not found',
+      }));
+    }
+  } else if (method === 'OPTIONS') {
+    // console.log('respond options');
+
+    _respond(200, JSON.stringify({}));
   } else {
     _respond(404, JSON.stringify({
       error: 'not found',
@@ -2465,6 +2485,19 @@ const _makeChannel = channelName => {
     sockets: [],
     users: [],
     htmlServer: new HTMLServer(`<xr-site></xr-site>`),
+    files: {},
+    upload(fileName, req) {
+      return new Promise((accept, reject) => {
+        const bs = [];
+        req.on('data', d => {
+          bs.push(d);
+        });
+        req.on('end', () => {
+          this.files[fileName] = bs;
+        });
+        req.on('error', reject);
+      });
+    },
   };
 };
 const channels = {};
