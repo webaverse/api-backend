@@ -336,7 +336,7 @@ try {
     } else if (match = p.match(/^\/channels\/([^\/]+)\/([^\/]+)$/)) {
       const channelName = match[1];
       const fileName = match[2];
-      const channel = channels[c];
+      const channel = channels[channelName];
       if (channel) {
         const bs = channel.files[fileName];
         if (bs) {
