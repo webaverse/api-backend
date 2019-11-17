@@ -2488,7 +2488,6 @@ const _makeChannel = channelName => {
     channelName,
     connectionIds: [],
     sockets: [],
-    users: [],
     htmlServer: new HTMLServer(`<xr-site></xr-site>`),
     files: {},
     upload(fileName, req) {
@@ -2512,10 +2511,10 @@ const presenceWss = new ws.Server({
 });
 presenceWss.on('connection', async (s, req) => {
   const o = url.parse(req.url, true);
-  const {u, c} = o.query;
-  if (u && c) {
+  const {c} = o.query;
+  if (c) {
     const {remoteAddress} = req.connection;
-    console.log('got connection', remoteAddress, u, c);
+    console.log('got connection', remoteAddress, c);
 
     let channel = channels[c];
     if (!channel) {
@@ -2568,7 +2567,6 @@ presenceWss.on('connection', async (s, req) => {
 
             channel.connectionIds.push(connectionId);
             channel.sockets.push(s);
-            channel.users.push(u);
           } else {
             console.warn('protocol error');
             s.close();
@@ -2594,7 +2592,6 @@ presenceWss.on('connection', async (s, req) => {
       if (index !== -1) {
         channel.connectionIds.splice(index, 1);
         channel.sockets.splice(index, 1);
-        channel.users.splice(index, 1);
 
         channel.htmlServer.disconnect(s);
       }
