@@ -2629,16 +2629,18 @@ presenceWss.on('connection', async (s, req) => {
               console.warn('unknown message format', data);
             }
           } else if (data.method === 'listen' && typeof data.provider === 'string') {
-            if (data.provider === 'discord' && typeof data.token === 'string') {
-              const client = _getDiscordClient(data.token);
+            if (data.provider === 'discord' && typeof data.token === 'string' && typeof data.channel === 'string') {
+              const client = _getDiscordClient(data.token + '/' + data.channel);
               const _message = m => {
-                s.send(JSON.stringify({
-                  method: 'message',
-                  provider: 'discord',
-                  username: m.author.username,
-                  text: m.content,
-                  attachments: m.attachments.map(a => a.proxyURL),
-                }));
+                if (m.channel.name === data.channel) {
+                  s.send(JSON.stringify({
+                    method: 'message',
+                    provider: 'discord',
+                    username: m.author.username,
+                    text: m.content,
+                    attachments: m.attachments.map(a => a.proxyURL),
+                  }));
+                }
               };
               client.on('message', _message);
               discordClientUnbindFns[data.token] = () => {
@@ -2648,8 +2650,8 @@ presenceWss.on('connection', async (s, req) => {
               console.warn('unknown listen format', data);
             }
           } else if (data.method === 'unlisten' && typeof data.provider === 'string') {
-            if (data.provider === 'discord' && typeof data.token === 'string') {
-              const unbindFn = discordClientUnbindFns[data.token];
+            if (data.provider === 'discord' && typeof data.token === 'string' && typeof data.channel === 'string') {
+              const unbindFn = discordClientUnbindFns[data.token + '/' + data.channel];
               if (unbindFn) {
                 unbindFn();
                 delete discordClientUnbindFns[data.token];
