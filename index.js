@@ -40,6 +40,8 @@ const client_id = 'ca_Bj6O5x5CFVCOELBhyjbiJxwUfW6l8ozd';
 const client_secret = 'sk_test_WMysffATw60L1FhYxKDphPgO';
 const stripe = Stripe(client_secret);
 
+const Discord = require('discord.js');
+
 const bip32 = require('./bip32.js');
 const bip39 = require('./bip39.js');
 const ethUtil = require('./ethereumjs-util.js');
@@ -87,6 +89,16 @@ function _getKeyFromBindingUrl(u) {
     return [];
   }
 }
+const _makePromise = () => {
+  let accept, reject;
+  const p = new Promise((a, r) => {
+    accept = a;
+    reject = r;
+  });
+  p.accept = accept;
+  p.reject = reject;
+  return p;
+};
 
 (async () => {
 
@@ -1778,16 +1790,6 @@ try {
                     const _putContent = sha => new Promise((accept, reject) => {
                       console.log('put content 1', sha);
 
-                      const _makePromise = () => {
-                        let accept, reject;
-                        const p = new Promise((a, r) => {
-                          accept = a;
-                          reject = r;
-                        });
-                        p.accept = accept;
-                        p.reject = reject;
-                        return p;
-                      };
                       const _doIteration = i => {
                         console.log('put content 2', i);
 
@@ -2505,6 +2507,20 @@ const _makeChannel = channelName => {
     },
   };
 };
+const discordClients = [];
+const _getDiscordClient = token => {
+  let client = discordClients.find(client => client.token === token);
+  if (!client) {
+    client = new Discord.Client();
+    client.readyPromise = client.login(token);
+
+    discordClients.push(client);
+    client.on('disconnect', () => {
+      discordClients.splice(discordClients.indexOf(client), 1);
+    });
+  }
+  return client;
+};
 const channels = {};
 const presenceWss = new ws.Server({
   noServer: true,
@@ -2537,49 +2553,129 @@ presenceWss.on('connection', async (s, req) => {
     };
 
     let connectionId = null;
+    const discordClientUnbindFns = {};
+    let discordAttachmentSpec = null;
+    let discordAttachmentBuffer = null;
     s.on('message', m => {
       // console.log('got message', m);
 
-      const data = _jsonParse(m);
-      if (data) {
-        if (data.method === 'init' && typeof data.connectionId === 'string') {
-          if (!connectionId) {
-            connectionId = data.connectionId;
+      if (typeof m === 'string') {
+        const data = _jsonParse(m);
+        if (data) {
+          console.log('got data', data, data.method === 'ops', Array.isArray(data.ops), typeof data.baseIndex === 'number');
+          if (data.method === 'init' && typeof data.connectionId === 'string') {
+            if (!connectionId) {
+              connectionId = data.connectionId;
 
-            // console.log('send back state', channel.state);
-            channel.htmlServer.connect(s);
+              // console.log('send back state', channel.state);
+              channel.htmlServer.connect(s);
 
-            console.log('send forward to sockets', channel.sockets.length);
-            channel.sockets.forEach(s => {
-              s.send(JSON.stringify({
-                method: 'join',
-                connectionId,
-              }));
-            });
+              console.log('send forward to sockets', channel.sockets.length);
+              channel.sockets.forEach(s => {
+                s.send(JSON.stringify({
+                  method: 'join',
+                  connectionId,
+                }));
+              });
 
-            console.log('send back sockets', channel.connectionIds.length);
-            channel.connectionIds.forEach(connectionId => {
-              s.send(JSON.stringify({
-                method: 'join',
-                connectionId,
-              }));
-            });
+              console.log('send back sockets', channel.connectionIds.length);
+              channel.connectionIds.forEach(connectionId => {
+                s.send(JSON.stringify({
+                  method: 'join',
+                  connectionId,
+                }));
+              });
 
-            channel.connectionIds.push(connectionId);
-            channel.sockets.push(s);
+              channel.connectionIds.push(connectionId);
+              channel.sockets.push(s);
+            } else {
+              console.warn('protocol error');
+              s.close();
+            }
+          } else if (data.method === 'ping') {
+            // nothing
+          } else if (data.method === 'ops' && Array.isArray(data.ops) && typeof data.baseIndex === 'number') {
+            // console.log('push ops', data);
+            channel.htmlServer.pushOps(data.ops, data.baseIndex, s);
+          } else if (data.method === 'message' && typeof data.provider === 'string') {
+            // console.log('push message', data);
+            if (data.provider === 'discord' && typeof data.token === 'string' && typeof data.channel === 'string' && (typeof data.text === 'string' || typeof data.attachment === 'string')) {
+              const client = _getDiscordClient(data.token);
+              client.readyPromise.then(() => {
+                const channel = client.channels.find(channel => channel.name === data.channel && channel.type === 'text');
+                if (channel) {
+                  if (typeof data.text === 'string') {
+                    channel.send(data.text);
+                  } else if (typeof data.attachment === 'string') {
+                    const filename = data.attachment;
+                    if (discordAttachmentBuffer) {
+                      channel.send(new Discord.Attachment(discordAttachmentBuffer, filename));
+                      discordAttachmentBuffer = null;
+                    } else {
+                      // console.log('prepare for attachment', data.attachment);
+                      discordAttachmentSpec = {
+                        channel,
+                        filename,
+                      };
+                    }
+                  } else {
+                    console.warn('unknown message spec', data);
+                  }
+                } else {
+                  console.warn('unknown channel', data.channel);
+                }
+              });
+            } else {
+              console.warn('unknown message format', data);
+            }
+          } else if (data.method === 'listen' && typeof data.provider === 'string') {
+            if (data.provider === 'discord' && typeof data.token === 'string') {
+              const client = _getDiscordClient(data.token);
+              const _message = m => {
+                s.send(JSON.stringify({
+                  method: 'message',
+                  provider: 'discord',
+                  username: m.author.username,
+                  text: m.content,
+                  attachments: m.attachments.map(a => a.proxyURL),
+                }));
+              };
+              client.on('message', _message);
+              discordClientUnbindFns[data.token] = () => {
+                client.removeListener('message', _message);
+              };
+            } else {
+              console.warn('unknown listen format', data);
+            }
+          } else if (data.method === 'unlisten' && typeof data.provider === 'string') {
+            if (data.provider === 'discord' && typeof data.token === 'string') {
+              const unbindFn = discordClientUnbindFns[data.token];
+              if (unbindFn) {
+                unbindFn();
+                delete discordClientUnbindFns[data.token];
+              } else {
+                console.warn('message unlisten listener not bound', data.token);
+              }
+            } else {
+              console.warn('unknown unlisten format', data);
+            }
           } else {
-            console.warn('protocol error');
-            s.close();
+            const index = channel.connectionIds.indexOf(data.dst);
+            if (index !== -1) {
+              channel.sockets[index].send(m);
+            }
           }
-        } else if (data.method === 'ping') {
-          // nothing
-        } else if (data.method === 'ops' && Array.isArray(data.ops) && typeof data.baseIndex === 'number') {
-          channel.htmlServer.pushOps(data.ops, data.baseIndex, s);
         } else {
-          const index = channel.connectionIds.indexOf(data.dst);
-          if (index !== -1) {
-            channel.sockets[index].send(m);
-          }
+          console.warn('protocol error');
+          s.close();
+        }
+      } else if (Buffer.isBuffer(m)) {
+        if (discordAttachmentSpec) {
+          const {channel, filename} = discordAttachmentSpec;
+          channel.send(new Discord.Attachment(m, filename));
+          discordAttachmentSpec = null;
+        } else {
+          discordAttachmentBuffer = m;
         }
       } else {
         console.warn('protocol error');
