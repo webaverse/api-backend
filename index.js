@@ -433,18 +433,34 @@ try {
 
   const o = url.parse(req.url, true);
   let match;
-  if (match = o.pathname.match(/^\/([^\/]+)\/([^\/]+)$/)) {
+  if (match = o.pathname.match(/^\/(?:([^\/]+)(?:\/([^\/]+))?)?$/)) {
     const username = match[1];
     const filename = match[2];
 
-    if (method === 'GET') {
-      console.log('sites get request', {method});
+    if (method === 'GET' && !username && !filename) {
+      const objects = await s3.listObjects({
+        Bucket: bucketNames.content,
+        Delimiter: '/',
+        Prefix: '',
+      }).promise();
+      const keys = objects.Contents.map(o => o.Key);
 
+      _respond(200, JSON.stringify(keys));
+    } else if (method === 'GET' && username && !filename) {
+      const objects = await s3.listObjects({
+        Bucket: bucketNames.content,
+        Delimiter: '/',
+        Prefix: `${username}/`,
+      }).promise();
+      const keys = objects.Contents.map(o => o.Key);
+
+      _respond(200, JSON.stringify(keys));
+    } else if (method === 'GET' && username && filename) {
       res.statusCode = 301;
       res.setHeader('Location', `https://content.exokit.org/${username}/${filename}`);
       _setCorsHeaders(res);
       res.end();
-    } else if (method == 'POST') {
+    } else if (method == 'POST' && username && filename) {
       console.log('got inventory req', o);
       if (o.query.email && o.query.token) {
         let {email, token} = o.query;
