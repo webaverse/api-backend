@@ -430,7 +430,6 @@ const _handleUpload = async (req, res, userName, channelName) => {
 
 try {
   const {method} = req;
-  console.log('sites request', {method, userName, channelName});
 
   const o = url.parse(req.url, true);
   let match;
