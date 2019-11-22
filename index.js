@@ -416,6 +416,86 @@ try {
 }
 };
 
+const _handleUpload = async (req, res, userName, channelName) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+
+try {
+  const {method} = req;
+  console.log('sites request', {method, userName, channelName});
+
+  const o = url.parse(req.url, true);
+  let match;
+  if (match = o.pathname.match(/^\/([^\/]+)\/([^\/]+)$/)) {
+    const username = match[1];
+    const filename = match[2];
+
+    if (method === 'GET') {
+      console.log('sites get request', {method});
+
+      res.statusCode = 301;
+      res.setHeader('Location', `https://s3-us-west-1.amazonaws.com/content.exokit.org/${username}/${filename}`);
+      _setCorsHeaders(res);
+      res.end();
+    } else if (method == 'POST') {
+      console.log('got inventory req', o);
+      if (o.query.email && o.query.token) {
+        let {email, token} = o.query;
+        const tokenItem = await ddb.getItem({
+          TableName: 'login',
+          Key: {
+            email: {S: email + '.token'},
+          }
+        }).promise();
+
+        // console.log('got item', JSON.stringify(token), tokenItem && tokenItem.Item);
+
+        const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+        if (tokens.includes(token)) {
+          const loginUsername = tokenItem.Item.name.S;
+
+          if (username === loginUsername) {
+            const key = username + '/' + filename;
+            const contentType = req.headers['content-type'] || 'application/octet-stream';
+            const signedUploadUrl = s3.getSignedUrl('putObject', {
+              Bucket: bucketNames.content,
+              Key: key,
+              ContentType: contentType,
+              Expires: 5*60,
+            });
+            _respond(200, signedUploadUrl);
+          } else {
+            _respond(403, 'forbidden');
+          }
+        } else {
+          _respond(401, 'not authorized');
+        }
+      } else {
+        _respond(401, 'not authorized');
+      }
+    } else {
+      _respond(404, 'not found');
+    }
+  } else {
+    _respond(404, 'not found');
+  }
+} catch(err) {
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
+}
+};
+
 const _handleSites = async (req, res, userName, channelName) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -2718,6 +2798,9 @@ try {
     return;
   } else if (o.host === 'presence.exokit.org') {
     _handlePresence(req, res);
+    return;
+  } else if (o.host === 'upload.exokit.org') {
+    _handleUpload(req, res);
     return;
   /* } else if (match = o.host.match(/^([a-z0-9\-]+)\.sites\.exokit\.org$/)) {
     const userName = match[1];
