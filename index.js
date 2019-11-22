@@ -442,7 +442,7 @@ try {
       console.log('sites get request', {method});
 
       res.statusCode = 301;
-      res.setHeader('Location', `https://s3-us-west-1.amazonaws.com/content.exokit.org/${username}/${filename}`);
+      res.setHeader('Location', `https://content.exokit.org/${username}/${filename}`);
       _setCorsHeaders(res);
       res.end();
     } else if (method == 'POST') {
