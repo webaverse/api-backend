@@ -72,6 +72,12 @@ function _jsonParse(s) {
     return null;
   }
 }
+function _getCoordPixelKey(x, z) {
+  return [x, z].join(':');
+}
+function _getCoordParcelKey(x, z) {
+  return [Math.floor(x/16), Math.floor(z/16)].join(':');
+}
 function _getKey(x, z) {
   return [Math.floor(x/PARCEL_SIZE), Math.floor(z/PARCEL_SIZE)];
 }
@@ -518,6 +524,121 @@ try {
   _respond(500, JSON.stringify({
     error: err.stack,
   }));
+}
+};
+
+const parcels = {};
+const pixels = {};
+const _handleGrid = async (req, res, userName, channelName) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+
+try {
+  const {method} = req;
+
+  if (method === 'GET') {
+    const o = url.parse(req.url, true);
+    let match, x, y;
+    if ((match = o.pathname.match(/^\/coords\/(-?[0-9]+)\/(-?[0-9]+)$/)) && !isNaN(x = parseInt(match[1], 10)) && !isNaN(y = parseInt(match[2], 10))) {
+      const key = _getCoordParcelKey(x, y);
+      const parcel = parcels[key];
+      if (parcel) {
+        _respond(200, JSON.stringify(parcel.scenes));
+      } else {
+        _respond(404, JSON.stringify([]));
+      }
+    } else {
+      _respond(404, 'not found');
+    }
+  } else if (method === 'POST') {
+    const o = url.parse(req.url, true);
+    if (o.pathname === '/scenes') {
+      const j = await new Promise((accept, reject) => {
+        const bs = [];
+        req.on('data', b => {
+          bs.push(b);
+        });
+        req.on('end', () => {
+          const b = Buffer.concat(bs);
+          const s = b.toString('utf8');
+          try {
+            accept(JSON.parse(s));
+          } catch(err) {
+            reject(err);
+          }
+        });
+        req.on('error', reject);
+      });
+      if (
+        j && typeof j === 'object' && Array.isArray(j.coords) && j.coords.every(c =>
+          Array.isArray(c) && (c.length === 2 || c.length === 4) && c.every(e => typeof e === 'number')
+        ) && typeof j.url === 'string'
+      ) {
+        const pixelKeys = [];
+        const parcelKeys = {};
+        for (let i = 0; i < j.coords.length; i++) {
+          const coord = j.coords[i];
+          if (coord.length === 4) {
+            const [x1, y1, x2, y2] = coord;
+            if (x1 <= x2 && y1 <= y2 && x2 - x1 < 100 && y2 - y1 < 100) { // sanity check
+              for (let x = x1; x <= x2; x++) {
+                for (let y = y1; y <= y2; y++) {
+                  pixelKeys.push(_getCoordPixelKey(x, y));
+                  parcelKeys[_getCoordParcelKey(x, y)] = true;
+                }
+              }
+            } else {
+              _respond(400, 'invalid coord range');
+            }
+          } else if (c.length === 2) {
+            const [x, y] = coord;
+            pixelKeys.push(_getCoordPixelKey(x, y));
+            parcelKeys[_getCoordParcelKey(x, y)] = true;
+          } else {
+            _respond(400, 'invalid coord');
+          }
+        }
+        if (pixelKeys.every(key => !pixels[key])) {
+          for (let i = 0; i < pixelKeys.length; i++) {
+            pixels[pixelKeys[i]] = true;
+          }
+          const scene = {
+            url: j.url,
+            coords: j.coords,
+          };
+          for (const k in parcelKeys) {
+            let parcel = parcels[k];
+            if (!parcel) {
+              parcel = {
+                scenes: [],
+              };
+              parcels[k] = parcel;
+            }
+            parcel.scenes.push(scene);
+          }
+          _respond(200, '');
+        } else {
+          _respond(409, 'conflict');
+        }
+      } else {
+        _respond(400, 'invalid data');
+      }
+    } else {
+      _respond(404, 'not found');
+    }
+  } else {
+    _respond(404, 'not found');
+  }
+} catch (err) {
+  console.warn(err.stack);
 }
 };
 
@@ -2826,6 +2947,9 @@ try {
     return;
   } else if (o.host === 'upload.exokit.org') {
     _handleUpload(req, res);
+    return;
+  } else if (o.host === 'grid.exokit.org') {
+    _handleGrid(req, res);
     return;
   /* } else if (match = o.host.match(/^([a-z0-9\-]+)\.sites\.exokit\.org$/)) {
     const userName = match[1];
