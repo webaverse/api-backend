@@ -431,76 +431,86 @@ const _handleUpload = async (req, res, userName, channelName) => {
 try {
   const {method} = req;
 
-  const o = url.parse(req.url, true);
-  let match;
-  if (match = o.pathname.match(/^\/(?:([^\/]+)(?:\/([^\/]+))?)?$/)) {
-    const username = match[1];
-    const filename = match[2];
+  if (method === 'OPTIONS') {
+    // res.statusCode = 200;
+    _setCorsHeaders(res);
+    res.end();
+  } else {
+    const o = url.parse(req.url, true);
+    let match;
+    if (match = o.pathname.match(/^\/(?:([^\/]+)(?:\/([^\/]+))?)?$/)) {
+      const username = match[1];
+      const filename = match[2];
 
-    if (method === 'GET' && !username && !filename) {
-      const objects = await s3.listObjects({
-        Bucket: bucketNames.content,
-        Delimiter: '/',
-        Prefix: '',
-      }).promise();
-      const keys = objects.Contents.map(o => o.Key);
-
-      _respond(200, JSON.stringify(keys));
-    } else if (method === 'GET' && username && !filename) {
-      const objects = await s3.listObjects({
-        Bucket: bucketNames.content,
-        Delimiter: '/',
-        Prefix: `${username}/`,
-      }).promise();
-      const keys = objects.Contents.map(o => o.Key);
-
-      _respond(200, JSON.stringify(keys));
-    } else if (method === 'GET' && username && filename) {
-      res.statusCode = 301;
-      res.setHeader('Location', `https://content.exokit.org/${username}/${filename}`);
-      _setCorsHeaders(res);
-      res.end();
-    } else if (method == 'POST' && username && filename) {
-      console.log('got inventory req', o);
-      if (o.query.email && o.query.token) {
-        let {email, token} = o.query;
-        const tokenItem = await ddb.getItem({
-          TableName: 'login',
-          Key: {
-            email: {S: email + '.token'},
-          }
+      if (method === 'GET' && !username && !filename) {
+        const objects = await s3.listObjects({
+          Bucket: bucketNames.content,
+          Delimiter: '/',
+          Prefix: '',
         }).promise();
+        const keys = objects.Contents.map(o => o.Key);
 
-        // console.log('got item', JSON.stringify(token), tokenItem && tokenItem.Item);
+        console.log('got contents', objects);
 
-        const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
-        if (tokens.includes(token)) {
-          const loginUsername = tokenItem.Item.name.S;
+        _respond(200, JSON.stringify(keys));
+      } else if (method === 'GET' && username && !filename) {
+        const objects = await s3.listObjects({
+          Bucket: bucketNames.content,
+          Delimiter: '/',
+          Prefix: `${username}/`,
+        }).promise();
+        const keys = objects.Contents.map(o => o.Key);
 
-          if (username === loginUsername) {
-            const key = username + '/' + filename;
-            const contentType = req.headers['content-type'] || 'application/octet-stream';
-            const signedUploadUrl = s3.getSignedUrl('putObject', {
-              Bucket: bucketNames.content,
-              Key: key,
-              ContentType: contentType,
-              Expires: 5*60,
-            });
-            _respond(200, signedUploadUrl);
+        console.log('got contents', objects);
+
+        _respond(200, JSON.stringify(keys));
+      } else if (method === 'GET' && username && filename) {
+        res.statusCode = 301;
+        res.setHeader('Location', `https://content.exokit.org/${username}/${filename}`);
+        _setCorsHeaders(res);
+        res.end();
+      } else if (method == 'POST' && username && filename) {
+        console.log('got inventory req', o);
+        if (o.query.email && o.query.token) {
+          let {email, token} = o.query;
+          const tokenItem = await ddb.getItem({
+            TableName: 'login',
+            Key: {
+              email: {S: email + '.token'},
+            }
+          }).promise();
+
+          // console.log('got item', JSON.stringify(token), tokenItem && tokenItem.Item);
+
+          const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+          if (tokens.includes(token)) {
+            const loginUsername = tokenItem.Item.name.S;
+
+            if (username === loginUsername) {
+              const key = username + '/' + filename;
+              const contentType = req.headers['content-type'] || 'application/octet-stream';
+              const signedUploadUrl = s3.getSignedUrl('putObject', {
+                Bucket: bucketNames.content,
+                Key: key,
+                ContentType: contentType,
+                Expires: 5*60,
+              });
+              _respond(200, signedUploadUrl);
+            } else {
+              _respond(403, 'forbidden');
+            }
           } else {
-            _respond(403, 'forbidden');
+            _respond(401, 'not authorized');
           }
         } else {
           _respond(401, 'not authorized');
         }
       } else {
-        _respond(401, 'not authorized');
+        _respond(404, 'not found');
       }
     } else {
       _respond(404, 'not found');
     }
-  } else {
-    _respond(404, 'not found');
   }
 } catch(err) {
   console.warn(err);
@@ -2867,7 +2877,7 @@ try {
     const match2 = raw.match(/^(https?-)(.+?)(-[0-9]+)?$/);
     if (match2) {
       if (req.method === 'OPTIONS') {
-        res.statusCode = 200;
+        // res.statusCode = 200;
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', '*');
         res.setHeader('Access-Control-Allow-Headers', '*');
