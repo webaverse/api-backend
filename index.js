@@ -553,7 +553,7 @@ try {
       if (parcel) {
         _respond(200, JSON.stringify(parcel.scenes));
       } else {
-        _respond(404, JSON.stringify([]));
+        _respond(200, JSON.stringify([]));
       }
     } else {
       _respond(404, 'not found');
