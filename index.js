@@ -547,7 +547,7 @@ try {
   if (method === 'GET') {
     const o = url.parse(req.url, true);
     let match, x, y;
-    if ((match = o.pathname.match(/^\/coords\/(-?[0-9]+)\/(-?[0-9]+)$/)) && !isNaN(x = parseInt(match[1], 10)) && !isNaN(y = parseInt(match[2], 10))) {
+    if ((match = o.pathname.match(/^\/coords\/(-?[0-9]+)\/(-?[0-9]+)$/)) && !isNaN(x = parseFloat(match[1])) && !isNaN(y = parseFloat(match[2]))) {
       const key = _getCoordParcelKey(x, y);
       const parcel = parcels[key];
       if (parcel) {
