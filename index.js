@@ -586,7 +586,7 @@ try {
           const [x, y] = coord;
           parcelKeys.push(_getParcelKey(x, y));
         }
-        if (parcelKeys.every(key => !parcels[key])) {
+        if (parcelKeys.every(key => !parcels[key]) && Object.keys(parcels).every(key => parcels[key].name !== j.name)) {
           const parcel = {
             name: j.name,
             coords: j.coords,
@@ -609,7 +609,8 @@ try {
           Array.isArray(c) && c.length === 2 && c.every(e => typeof e === 'number')
         ) && typeof j.name === 'string' && typeof j.html === 'string'
       ) {
-        const parcel = parcels[_getParcelKey(x, y)];
+        const key = _getParcelKey(x, y);
+        const parcel = parcels[key];
         if (parcel) {
           const oldParcelKeys = [];
           for (let i = 0; i < parcel.coords.length; i++) {
@@ -624,7 +625,7 @@ try {
             const [x, y] = coord;
             parcelKeys.push(_getParcelKey(x, y));
           }
-          if (parcelKeys.every(key => !parcels[key] || oldParcelKeys.includes(key))) {
+          if (parcelKeys.every(key => !parcels[key] || oldParcelKeys.includes(key)) && Object.keys(parcels).every(key => parcels[key].name !== j.name || oldParcelKeys.includes(key))) {
             for (let i = 0; i < oldParcelKeys.length; i++) {
               delete parcels[oldParcelKeys[i]];
             }
