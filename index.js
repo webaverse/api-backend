@@ -1,3 +1,4 @@
+const path = require('path');
 const fs = require('fs');
 const url = require('url');
 const querystring = require('querystring');
@@ -5,6 +6,7 @@ const http = require('http');
 const https = require('https');
 const crypto = require('crypto');
 
+const mkdirp = require('mkdirp');
 const httpProxy = require('http-proxy');
 const ws = require('ws');
 const LRU = require('lru');
@@ -671,6 +673,50 @@ try {
     _respond(404, 'not found');
   }
 } catch (err) {
+  console.warn(err.stack);
+}
+};
+
+const _handleLol = async (req, res, userName, channelName) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+
+try {
+  const {method} = req;
+
+  if (method === 'OPTIONS') {
+    // res.statusCode = 200;
+    _setCorsHeaders(res);
+    res.end();
+  } else if (method === 'PUT') {
+    const o = url.parse(req.url);
+    const f = path.join(__dirname, 'glb', o.pathname);
+    const d = path.dirname(f);
+    mkdirp(d, err => {
+      if (!err) {
+        const ws = req.pipe(fs.createWriteStream(f));
+        ws.on('finish', () => {
+          _respond(200, JSON.stringify({ok: true}));
+        });
+        ws.on('error', err => {
+          _respond(500, err.stack);
+        });
+      } else {
+        _respond(500, err.stack);
+      }
+    });
+  } else {
+    _respond(404, 'not found');
+  }
+} catch(err) {
   console.warn(err.stack);
 }
 };
@@ -2983,6 +3029,9 @@ try {
     return;
   } else if (o.host === 'grid.exokit.org') {
     _handleGrid(req, res);
+    return;
+  } else if (o.host === 'lol.exokit.org') {
+    _handleLol(req, res);
     return;
   /* } else if (match = o.host.match(/^([a-z0-9\-]+)\.sites\.exokit\.org$/)) {
     const userName = match[1];
