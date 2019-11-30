@@ -696,6 +696,19 @@ try {
     // res.statusCode = 200;
     _setCorsHeaders(res);
     res.end();
+  } else if (method === 'GET') {
+    const o = url.parse(req.url);
+    const f = path.join(__dirname, 'glb', o.pathname);
+
+    const rs = fs.createReadStream(f);
+    rs.pipe(res);
+    rs.on('error', err => {
+      if (err.code === 'ENOENT') {
+        _respond(404, err.stack);
+      } else {
+        _respond(500, err.stack);
+      }
+    });
   } else if (method === 'PUT') {
     const o = url.parse(req.url);
     const f = path.join(__dirname, 'glb', o.pathname);
