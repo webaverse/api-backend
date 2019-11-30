@@ -677,7 +677,7 @@ try {
 }
 };
 
-const _handleLol = async (req, res, userName, channelName) => {
+const _handleRaw = async (req, res, userName, channelName) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -3030,8 +3030,8 @@ try {
   } else if (o.host === 'grid.exokit.org') {
     _handleGrid(req, res);
     return;
-  } else if (o.host === 'lol.exokit.org') {
-    _handleLol(req, res);
+  } else if (o.host === 'raw.exokit.org') {
+    _handleRaw(req, res);
     return;
   /* } else if (match = o.host.match(/^([a-z0-9\-]+)\.sites\.exokit\.org$/)) {
     const userName = match[1];
