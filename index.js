@@ -684,7 +684,7 @@ try {
 }
 };
 
-const _handleRaw = async (req, res, userName, channelName) => {
+/* const _handleRaw = async (req, res, userName, channelName) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -743,7 +743,7 @@ try {
     error: err.stack,
   }));
 }
-};
+}; */
 
 /* const _handleSites = async (req, res, userName, channelName) => {
   const _respond = (statusCode, body) => {
@@ -3068,9 +3068,9 @@ try {
   } else if (o.host === 'grid-presence.exokit.org') {
     _handlePresence(req, res, gridChannels);
     return;
-  } else if (o.host === 'raw.exokit.org') {
+  /* } else if (o.host === 'raw.exokit.org') {
     _handleRaw(req, res);
-    return;
+    return; */
   /* } else if (match = o.host.match(/^([a-z0-9\-]+)\.sites\.exokit\.org$/)) {
     const userName = match[1];
     if (o.path === '/sw.js') {
