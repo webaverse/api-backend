@@ -659,7 +659,12 @@ try {
       const key = _getParcelKey(x, y);
       const parcel = parcels[key];
       if (parcel) {
-        delete parcels[key];
+        for (let i = 0; i < parcel.coords.length; i++) {
+          const coord = parcel.coords[i];
+          const [x, y] = coord;
+          const key = _getParcelKey(x, y);
+          delete parcels[key];
+        }
         _respond(200, JSON.stringify({ok: true}));
       } else {
         _respond(404, 'not found');
