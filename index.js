@@ -735,7 +735,11 @@ try {
     _respond(404, 'not found');
   }
 } catch(err) {
-  console.warn(err.stack);
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
 }
 };
 
@@ -1865,7 +1869,11 @@ try {
     _respond(401, 'not authorized');
   }
 } catch(err) {
-  console.warn(err.stack);
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
 }
 };
 
@@ -2273,7 +2281,11 @@ try {
     }
   }
 } catch(err) {
-  console.warn(err.stack);
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
 }
 };
 
@@ -2649,7 +2661,11 @@ try {
     }
   }
 } catch(err) {
-  console.warn(err.stack);
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
 }
 };
 
@@ -3137,7 +3153,7 @@ try {
   console.warn(err.stack);
 
   res.statusCode = 500;
-  res.end();
+  res.end(err.stack);
 }
 };
 const _ws = (req, socket, head) => {
