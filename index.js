@@ -61,6 +61,8 @@ const bucketNames = {
   content: 'content.exokit.org',
   channels: 'channels.exokit.org',
 };
+const channels = {};
+const gridChannels = {};
 
 const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 const codeTestRegex = /^[0-9]{6}$/;
@@ -332,7 +334,7 @@ try {
 }
 };
 
-const _handlePresence = async (req, res) => {
+const _handlePresence = async (req, res, channels) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -580,7 +582,7 @@ try {
       if (
         j && typeof j === 'object' && Array.isArray(j.coords) && j.coords.every(c =>
           Array.isArray(c) && c.length === 2 && c.every(e => typeof e === 'number')
-        ) && typeof j.name === 'string' && typeof j.html === 'string'
+        ) && /*typeof j.name === 'string' &&*/ typeof j.html === 'string'
       ) {
         const parcelKeys = [];
         for (let i = 0; i < j.coords.length; i++) {
@@ -588,9 +590,9 @@ try {
           const [x, y] = coord;
           parcelKeys.push(_getParcelKey(x, y));
         }
-        if (parcelKeys.every(key => !parcels[key]) && Object.keys(parcels).every(key => parcels[key].name !== j.name)) {
+        if (parcelKeys.every(key => !parcels[key]) /*&& Object.keys(parcels).every(key => parcels[key].name !== j.name)*/) {
           const parcel = {
-            name: j.name,
+            // name: j.name,
             coords: j.coords,
             html: j.html,
           };
@@ -609,7 +611,7 @@ try {
       if (
         j && typeof j === 'object' && Array.isArray(j.coords) && j.coords.every(c =>
           Array.isArray(c) && c.length === 2 && c.every(e => typeof e === 'number')
-        ) && typeof j.name === 'string' && typeof j.html === 'string'
+        ) && /*typeof j.name === 'string' &&*/ typeof j.html === 'string'
       ) {
         const key = _getParcelKey(x, y);
         const parcel = parcels[key];
@@ -627,12 +629,12 @@ try {
             const [x, y] = coord;
             parcelKeys.push(_getParcelKey(x, y));
           }
-          if (parcelKeys.every(key => !parcels[key] || oldParcelKeys.includes(key)) && Object.keys(parcels).every(key => parcels[key].name !== j.name || oldParcelKeys.includes(key))) {
+          if (parcelKeys.every(key => !parcels[key] || oldParcelKeys.includes(key)) /*&& Object.keys(parcels).every(key => parcels[key].name !== j.name || oldParcelKeys.includes(key))*/) {
             for (let i = 0; i < oldParcelKeys.length; i++) {
               delete parcels[oldParcelKeys[i]];
             }
             const parcel = {
-              name: j.name,
+              // name: j.name,
               coords: j.coords,
               html: j.html,
             };
@@ -2860,11 +2862,10 @@ const _getDiscordClient = token => {
   }
   return client;
 };
-const channels = {};
 const presenceWss = new ws.Server({
   noServer: true,
 });
-presenceWss.on('connection', async (s, req) => {
+presenceWss.on('connection', async (s, req, channels) => {
   const o = url.parse(req.url, true);
   const {c} = o.query;
   if (c) {
@@ -3056,13 +3057,16 @@ try {
     _handleLogin(req, res);
     return;
   } else if (o.host === 'presence.exokit.org') {
-    _handlePresence(req, res);
+    _handlePresence(req, res, channels);
     return;
   } else if (o.host === 'upload.exokit.org') {
     _handleUpload(req, res);
     return;
   } else if (o.host === 'grid.exokit.org') {
     _handleGrid(req, res);
+    return;
+  } else if (o.host === 'grid-presence.exokit.org') {
+    _handlePresence(req, res, gridChannels);
     return;
   } else if (o.host === 'raw.exokit.org') {
     _handleRaw(req, res);
@@ -3160,7 +3164,11 @@ const _ws = (req, socket, head) => {
   const host = req.headers['host'];
   if (host === 'presence.exokit.org') {
     presenceWss.handleUpgrade(req, socket, head, s => {
-      presenceWss.emit('connection', s, req);
+      presenceWss.emit('connection', s, req, channels);
+    });
+  } else if (host === 'grid-presence.exokit.org') {
+    presenceWss.handleUpgrade(req, socket, head, s => {
+      presenceWss.emit('connection', s, req, gridChannels);
     });
   } else {
     proxy.ws(req, socket, head);
