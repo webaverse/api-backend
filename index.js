@@ -743,7 +743,7 @@ try {
 }
 };
 
-const _handleSites = async (req, res, userName, channelName) => {
+/* const _handleSites = async (req, res, userName, channelName) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -789,7 +789,7 @@ try {
     error: err.stack,
   }));
 }
-};
+}; */
 
 const _handleInventory = async (req, res) => {
   const _respond = (statusCode, body) => {
