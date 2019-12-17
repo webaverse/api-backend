@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/modulesio/webaverse-server#readme",
   "dependencies": {
-    "aws-sdk": "^2.513.0",
+    "aws-sdk": "^2.592.0",
     "discord.js": "^11.5.1",
     "http-proxy": "^1.17.0",
     "lru": "^3.1.0",
