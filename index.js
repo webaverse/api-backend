@@ -1,4 +1,5 @@
 const path = require('path');
+const stream = require('stream');
 const fs = require('fs');
 const url = require('url');
 const querystring = require('querystring');
@@ -17,6 +18,7 @@ const Stripe = require('stripe');
 const namegen = require('./namegen.js');
 const Base64Encoder = require('./encoder.js').Encoder;
 const {HTMLServer, CustomEvent} = require('./sync-server.js');
+const {SHA3} = require('sha3');
 const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret} = require('./config.json');
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
@@ -514,6 +516,114 @@ try {
                 Expires: 5*60,
               });
               _respond(200, signedUploadUrl);
+            } else {
+              _respond(403, 'forbidden');
+            }
+          } else {
+            _respond(401, 'not authorized');
+          }
+        } else {
+          _respond(401, 'not authorized');
+        }
+      } else {
+        _respond(404, 'not found');
+      }
+    } else {
+      _respond(404, 'not found');
+    }
+  }
+} catch(err) {
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
+}
+};
+
+const _handleHashes = async (req, res, userName, channelName) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+
+try {
+  const {method} = req;
+
+  if (method === 'OPTIONS') {
+    // res.statusCode = 200;
+    _setCorsHeaders(res);
+    res.end();
+  } else {
+    const o = url.parse(req.url, true);
+    let match;
+    if (match = o.pathname.match(/^\/(?:([^\/]+)(?:\/([^\/]+))?)?$/)) {
+      const username = match[1];
+      const filename = match[2];
+
+      if (method == 'PUT' && username && filename) {
+        // console.log('got inventory req', o);
+
+        if (o.query.email && o.query.token) {
+          let {email, token} = o.query;
+          const tokenItem = await ddb.getItem({
+            TableName: 'login',
+            Key: {
+              email: {S: email + '.token'},
+            }
+          }).promise();
+
+          // console.log('got item', JSON.stringify(token), tokenItem && tokenItem.Item);
+
+          const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+          if (tokens.includes(token)) {
+            const loginUsername = tokenItem.Item.name.S;
+
+            if (username === loginUsername) {
+              const s = new stream.PassThrough();
+              let contentLength = 0;
+              const hash = new SHA3(512);
+              await new Promise((accept, reject) => {
+                req.on('data', d => {
+                  s.write(d);
+                  contentLength += d.byteLength;
+                  hash.update(d);
+                });
+                req.on('end', () => {
+                  s.end();
+                  accept();
+                });
+                req.on('error', reject);
+              });
+              const key = username + '/' + filename;
+              const contentType = req.headers['content-type'] || 'application/octet-stream';
+              const h = hash.digest('hex');
+              const metadata = {
+                filename: key,
+                hash: h,
+              };
+              await s3.putObject({
+                Bucket: bucketNames.content,
+                Key: `hash/${h}`,
+                ContentType: contentType,
+                ContentLength: contentLength,
+                Body: s,
+                Metadata: metadata,
+              }).promise();
+              await s3.putObject({
+                Bucket: bucketNames.content,
+                Key: key,
+                Body: '',
+                WebsiteRedirectLocation: `https://content.exokit.org/hash/${h}`,
+              }).promise();
+              
+              _respond(200, JSON.stringify(metadata));
             } else {
               _respond(403, 'forbidden');
             }
@@ -3072,6 +3182,9 @@ try {
     return;
   } else if (o.host === 'upload.exokit.org') {
     _handleUpload(req, res);
+    return;
+  } else if (o.host === 'hashes.exokit.org') {
+    _handleHashes(req, res);
     return;
   } else if (o.host === 'grid.exokit.org') {
     _handleGrid(req, res);
