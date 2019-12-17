@@ -355,7 +355,18 @@ try {
     let match;
     if (p === '/channels') {
       _respond(200, JSON.stringify(Object.keys(channels)));
-    } else if (match = p.match(/^\/channels\/([^\/]+)\/([^\/]+)$/)) {
+    } else if (match = p.match(/^\/channels\/([^\/]+)$/)) {
+      const channelName = match[1];
+      const channel = channels[channelName];
+      if (channel) {
+        const html = channel.htmlServer.getHtml();
+        res.end(html);
+      } else {
+        _respond(404, JSON.stringify({
+          error: 'not found',
+        }));
+      }
+    /* } else if (match = p.match(/^\/channels\/([^\/]+)\/([^\/]+)$/)) {
       const channelName = match[1];
       const fileName = match[2];
       const channel = channels[channelName];
@@ -376,13 +387,13 @@ try {
         _respond(404, JSON.stringify({
           error: 'not found',
         }));
-      }
+      } */
     } else {
       _respond(404, JSON.stringify({
         error: 'not found',
       }));
     }
-  } else if (method === 'PUT') {
+  /* } else if (method === 'PUT') {
     const match = p.match(/^\/channels\/([^\/]+)\/([^\/]+)$/);
     if (match) {
       const channelName = match[1];
@@ -404,7 +415,7 @@ try {
       _respond(404, JSON.stringify({
         error: 'not found',
       }));
-    }
+    } */
   } else if (method === 'OPTIONS') {
     // console.log('respond options');
 
