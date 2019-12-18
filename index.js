@@ -2886,10 +2886,10 @@ try {
       res.end();
     } else {
       res.json({
-        "name": "Webaverse Token " + p,
-        "description": "A web metaverse token",
-        "image": "https://tokens.webaverse.com" + p + ".png",
-        "external_url": "https://viewer.webaverse.com" + p,
+        "name": "Meteria " + p,
+        "description": "Metaverse material token",
+        "image": "https://tokens.exokit.org" + p + ".png",
+        "external_url": "https://viewer.exokit.org" + p,
         // "background_color": "000000",
         // "animation_url": "https://exokit.org/models/exobot.glb",
         // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
