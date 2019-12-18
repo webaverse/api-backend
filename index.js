@@ -62,6 +62,7 @@ const filterTopic = 'webxr-site';
 const bucketNames = {
   content: 'content.exokit.org',
   channels: 'channels.exokit.org',
+  rooms: 'rooms.exokit.org',
 };
 const channels = {};
 const gridChannels = {};
@@ -3080,10 +3081,26 @@ proxy.on('proxyRes', (proxyRes, req) => {
   proxyRes.headers['access-control-allow-origin'] = '*';
 });
 
+const _getChannels = async () => {
+  const objects = await s3.listObjects({
+    Bucket: bucketNames.rooms,
+  }).promise();
+  const result = [];
+  const channelNames = objects.Contents;
+  for (let i = 0; i < channelNames.length; i++) {
+    const channelName = channelNames[i].Key;
+    const html = await _getChannelHtml(channelName);
+    result.push({
+      channelName,
+      html,
+    });
+  }
+  return result;
+};
 const _getChannelHtml = async channelName => {
   try {
     const o = await s3.getObject({
-      Bucket: bucketNames.channels,
+      Bucket: bucketNames.rooms,
       Key: channelName,
     }).promise();
     return o.Body.toString('utf8');
@@ -3091,11 +3108,10 @@ const _getChannelHtml = async channelName => {
     return null;
   }
 };
-const _makeChannel = async (channelName, saveHtml) => {
-  const html = (saveHtml ? await _getChannelHtml(channelName) : null) || `<xr-site></xr-site>`;
+const _makeChannel = (channelName, html, saveHtml) => {
   let saving = false;
   let saveQueued = false;
-  return {
+  const channel = {
     channelName,
     connectionIds: [],
     sockets: [],
@@ -3105,8 +3121,8 @@ const _makeChannel = async (channelName, saveHtml) => {
       if (!saving) {
         saving = true;
 
-        await s3.getObject({
-          Bucket: bucketNames.channels,
+        await s3.putObject({
+          Bucket: bucketNames.rooms,
           Key: channelName,
           ContentType: 'text/html',
           Body: this.htmlServer.getHtml(),
@@ -3135,7 +3151,21 @@ const _makeChannel = async (channelName, saveHtml) => {
       });
     },
   };
+  channel.htmlServer.addEventListener('send', e => {
+    const data = e.detail;
+    const {connection: socket, message} = data;
+    socket.send(JSON.stringify(message));
+  });
+  return channel;
 };
+{
+  const newChannels = await _getChannels();
+  for (let i = 0; i < newChannels.length; i++) {
+    const {channelName, html} = newChannels[i];
+    channels[channelName] = _makeChannel(channelName, html, true);
+  }
+}
+
 const discordClients = [];
 const _getDiscordClient = token => {
   let client = discordClients.find(client => client.token === token);
@@ -3150,6 +3180,7 @@ const _getDiscordClient = token => {
   }
   return client;
 };
+
 const presenceWss = new ws.Server({
   noServer: true,
 });
@@ -3162,17 +3193,8 @@ presenceWss.on('connection', async (s, req, channels, saveHtml) => {
 
     let channel = channels[c];
     if (!channel) {
-      const newChannel = await _makeChannel(c, saveHtml);
-      if (!channels[c]) { // double-checked locking
-        channel = channels[c] = newChannel;
-        channel.htmlServer.addEventListener('send', e => {
-          const data = e.detail;
-          const {connection: socket, message} = data;
-          socket.send(JSON.stringify(message));
-        });
-      } else {
-        channel = channels[c];
-      }
+      channel = _makeChannel(c, `<xr-site></xr-site>`, saveHtml);
+      channels[c] = channel;
     }
 
     const _proxyMessage = m => {
