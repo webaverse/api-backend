@@ -2861,6 +2861,70 @@ try {
 }
 };
 
+const _handleWebaverseTokens = async (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+
+try {
+  const {method} = req;
+
+  if (method === 'GET') {
+    const {pathname: p} = url.parse(req.url, true);
+    if (/\.png$/.test(p)) {
+      res.statusCode = 301;
+      res.setHeader('Location', 'https://raw.githubusercontent.com/exokitxr/exokit-web/master/favicon.png');
+      _setCorsHeaders(res);
+      res.end();
+    } else {
+      res.json({
+        "name": "Webaverse Token " + p,
+        "description": "A web metaverse token",
+        "image": "https://tokens.webaverse.com" + p + ".png",
+        "external_url": "https://viewer.webaverse.com" + p,
+        // "background_color": "000000",
+        // "animation_url": "https://exokit.org/models/exobot.glb",
+        // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
+        "properties": {
+                "simple_property": "example value",
+                "rich_property": {
+                        "name": "Name",
+                        "value": "123",
+                        "display_value": "123 Example Value",
+                        "class": "emphasis",
+                        "css": {
+                                "color": "#ffffff",
+                                "font-weight": "bold",
+                                "text-decoration": "underline"
+                        }
+                },
+                "array_property": {
+                        "name": "Name",
+                        "value": [1,2,3,4],
+                        "class": "emphasis"
+                }
+        }
+      });
+    }
+  } else {
+    _respond(404, 'not found');
+  }
+} catch(err) {
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
+}
+};
+
 /* const browser = await puppeteer.launch({
   // args,
   defaultViewport: {
@@ -3344,6 +3408,9 @@ try {
     return;
   } else if (o.host === 'files.exokit.org') {
     _handleFiles(req, res);
+    return;
+  } else if (o.host === 'tokens.webaverse.com') {
+    _handleWebaverseTokens(req, res);
     return;
   } /* else if (o.host === 'browser.exokit.org') {
     _handleBrowser(req, res);
