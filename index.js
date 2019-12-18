@@ -637,7 +637,7 @@ try {
             if (username === loginUsername) {
               const s = new stream.PassThrough();
               let contentLength = 0;
-              const hash = new SHA3(512);
+              const hash = new SHA3(256);
               await new Promise((accept, reject) => {
                 req.on('data', d => {
                   s.write(d);
