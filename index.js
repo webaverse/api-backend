@@ -3024,11 +3024,11 @@ const _getChannelHtml = async channelName => {
     }).promise();
     return o.Body.toString('utf8');
   } catch(err) {
-    return '';
+    return null;
   }
 };
-const _makeChannel = async channelName => {
-  const html = (await _getChannelHtml(channelName)) || `<xr-site></xr-site>`;
+const _makeChannel = async (channelName, saveHtml) => {
+  const html = (saveHtml ? await _getChannelHtml(channelName) : null) || `<xr-site></xr-site>`;
   let saving = false;
   let saveQueued = false;
   return {
@@ -3089,7 +3089,7 @@ const _getDiscordClient = token => {
 const presenceWss = new ws.Server({
   noServer: true,
 });
-presenceWss.on('connection', async (s, req, channels) => {
+presenceWss.on('connection', async (s, req, channels, saveHtml) => {
   const o = url.parse(req.url, true);
   const {c} = o.query;
   if (c) {
@@ -3098,7 +3098,7 @@ presenceWss.on('connection', async (s, req, channels) => {
 
     let channel = channels[c];
     if (!channel) {
-      const newChannel = await _makeChannel(c);
+      const newChannel = await _makeChannel(c, saveHtml);
       if (!channels[c]) { // double-checked locking
         channel = channels[c] = newChannel;
         channel.htmlServer.addEventListener('send', e => {
@@ -3165,7 +3165,9 @@ presenceWss.on('connection', async (s, req, channels) => {
           } else if (data.method === 'ops' && Array.isArray(data.ops) && typeof data.baseIndex === 'number') {
             // console.log('push ops', data);
             channel.htmlServer.pushOps(data.ops, data.baseIndex, s);
-            channel.save();
+            if (saveHtml) {
+              channel.save();
+            }
           } else if (data.method === 'message' && typeof data.provider === 'string') {
             // console.log('push message', data);
             if (data.provider === 'discord' && typeof data.token === 'string' && typeof data.channel === 'string' && (typeof data.text === 'string' || typeof data.attachment === 'string')) {
@@ -3396,11 +3398,11 @@ const _ws = (req, socket, head) => {
   const host = req.headers['host'];
   if (host === 'presence.exokit.org') {
     presenceWss.handleUpgrade(req, socket, head, s => {
-      presenceWss.emit('connection', s, req, channels);
+      presenceWss.emit('connection', s, req, channels, true);
     });
   } else if (host === 'grid-presence.exokit.org') {
     presenceWss.handleUpgrade(req, socket, head, s => {
-      presenceWss.emit('connection', s, req, gridChannels);
+      presenceWss.emit('connection', s, req, gridChannels, false);
     });
   } else {
     proxy.ws(req, socket, head);
