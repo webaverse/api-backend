@@ -1466,7 +1466,7 @@ try {
 }
 };
 
-const _handleToken = async (req, res) => {
+/* const _handleToken = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -1859,7 +1859,7 @@ try {
     error: err.stack,
   }));
 }
-};
+}; */
 
 // const globalGithubAuthorization = `Basic ${Buffer.from(`${githubUsername}:${githubApiKey}`).toString('base64')}`;
 const _handleGit = async (req, res) => {
@@ -3333,9 +3333,9 @@ try {
   } else if (o.host === 'oauth.exokit.org') {
     _handleOauth(req, res);
     return;
-  } else if (o.host === 'token.exokit.org') {
+  /* } else if (o.host === 'token.exokit.org') {
     _handleToken(req, res);
-    return;
+    return; */
   } else if (o.host === 'repos.exokit.org') {
     _handleRepos(req, res);
     return;
