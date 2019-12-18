@@ -3016,13 +3016,47 @@ proxy.on('proxyRes', (proxyRes, req) => {
   proxyRes.headers['access-control-allow-origin'] = '*';
 });
 
-const _makeChannel = channelName => {
+const _getChannelHtml = async channelName => {
+  try {
+    const o = await s3.getObject({
+      Bucket: bucketNames.channels,
+      Key: channelName,
+    }).promise();
+    return o.Body.toString('utf8');
+  } catch(err) {
+    return '';
+  }
+};
+const _makeChannel = async channelName => {
+  const html = (await _getChannelHtml(channelName)) || `<xr-site></xr-site>`;
+  let saving = false;
+  let saveQueued = false;
   return {
     channelName,
     connectionIds: [],
     sockets: [],
-    htmlServer: new HTMLServer(`<xr-site></xr-site>`),
+    htmlServer: new HTMLServer(html),
     files: {},
+    async save() {
+      if (!saving) {
+        saving = true;
+
+        await s3.getObject({
+          Bucket: bucketNames.channels,
+          Key: channelName,
+          ContentType: 'text/html',
+          Body: this.htmlServer.getHtml(),
+        }).promise();
+
+        saving = false;
+        if (saveQueued) {
+          saveQueued = false;
+          this.save();
+        }
+      } else {
+        saveQueued = true;
+      }
+    },
     upload(fileName, req) {
       return new Promise((accept, reject) => {
         const bs = [];
@@ -3064,13 +3098,17 @@ presenceWss.on('connection', async (s, req, channels) => {
 
     let channel = channels[c];
     if (!channel) {
-      channel = _makeChannel(c);
-      channel.htmlServer.addEventListener('send', e => {
-        const data = e.detail;
-        const {connection: socket, message} = data;
-        socket.send(JSON.stringify(message));
-      });
-      channels[c] = channel;
+      const newChannel = await _makeChannel(c);
+      if (!channels[c]) { // double-checked locking
+        channel = channels[c] = newChannel;
+        channel.htmlServer.addEventListener('send', e => {
+          const data = e.detail;
+          const {connection: socket, message} = data;
+          socket.send(JSON.stringify(message));
+        });
+      } else {
+        channel = channels[c];
+      }
     }
 
     const _proxyMessage = m => {
@@ -3127,6 +3165,7 @@ presenceWss.on('connection', async (s, req, channels) => {
           } else if (data.method === 'ops' && Array.isArray(data.ops) && typeof data.baseIndex === 'number') {
             // console.log('push ops', data);
             channel.htmlServer.pushOps(data.ops, data.baseIndex, s);
+            channel.save();
           } else if (data.method === 'message' && typeof data.provider === 'string') {
             // console.log('push message', data);
             if (data.provider === 'discord' && typeof data.token === 'string' && typeof data.channel === 'string' && (typeof data.text === 'string' || typeof data.attachment === 'string')) {
