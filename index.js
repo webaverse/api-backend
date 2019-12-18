@@ -3127,6 +3127,9 @@ const _makeChannel = (channelName, html, saveHtml) => {
           ContentType: 'text/html',
           Body: this.htmlServer.getHtml(),
         }).promise();
+        await new Promise((accept, reject) => {
+          setTimeout(accept, 1000);
+        });
 
         saving = false;
         if (saveQueued) {
