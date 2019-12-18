@@ -3216,7 +3216,7 @@ presenceWss.on('connection', async (s, req, channels, saveHtml) => {
       if (typeof m === 'string') {
         const data = _jsonParse(m);
         if (data) {
-          console.log('got data', data, data.method === 'ops', Array.isArray(data.ops), typeof data.baseIndex === 'number');
+          // console.log('got data', data, data.method === 'ops', Array.isArray(data.ops), typeof data.baseIndex === 'number');
           if (data.method === 'init' && typeof data.connectionId === 'string') {
             if (!connectionId) {
               connectionId = data.connectionId;
