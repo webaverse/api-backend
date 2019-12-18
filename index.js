@@ -436,6 +436,37 @@ try {
 }
 };
 
+const _fetchPrefix = prefix => {
+  // console.log('got prefix', prefix);
+  return s3.listObjects({
+    Bucket: bucketNames.content,
+    Delimiter: '/',
+    Prefix: prefix,
+  }).promise();
+};
+const _fetchRecursive = async prefix => {
+  const results = [];
+  const _recurse = async p => {
+    const o = await _fetchPrefix(p);
+    const {Contents, CommonPrefixes} = o;
+
+    for (let i = 0; i < Contents.length; i++) {
+      const o = Contents[i];
+      const k = o.Key
+        // .replace(/^users\/[^\/]*?\//, '')
+        // .replace(/^([^\/]*?\/)[^\/]*?\//, '$1');
+      // console.log('push key', [p, k]);
+      results.push(k);
+    }
+
+    for (let i = 0; i < CommonPrefixes.length; i++) {
+      // console.log('check common', [p, CommonPrefixes[i].Prefix]);
+      await _recurse(CommonPrefixes[i].Prefix);
+    }
+  };
+  await _recurse(prefix);
+  return results;
+};
 const _handleUpload = async (req, res, userName, channelName) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -462,28 +493,46 @@ try {
       const username = match[1];
       const filename = match[2];
 
-      if (method === 'GET' && !username && !filename) {
+      /* if (method === 'GET' && !username && !filename) {
         const objects = await s3.listObjects({
           Bucket: bucketNames.content,
           Delimiter: '/',
-          Prefix: '',
+          Prefix: 'users/',
         }).promise();
-        const keys = objects.Contents.map(o => o.Key);
+        // const keys = objects.Contents.map(o => o.Key);
+        const keys = objects.Contents.map(o => o.Key.replace(/^users\//, '').replace(/^([^\/]*?\/)[^\/]*?\//, '$1'));
 
         console.log('got contents', objects);
 
         _respond(200, JSON.stringify(keys));
-      } else if (method === 'GET' && username && !filename) {
-        const objects = await s3.listObjects({
+      } else */if (method === 'GET' && username && !filename) {
+        let keys = await _fetchRecursive(`users/${username}/`);
+        keys = keys.map(k => k.replace(/^users\/[^\/]*?\//, ''));
+
+        _respond(200, JSON.stringify(keys));
+
+        /* const objects = await s3.listObjects({
           Bucket: bucketNames.content,
           Delimiter: '/',
           Prefix: `${username}/`,
         }).promise();
-        const keys = objects.Contents.map(o => o.Key);
 
-        console.log('got contents', objects);
+        const result = [];
+        for (let i = 0; i < objects.Contents.length; i++) {
+          const o = objects.Contents[i];
+          const key = o.Key;
+          const m = await s3.headObject({
+            Bucket: bucketNames.content,
+            Key: key,
+          }).promise();
+          result.push({
+            filename: key,
+            contentType: m.ContentType,
+            metadata: m.Metadata,
+          });
+        }
 
-        _respond(200, JSON.stringify(keys));
+        _respond(200, JSON.stringify(result)); */
       } else if (method === 'GET' && username && filename) {
         res.statusCode = 301;
         res.setHeader('Location', `https://content.exokit.org/${username}/${filename}`);
@@ -616,10 +665,30 @@ try {
                 Body: s,
                 Metadata: metadata,
               }).promise();
+
+              const oldHashKeys = await _fetchRecursive(`users/${username}/${filename}/`);
+              for (let i = 0; i < oldHashKeys.length; i++) {
+                const k = oldHashKeys[i];
+                await s3.deleteObject({
+                  Bucket: bucketNames.content,
+                  Key: k,
+                }).promise();
+              }
+
               await s3.putObject({
                 Bucket: bucketNames.content,
-                Key: key,
+                Key: `users/${username}/${filename}/${h}`,
+                ContentType: contentType,
                 Body: '',
+                Metadata: metadata,
+                WebsiteRedirectLocation: `https://content.exokit.org/hash/${h}`,
+              }).promise();
+              await s3.putObject({
+                Bucket: bucketNames.content,
+                Key: `url/${key}`,
+                ContentType: contentType,
+                Body: '',
+                Metadata: metadata,
                 WebsiteRedirectLocation: `https://content.exokit.org/hash/${h}`,
               }).promise();
               
