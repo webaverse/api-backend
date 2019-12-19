@@ -719,6 +719,108 @@ try {
 }
 };
 
+const _handleScreenshots = async (req, res, userName, channelName) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+
+try {
+  const {method} = req;
+
+  if (method === 'OPTIONS') {
+    // res.statusCode = 200;
+    _setCorsHeaders(res);
+    res.end();
+  } else {
+    const o = url.parse(req.url, true);
+    let match;
+    if (match = o.pathname.match(/^\/(?:([^\/]+)(?:\/([^\/]+))?)?$/)) {
+      const username = match[1];
+      const filename = match[2];
+
+      if (method == 'PUT' && username && filename) {
+        // console.log('got inventory req', o);
+
+        if (o.query.email && o.query.token) {
+          let {email, token} = o.query;
+          const tokenItem = await ddb.getItem({
+            TableName: 'login',
+            Key: {
+              email: {S: email + '.token'},
+            }
+          }).promise();
+
+          // console.log('got item', JSON.stringify(token), tokenItem && tokenItem.Item);
+
+          const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+          if (tokens.includes(token)) {
+            const loginUsername = tokenItem.Item.name.S;
+
+            if (username === loginUsername) {
+              const key = username + '/' + filename;
+              const o = await s3.getObject({
+                Bucket: bucketNames.content,
+                Key: `url/${key}`,
+              }).promise();
+              // console.log('got old metadata', `url/${key}`, o);
+              const metadata = o.Metadata;
+              const {hash: h} = metadata;
+
+              const s = new stream.PassThrough();
+              let contentLength = 0;
+              await new Promise((accept, reject) => {
+                req.on('data', d => {
+                  s.write(d);
+                  contentLength += d.byteLength;
+                });
+                req.on('end', () => {
+                  s.end();
+                  accept();
+                });
+                req.on('error', reject);
+              });
+              // console.log('save screenshot', `screenshots/${h}`);
+              await s3.putObject({
+                Bucket: bucketNames.content,
+                Key: `screenshots/${h}`,
+                ContentType: 'image/png',
+                ContentLength: contentLength,
+                Body: s,
+              }).promise();
+              
+              _respond(200, JSON.stringify(metadata));
+            } else {
+              _respond(403, 'forbidden');
+            }
+          } else {
+            _respond(401, 'not authorized');
+          }
+        } else {
+          _respond(401, 'not authorized');
+        }
+      } else {
+        _respond(404, 'not found');
+      }
+    } else {
+      _respond(404, 'not found');
+    }
+  }
+} catch(err) {
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
+}
+};
+
 const parcels = {};
 const _handleGrid = async (req, res, userName, channelName) => {
   const _respond = (statusCode, body) => {
@@ -3384,6 +3486,9 @@ try {
     return;
   } else if (o.host === 'hashes.exokit.org') {
     _handleHashes(req, res);
+    return;
+  } else if (o.host === 'screenshots.exokit.org') {
+    _handleScreenshots(req, res);
     return;
   } else if (o.host === 'grid.exokit.org') {
     _handleGrid(req, res);
