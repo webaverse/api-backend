@@ -2862,7 +2862,7 @@ try {
 }
 };
 
-const _handleWebaverseTokens = async (req, res) => {
+const _handleTokens = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -3435,7 +3435,7 @@ try {
     _handleFiles(req, res);
     return;
   } else if (o.host === 'tokens.webaverse.com') {
-    _handleWebaverseTokens(req, res);
+    _handleTokens(req, res);
     return;
   } /* else if (o.host === 'browser.exokit.org') {
     _handleBrowser(req, res);
