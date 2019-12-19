@@ -719,7 +719,7 @@ try {
 }
 };
 
-const _handleScreenshots = async (req, res, userName, channelName) => {
+const _handlePreview = async (req, res, userName, channelName) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -786,10 +786,10 @@ try {
                 });
                 req.on('error', reject);
               });
-              // console.log('save screenshot', `screenshots/${h}`);
+              // console.log('save screenshot', `preview/${h}`);
               await s3.putObject({
                 Bucket: bucketNames.content,
-                Key: `screenshots/${h}`,
+                Key: `preview/${h}`,
                 ContentType: 'image/png',
                 ContentLength: contentLength,
                 Body: s,
@@ -2990,7 +2990,7 @@ try {
       res.json({
         "name": "Meteria " + p,
         "description": "Metaverse material token",
-        "image": "https://content.exokit.org/screenshots" + p,
+        "image": "https://content.exokit.org/preview" + p,
         "external_url": "https://viewer.exokit.org" + p,
         // "background_color": "000000",
         // "animation_url": "https://exokit.org/models/exobot.glb",
@@ -3487,8 +3487,8 @@ try {
   } else if (o.host === 'hashes.exokit.org') {
     _handleHashes(req, res);
     return;
-  } else if (o.host === 'screenshots.exokit.org') {
-    _handleScreenshots(req, res);
+  } else if (o.host === 'preview.exokit.org') {
+    _handlePreview(req, res);
     return;
   } else if (o.host === 'grid.exokit.org') {
     _handleGrid(req, res);
