@@ -3539,7 +3539,7 @@ try {
   } else if (o.host === 'files.exokit.org') {
     _handleFiles(req, res);
     return;
-  } else if (o.host === 'tokens.webaverse.com') {
+  } else if (o.host === 'tokens.exokit.org') {
     _handleTokens(req, res);
     return;
   } /* else if (o.host === 'browser.exokit.org') {
