@@ -2888,7 +2888,7 @@ try {
       res.json({
         "name": "Meteria " + p,
         "description": "Metaverse material token",
-        "image": "https://tokens.exokit.org" + p + ".png",
+        "image": "https://content.exokit.org/screenshots" + p,
         "external_url": "https://viewer.exokit.org" + p,
         // "background_color": "000000",
         // "animation_url": "https://exokit.org/models/exobot.glb",
