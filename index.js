@@ -2987,7 +2987,9 @@ try {
       _setCorsHeaders(res);
       res.end();
     } else {
-      res.json({
+      _setCorsHeaders(res);
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({
         "name": "Meteria " + p,
         "description": "Metaverse material token",
         "image": "https://content.exokit.org/preview" + p,
@@ -3014,7 +3016,7 @@ try {
                         "class": "emphasis"
                 }
         }
-      });
+      }));
     }
   } else {
     _respond(404, 'not found');
