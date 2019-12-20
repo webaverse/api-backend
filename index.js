@@ -816,35 +816,41 @@ try {
               const key = username + '/' + filename;
               const o = await s3.getObject({
                 Bucket: bucketNames.content,
-                Key: `url/${key}`,
+                Key: `users/${username}`,
               }).promise();
-              // console.log('got old metadata', `url/${key}`, o);
-              const metadata = o.Metadata;
-              const {hash: h} = metadata;
+              const root = JSON.parse(o.Body);
+              const keypath = _getKeypath(key);
+              const node = _findKeypath(root, keypath);
 
-              const s = new stream.PassThrough();
-              let contentLength = 0;
-              await new Promise((accept, reject) => {
-                req.on('data', d => {
-                  s.write(d);
-                  contentLength += d.byteLength;
+              if (node) {
+                const {hash: h} = node;
+
+                const s = new stream.PassThrough();
+                let contentLength = 0;
+                await new Promise((accept, reject) => {
+                  req.on('data', d => {
+                    s.write(d);
+                    contentLength += d.byteLength;
+                  });
+                  req.on('end', () => {
+                    s.end();
+                    accept();
+                  });
+                  req.on('error', reject);
                 });
-                req.on('end', () => {
-                  s.end();
-                  accept();
-                });
-                req.on('error', reject);
-              });
-              // console.log('save screenshot', `preview/${h}`);
-              await s3.putObject({
-                Bucket: bucketNames.content,
-                Key: `preview/${h}`,
-                ContentType: 'image/png',
-                ContentLength: contentLength,
-                Body: s,
-              }).promise();
-              
-              _respond(200, JSON.stringify(metadata));
+                // console.log('save screenshot', `preview/${h}`);
+                await s3.putObject({
+                  Bucket: bucketNames.content,
+                  Key: `preview/${h}`,
+                  ContentType: 'image/png',
+                  ContentLength: contentLength,
+                  Body: s,
+                }).promise();
+                
+                _respond(200, JSON.stringify({hash: h}));
+              } else {
+                _respond(404, 'not found');
+              }
             } else {
               _respond(403, 'forbidden');
             }
