@@ -591,6 +591,57 @@ try {
 }
 };
 
+const _getKeypath = s => s.split('/');
+const _findKeypath = (root, keypath) => {
+  const _recurse = (node, i) => {
+    if (i < keypath.length) {
+      const nextName = keypath[i];
+      const child = node.children ? node.children.find(c => c.name === nextName) : undefined;
+      if (child) {
+        return _recurse(child, i + 1);
+      } else {
+        return null;
+      }
+    } else {
+      return node;
+    }
+  };
+  return _recurse(root, 0);
+};
+const _setFile = (root, keypath, hash) => {
+  const d = _mkdirp(root, keypath.slice(0, -1));
+  const fileName = keypath[keypath.length - 1];
+  let fileNode = d.children.find(node => node.name === fileName);
+  if (!fileNode) {
+    fileNode = {
+      name: fileName,
+      hash: '',
+    };
+    d.children.push(fileNode);
+  }
+  fileNode.hash = hash;
+  // console.log('made dir 2', JSON.stringify(root), JSON.stringify(d), JSON.stringify(fileNode));
+  return root;
+};
+const _mkdirp = (root, keypath) => {
+  const _recurse = (node, i) => {
+    if (i < keypath.length) {
+      const nextName = keypath[i];
+      let child = node.children ? node.children.find(c => c.name === nextName && c.children) : undefined;
+      if (!child) {
+        child = {
+          name: nextName,
+          children: [],
+        };
+        node.children.push(child);
+      }
+      return _recurse(child, i + 1);
+    } else {
+      return node;
+    }
+  };
+  return _recurse(root, 0);
+};
 const _handleHashes = async (req, res, userName, channelName) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -665,35 +716,33 @@ try {
                 ContentLength: contentLength,
                 Body: s,
                 Metadata: metadata,
-              }).promise();
+              }).promise(); 
 
-              const oldHashKeys = await _fetchRecursive(`users/${username}/${filename}/`);
-              for (let i = 0; i < oldHashKeys.length; i++) {
-                const k = oldHashKeys[i];
-                await s3.deleteObject({
-                  Bucket: bucketNames.content,
-                  Key: k,
-                }).promise();
-              }
+              const o = await (async () => {
+                try {
+                  return await s3.getObject({
+                    Bucket: bucketNames.content,
+                    Key: `users/${username}`,
+                  }).promise();
+                } catch(err) {
+                  // console.warn(err);
+                  return null;
+                }
+              })();
 
+              const root = (o && o.Body) ? JSON.parse(o.Body) : {
+                name: '',
+                children: [],
+              };
+              _setFile(root, _getKeypath(key), h);
               await s3.putObject({
                 Bucket: bucketNames.content,
-                Key: `users/${username}/${filename}/${h}`,
-                ContentType: contentType,
-                Body: '',
-                Metadata: metadata,
-                WebsiteRedirectLocation: `https://content.exokit.org/hash/${h}`,
-              }).promise();
-              await s3.putObject({
-                Bucket: bucketNames.content,
-                Key: `url/${key}`,
-                ContentType: contentType,
-                Body: '',
-                Metadata: metadata,
-                WebsiteRedirectLocation: `https://content.exokit.org/hash/${h}`,
+                Key: `users/${username}`,
+                ContentType: 'application/json',
+                Body: JSON.stringify(root),
               }).promise();
               
-              _respond(200, JSON.stringify(metadata));
+              _respond(200, JSON.stringify({ok: true}));
             } else {
               _respond(403, 'forbidden');
             }
