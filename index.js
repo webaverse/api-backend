@@ -791,8 +791,8 @@ try {
     const o = url.parse(req.url, true);
     let match;
     if (match = o.pathname.match(/^\/(?:([^\/]+)(?:\/([^\/]+))?)?$/)) {
-      const username = match[1];
-      const filename = match[2];
+      const username = decodeURIComponent(match[1]);
+      const filename = decodeURIComponent(match[2]);
 
       if (method == 'PUT' && username && filename) {
         // console.log('got inventory req', o);
