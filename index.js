@@ -669,7 +669,7 @@ try {
       const filename = decodeURIComponent(match[2]);
 
       if (method == 'PUT' && username && filename) {
-        // console.log('got inventory req', o);
+        console.log('got hashes req 1', username, filename);
 
         if (o.query.email && o.query.token) {
           let {email, token} = o.query;
@@ -680,12 +680,12 @@ try {
             }
           }).promise();
 
-          // console.log('got item', JSON.stringify(token), tokenItem && tokenItem.Item);
-
           const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
+          console.log('got hashes req 2', JSON.stringify(token), tokenItem && tokenItem.Item, tokens);
           if (tokens.includes(token)) {
             const loginUsername = tokenItem.Item.name.S;
 
+            console.log('got hashes req 3', {username, loginUsername});
             if (username === loginUsername) {
               const s = new stream.PassThrough();
               let contentLength = 0;
