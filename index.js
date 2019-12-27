@@ -19,7 +19,7 @@ const namegen = require('./namegen.js');
 const Base64Encoder = require('./encoder.js').Encoder;
 const {HTMLServer, CustomEvent} = require('./sync-server.js');
 const {SHA3} = require('sha3');
-const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret} = require('./config.json');
+const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, stripeClientId, stripeClientSecret} = require('./config.json');
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
     accessKeyId,
@@ -40,9 +40,7 @@ const apiKeyCache = new LRU({
   max: 1024,
   maxAge: 60 * 1000,
 });
-const client_id = 'ca_Bj6O5x5CFVCOELBhyjbiJxwUfW6l8ozd';
-const client_secret = 'sk_test_WMysffATw60L1FhYxKDphPgO';
-const stripe = Stripe(client_secret);
+const stripe = Stripe(stripeClientSecret);
 
 const Discord = require('discord.js');
 
