@@ -19,7 +19,11 @@ const namegen = require('./namegen.js');
 const Base64Encoder = require('./encoder.js').Encoder;
 const {HTMLServer, CustomEvent} = require('./sync-server.js');
 const {SHA3} = require('sha3');
-const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, stripeClientId, stripeClientSecret} = require('./config.json');
+
+// const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, stripeClientId, stripeClientSecret} = require('./config.json');
+
+const { accessKeyId, secretAccessKey } = require('./secrets.js')
+
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
     accessKeyId,
@@ -40,7 +44,7 @@ const apiKeyCache = new LRU({
   max: 1024,
   maxAge: 60 * 1000,
 });
-const stripe = Stripe(stripeClientSecret);
+// const stripe = Stripe(stripeClientSecret);
 
 const Discord = require('discord.js');
 
@@ -3525,13 +3529,48 @@ presenceWss.on('connection', async (s, req, channels, saveHtml) => {
   }
 });
 
+const _handleUptime = async (req, res) => {
+
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+
+  try {
+    const {method} = req;
+    if (method === "GET"){
+      _setCorsHeaders(res);
+      _respond(200, JSON.stringify({"lol": "ayyy"}))
+    }
+  }
+  catch(e){
+    console.error(err);
+    _respond(500, JSON.stringify({
+      error: err.stack,
+    }));
+  }
+}
+
 const _req = protocol => (req, res) => {
 try {
 
-  const o = url.parse(protocol + '//' + (req.headers['host'] || '') + req.url);
+  let o = url.parse(protocol + '//' + (req.headers['host'] || '') + req.url);
+
+  o.host = o.path.substring(1)
+
   let match;
   if (o.host === 'login.exokit.org') {
     _handleLogin(req, res);
+    return;
+  } else if (o.host === 'uptime.exokit.org') {
+    _handleUptime(req, res, channels);
     return;
   } else if (o.host === 'presence.exokit.org') {
     _handlePresence(req, res, channels);

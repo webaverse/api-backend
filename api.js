@@ -2,9 +2,9 @@ const Web3 = require('web3');
 const bip32 = require('./bip32.js');
 const bip39 = require('./bip39.js');
 
-const {infuraApiKey, network, mnemonic} = require('./config.json');
-const webaverseAbi = require('./webaverse-abi.json');
-const webaverseAddress = require('./webaverse-address.json');
+// const {infuraApiKey, network, mnemonic} = require('./config.json');
+// const webaverseAbi = require('./webaverse-abi.json');
+// const webaverseAddress = require('./webaverse-address.json');
 
 const _makeContracts = web3 => {
   return {
@@ -86,18 +86,18 @@ async function _execute(spec) {
     default: throw new Error(`unknown execute method ${method}`);
   }
 } 
-const makeWeb3 = () => {
-  const rpcUrl = `https://${network}.infura.io/v3/${infuraApiKey}`;
+// const makeWeb3 = () => {
+//   const rpcUrl = `https://${network}.infura.io/v3/${infuraApiKey}`;
 
-  const web3 = new Web3(new Web3.providers.HttpProvider(rpcUrl));
-  const seed = bip39.mnemonicToSeedSync(mnemonic, '');
-  const privateKey = '0x' + bip32.fromSeed(seed).derivePath("m/44'/60'/0'/0").derive(0).privateKey.toString('hex');
-  const account = web3.eth.accounts.privateKeyToAccount(privateKey);
-  web3.eth.accounts.wallet.add(account);
-  web3.eth.defaultAccount = account.address;
-  web3.contracts = _makeContracts(web3);
-  web3.execute = _execute;
-  return web3;
-};
+//   const web3 = new Web3(new Web3.providers.HttpProvider(rpcUrl));
+//   const seed = bip39.mnemonicToSeedSync(mnemonic, '');
+//   const privateKey = '0x' + bip32.fromSeed(seed).derivePath("m/44'/60'/0'/0").derive(0).privateKey.toString('hex');
+//   const account = web3.eth.accounts.privateKeyToAccount(privateKey);
+//   web3.eth.accounts.wallet.add(account);
+//   web3.eth.defaultAccount = account.address;
+//   web3.contracts = _makeContracts(web3);
+//   web3.execute = _execute;
+//   return web3;
+// };
 
-module.exports = makeWeb3();
+// module.exports = makeWeb3();
