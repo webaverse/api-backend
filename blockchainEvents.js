@@ -62,7 +62,6 @@ const main = async () => {
 
                 const command = msg.content.slice(1).split(", ")[0]
                 let param = msg.content.slice(1).split(", ")[1]
-                console.log(param)
 
                 switch(command){
                     case "getId()":
@@ -109,7 +108,7 @@ const main = async () => {
                     case "testEndpoints()":
                         endpoints.forEach(async (url) => {
                             let status = await testUrl(url)
-                            msg.reply(status)
+                            discordChannel.send(status)
                         })
                         break;
                     default:
