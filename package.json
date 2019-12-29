@@ -21,8 +21,11 @@
   "homepage": "https://github.com/modulesio/webaverse-server#readme",
   "dependencies": {
     "aws-sdk": "^2.596.0",
+    "bn.js": "^5.1.1",
+    "btoa": "^1.2.1",
     "discord.js": "^11.5.1",
     "http-proxy": "^1.17.0",
+    "keccak": "^3.0.0",
     "lru": "^3.1.0",
     "mkdirp": "^0.5.1",
     "puppeteer": "^1.19.0",
