@@ -52,6 +52,8 @@ const main = async () => {
         "https://meshing.exokit.org/"
     ]
 
+    let signupList = []
+
     ws.addEventListener('open', (event) => {
 
         discordClient.on('message', async (msg) => {
@@ -90,7 +92,7 @@ const main = async () => {
                         } 
                         break;
                     case "help":
-                        discordChannel.send(`\`\`\`!<FUNCTION_NAME()>, <PARAM>\n Blockchain Functions: getTx(uint256 hash), getId(uint256 hash), uri(uint256 id)\n Other Functions: testUrl(), testEndpoints()\n Start bot: !start \n Stop bot: !stop \`\`\``)
+                        discordChannel.send(`\`\`\`!<FUNCTION_NAME()>, <PARAM>\n Blockchain Functions: getTx(uint256 hash), getId(uint256 hash), uri(uint256 id)\n Other Functions: testUrl(), testEndpoints()\n M3 Meeting: !signup, !signupList\n Start bot: !start \n Stop bot: !stop \`\`\``)
                         break;
                     case "start":
                         botOnline = true;
@@ -110,6 +112,17 @@ const main = async () => {
                             let status = await testUrl(url)
                             discordChannel.send(status)
                         })
+                        break;
+                    case "signup":
+                        signupList.push(msg.author.username)
+                        msg.reply(`Thanks for signing up for the next M3 meeting! See you there! Beep Boop`)
+                        break;
+                    case "signupList":
+                        let message = "Discord users who have signed up for the next M3:\n\n";
+                        signupList.forEach((user) => {
+                            message += "- " + user + "\n"
+                        })
+                        discordChannel.send(`\`\`\`${message}\`\`\``)
                         break;
                     default:
                         discordChannel.send(`hmmm I do not recognize that command... \`!help\` for more info`)
