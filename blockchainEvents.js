@@ -69,7 +69,7 @@ const main = async () => {
                     case "getId()":
                         if(botOnline){
                             functionHash = `0x${createKeccakHash('keccak256').update('getId(uint256)').digest('hex').slice(0, 8)}`
-                            param = new BN(param.slice(2), 16).toString(16, 256 * 2)
+                            param = new BN(param.slice(2), 16).toString(16, 64)
                             msg.reply(`Calling ${command} with: ${param}`);
                             ethCall = functionHash + param
                             ws.send(JSON.stringify({"jsonrpc":"2.0","method":"eth_call","params": [{"to": address, "data": ethCall}, "latest"],"id":1}))
@@ -78,10 +78,10 @@ const main = async () => {
                     case "uri()":
                         if(botOnline){
                             functionHash = `0x${createKeccakHash('keccak256').update('uri(uint256)').digest('hex').slice(0, 8)}`
-                            param = new BN(param, 16).toString(16, 256 * 2)
+                            param = new BN(param, 16).toString(16, 64)
                             msg.reply(`Calling ${command} with: ${param}`);
                             ethCall = functionHash + param
-                            ws.send(JSON.stringify({"jsonrpc":"2.0","method":"eth_call","params": [{"to": address, "data": ethCall}, "latest"],"id":1}))
+                            ws.send(JSON.stringify({"jsonrpc":"2.0","method":"eth_call","params": [{"to": address, "data": ethCall}, "latest"],"id": 999999}))
                         }
                         break;
                     case "getTx()":
@@ -91,8 +91,17 @@ const main = async () => {
                             ws.send(JSON.stringify({"jsonrpc":"2.0","method":"eth_getTransactionByHash","params": [param],"id":1}))
                         } 
                         break;
+                    case "getHash()":
+                        if(botOnline){
+                            functionHash = `0x${createKeccakHash('keccak256').update('getHash(uint256)').digest('hex').slice(0, 8)}`
+                            param = new BN(param, 16).toString(16, 64)
+                            msg.reply(`Calling ${command} with: ${param}`);
+                            ethCall = functionHash + param
+                            ws.send(JSON.stringify({"jsonrpc":"2.0","method":"eth_call","params": [{"to": address, "data": ethCall}, "latest"],"id":1}))
+                        } 
+                        break;
                     case "help":
-                        discordChannel.send(`\`\`\`!<FUNCTION_NAME()>, <PARAM>\n Blockchain Functions: getTx(uint256 hash), getId(uint256 hash), uri(uint256 id)\n Other Functions: testUrl(), testEndpoints()\n M3 Meeting: !signup, !signupList\n Start bot: !start \n Stop bot: !stop \`\`\``)
+                        discordChannel.send(`\`\`\`!<FUNCTION_NAME()>, <PARAM>\n Blockchain Functions: getTx(uint256 hash), getId(uint256 hash), uri(uint256 id), getHash(uint256 id)\n Other Functions: testUrl(), testEndpoints()\n M3 Meeting: !signup, !signupList\n Start bot: !start \n Stop bot: !stop \`\`\``)
                         break;
                     case "start":
                         botOnline = true;
@@ -143,8 +152,9 @@ const main = async () => {
             if(json.id === 1){
                 if(json.result){
                     if(typeof json.result === "string"){
+                        discordChannel.send(`\`\`\`Actual Result: ${json.result}\`\`\``)
                         let output = new Buffer.from(json.result.slice(2), 'hex').toString('utf8')
-                        discordChannel.send(`\`\`\`Result: ${output}\`\`\``)
+                        discordChannel.send(`\`\`\`Buffer.from() result: ${output}\`\`\``)
                     }
                     else{
                         discordChannel.send(`\`\`\`Result: ${JSON.stringify(json.result, null, 2)}\`\`\``)
@@ -157,6 +167,25 @@ const main = async () => {
                     discordChannel.send(`\`\`\`ERROR: ${json.error.message}\`\`\``)
                 }
             }
+
+            // URI() response
+            if(json.id === 999999){
+                let output = new Buffer.from(json.result.slice(2), 'hex').toString('utf8')
+                url = output.split("Z")[1]
+
+                fetch(encodeURI(url), {
+                    method: "GET"
+                })
+                .then(response => response.json())
+                .then(json => {
+                    discordChannel.send(`Token:`)
+                    discordChannel.send(`\`\`\`Name: ${decodeURI(json.name)}\nDescription: ${decodeURI(json.description)}\`\`\``)
+                    discordChannel.send(`Exokit Editor URL:`)
+                    discordChannel.send(json.external_url.split("%")[0])
+                    discordChannel.send(`Image:`)
+                    discordChannel.send(json.image.split("%")[0])
+                })
+            }
             
             // New minting responses
             if(json.id === 2){
@@ -167,7 +196,7 @@ const main = async () => {
                     id++
                 }, 10000);
             }
-            if(json.result && json.result.length > 0 && json.id > 2){
+            if(json.result && json.result.length > 0 && json.id > 2  && json.id != 999999){
                 discordChannel.send(`New pending transaction: \`\`\`${JSON.stringify(json.result, null, 2)}\`\`\``)
             }
         }
