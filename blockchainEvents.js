@@ -52,6 +52,19 @@ const main = async () => {
         "https://meshing.exokit.org/"
     ]
 
+    const admins = [
+        "141677977929777152", // Chris
+        "284377201233887233" // Avaer
+    ]
+
+    const RPS = [
+        "rock",
+        "paper",
+        "scissors"
+    ]
+
+    const RPS_scores = new Map()
+
     let signupList = []
 
     ws.addEventListener('open', (event) => {
@@ -101,26 +114,41 @@ const main = async () => {
                         } 
                         break;
                     case "help":
-                        discordChannel.send(`\`\`\`!<FUNCTION_NAME()>, <PARAM>\n Blockchain Functions: getTx(uint256 hash), getId(uint256 hash), uri(uint256 id), getHash(uint256 id)\n Other Functions: testUrl(), testEndpoints()\n M3 Meeting: !signup, !signupList\n Start bot: !start \n Stop bot: !stop \`\`\``)
+                        discordChannel.send(`\`\`\`!<FUNCTION_NAME()>, <PARAM>\nBlockchain Functions: getTx(uint256 hash), getId(uint256 hash), uri(uint256 id), getHash(uint256 id)\nOther Functions: testUrl(), testEndpoints()\nM3 Meeting: !signup, !signupList\nRock, paper, scissors: !RPS start\nStart bot: !start\nStop bot: !stop \`\`\``)
                         break;
                     case "start":
-                        botOnline = true;
-                        ws.send(JSON.stringify({"jsonrpc":"2.0","method":"eth_newFilter","params":[{"address": address}],"id":2}))
-                        discordChannel.send(`Blockchain Bot is Online!. I'm taking orders and looking for new transactions. \`!help\` for more info`)
+                        if(admins.includes(msg.author.id)){
+                            botOnline = true;
+                            ws.send(JSON.stringify({"jsonrpc":"2.0","method":"eth_newFilter","params":[{"address": address}],"id":2}))
+                            discordChannel.send(`Blockchain Bot is Online!. I'm taking orders and looking for new transactions. \`!help\` for more info`)
+                        }
+                        else{
+                            discordChannel.send(`Sorry, only admins can turn me on...`)
+                        }
                         break;
                     case "stop":
-                        botOnline = false;
-                        discordChannel.send(`Blockchain Bot is Offline!. I'm going to sleep now, \`!start\` to wake me up. zzz \`!help\` for more info`)
+                        if(admins.includes(msg.author.id)){
+                            botOnline = false;
+                            discordChannel.send(`Blockchain Bot is Offline!. I'm going to sleep now, \`!start\` to wake me up. zzz \`!help\` for more info`)
+                        }
+                        else{
+                            discordChannel.send(`Sorry, only admins can turn me off...`)
+                        }
                         break;
                     case "testUrl()":
                         const result = await testUrl(param)
                         msg.reply(result)
                         break;
                     case "testEndpoints()":
-                        endpoints.forEach(async (url) => {
-                            let status = await testUrl(url)
-                            discordChannel.send(status)
-                        })
+                        if(admins.includes(msg.author.id)){
+                            endpoints.forEach(async (url) => {
+                                let status = await testUrl(url)
+                                discordChannel.send(status)
+                            })
+                        }
+                        else{
+                            discordChannel.send(`Sorry, only admins can test endpoints...`)
+                        }
                         break;
                     case "signup":
                         signupList.push(msg.author.username)
@@ -133,6 +161,62 @@ const main = async () => {
                         })
                         discordChannel.send(`\`\`\`${message}\`\`\``)
                         break;
+                    case "RPS start":
+                        msg.reply(`\`\`\`Lets play: Rock, Paper, Scissors!\nBest out of 3 wins the game... I promise to not look at chat...\nHow-To-Play: RPS, <rock, paper, scissors>\`\`\``)
+                        break;
+                    case "RPS":
+
+                        const checkScore = (score) => {
+                            if(score.user === 3){
+                                msg.reply(`\`\`\`Awww, Good job... you win this time... maybe I should start looking at the chat...\`\`\``)
+                                RPS_scores.delete(msg.author.id)
+                                
+                            }
+                            else if(score.bot === 3){
+                                msg.reply(`\`\`\`Haha, I Win!... how could you expect to beat a robot? Better luck next time...\`\`\``)
+                                RPS_scores.delete(msg.author.id)
+                            }
+                        }
+
+                        let userScore = RPS_scores.get(msg.author.id)
+                        if(!userScore){
+                            RPS_scores.set(msg.author.id, {user: 0, bot: 0})
+                            userScore = {user: 0, bot: 0}
+                        }
+                        const choice = RPS[Math.floor(Math.random() * Math.floor(3))]
+                        msg.reply(`\`\`\`${choice}\`\`\``)
+                        if(choice === param){
+                            msg.reply(`\`\`\`Tie!\nScore: ${msg.author.username}: ${userScore.user} Exokitty: ${userScore.bot}\`\`\``)
+                            break;
+                        }
+                        if(choice === "rock" && param == "scissors"){
+                            userScore.bot++
+                            RPS_scores.set(msg.author.id, userScore)
+                            msg.reply(`\`\`\`I win!\nScore: ${msg.author.username}: ${userScore.user} Exokitty: ${userScore.bot}\`\`\``)
+                            checkScore(userScore)
+                            break;
+                        }
+                        if(choice === "scissors" && param == "paper"){
+                            userScore.bot++
+                            RPS_scores.set(msg.author.id, userScore)
+                            msg.reply(`\`\`\`I win!\nScore: ${msg.author.username}: ${userScore.user} Exokitty: ${userScore.bot}\`\`\``)
+                            checkScore(userScore)
+                            break;
+                        }
+                        if(choice === "paper" && param == "rock"){
+                            userScore.bot++
+                            RPS_scores.set(msg.author.id, userScore)
+                            msg.reply(`\`\`\`I win!\nScore: ${msg.author.username}: ${userScore.user} Exokitty: ${userScore.bot}\`\`\``)
+                            checkScore(userScore)
+                            break;
+                        }
+                        else{
+                            userScore.user++
+                            RPS_scores.set(msg.author.id, userScore)
+                            msg.reply(`\`\`\`You win!\nScore: ${msg.author.username}: ${userScore.user} Exokitty: ${userScore.bot}\`\`\``)
+                            checkScore(userScore)
+                            break;
+                        }
                     default:
                         discordChannel.send(`hmmm I do not recognize that command... \`!help\` for more info`)
                         break;
