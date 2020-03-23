@@ -453,18 +453,25 @@ try {
   console.log('presence request', {method, p});
 
   if (method === 'GET') {
-    _setCorsHeaders(res);
-    
-    const cp = child_process.spawn('ipfs', [
-      'cat',
-      p.slice(1), // /
-    ]);
-    cp.pipe(res);
-    cp.on('error', err => {
-      res.statusCode = 500;
-      res.end(err.stack);
-    });
-  } else if (method === 'PUT') {
+    const hash = p.replace(/^\//, '');
+    if (hash) {
+      _setCorsHeaders(res);
+      
+      const cp = child_process.spawn('ipfs', [
+        'cat',
+        hash, // /
+      ]);
+      cp.pipe(res);
+      cp.on('error', err => {
+        res.statusCode = 500;
+        res.end(err.stack);
+      });
+    } else {
+      _respond(404, JSON.stringify({
+        error: 'not found',
+      }));
+    }
+  } else if (method === 'PUT' && p === '/') {
     _setCorsHeaders(res);
     
     const cp = child_process.spawn('ipfs', [
