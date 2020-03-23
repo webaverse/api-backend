@@ -486,13 +486,23 @@ try {
     }
   } else if (method === 'PUT' && p === '/') {
     _setCorsHeaders(res);
+    res.setHeader('Content-Type', 'application/json');
     
     const cp = child_process.spawn('ipfs', [
       'add',
       '-Q',
     ]);
-    req.pipe(cp.stdin)
-    cp.stdout.pipe(res);
+    req.pipe(cp.stdin);
+    cp.stdout.setEncoding('utf8');
+    let hash = '';
+    cp.stdout.on('data', d => {
+      hash += d;
+    });
+    cp.stdout.once('end', () => {
+      res.end(JSON.stringify({
+        hash,
+      }));
+    });
     cp.on('error', err => {
       res.statusCode = 500;
       res.end(err.stack);
