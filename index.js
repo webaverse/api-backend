@@ -456,7 +456,11 @@ try {
 
   p = p.replace(/^\/ipfs/, '');
 
-  if (method === 'GET') {
+  if (method === 'OPTIONS') {
+    // res.statusCode = 200;
+    _setCorsHeaders(res);
+    res.end();
+  } else if (method === 'GET') {
     const match = p.match(/^\/([a-z0-9]*?)(\.[a-z0-9]*)?$/i);
     if (match) {
       const hash = match[1];
