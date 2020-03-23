@@ -462,8 +462,8 @@ try {
         'cat',
         hash, // /
       ]);
-      cp.pipe(res);
-      cp.on('error', err => {
+      cp.stdout.pipe(res);
+      cp.once('error', err => {
         res.statusCode = 500;
         res.end(err.stack);
       });
@@ -479,7 +479,8 @@ try {
       'add',
       '-Q',
     ]);
-    req.pipe(cp).pipe(res);
+    req.pipe(cp.stdin)
+    cp.stdout.pipe(res);
     cp.on('error', err => {
       res.statusCode = 500;
       res.end(err.stack);
