@@ -435,6 +435,60 @@ try {
 }
 };
 
+const _handleIfps = async (req, res, channels) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+
+try {
+  const {method} = req;
+  const {pathname: p} = url.parse(req.url);
+  console.log('presence request', {method, p});
+
+  if (method === 'GET') {
+    _setCorsHeaders(res);
+    
+    const cp = child_process.spawn('ipfs', [
+      'cat',
+      p.slice(1), // /
+    ]);
+    cp.pipe(res);
+    cp.on('error', err => {
+      res.statusCode = 500;
+      res.end(err.stack);
+    });
+  } else if (method === 'PUT') {
+    _setCorsHeaders(res);
+    
+    const cp = child_process.spawn('ipfs', [
+      'add',
+      '-Q',
+    req.pipe(cp).pipe(res);
+    cp.on('error', err => {
+      res.statusCode = 500;
+      res.end(err.stack);
+    });
+  } else {
+    _respond(404, JSON.stringify({
+      error: 'not found',
+    }));
+  }
+} catch(err) {
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
+}
+};
+
 const _fetchPrefix = prefix => {
   // console.log('got prefix', prefix);
   return s3.listObjects({
@@ -3535,6 +3589,9 @@ try {
     return;
   } else if (o.host === 'presence.exokit.org') {
     _handlePresence(req, res, channels);
+    return;
+  } else if (o.host === 'ipfs.exokit.org') {
+    _handleIpfs(req, res);
     return;
   } else if (o.host === 'upload.exokit.org') {
     _handleUpload(req, res);
