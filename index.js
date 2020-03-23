@@ -477,6 +477,7 @@ try {
     const cp = child_process.spawn('ipfs', [
       'add',
       '-Q',
+    ]);
     req.pipe(cp).pipe(res);
     cp.on('error', err => {
       res.statusCode = 500;
