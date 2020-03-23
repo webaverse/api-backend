@@ -496,7 +496,7 @@ try {
     cp.stdout.setEncoding('utf8');
     let hash = '';
     cp.stdout.on('data', d => {
-      hash += d;
+      hash += d.replace(/\s+/g, '');
     });
     cp.stdout.once('end', () => {
       res.end(JSON.stringify({
