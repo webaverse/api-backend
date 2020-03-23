@@ -451,8 +451,10 @@ const _handleIpfs = async (req, res, channels) => {
 
 try {
   const {method} = req;
-  const {pathname: p} = url.parse(req.url);
+  let {pathname: p} = url.parse(req.url);
   console.log('presence request', {method, p});
+
+  p = p.replace(/^\/ipfs/, '');
 
   if (method === 'GET') {
     const match = p.match(/^\/([a-z0-9]*)(?:\.[a-z0-9]*)?/i);
