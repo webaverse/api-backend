@@ -457,7 +457,7 @@ try {
   p = p.replace(/^\/ipfs/, '');
 
   if (method === 'GET') {
-    const match = p.match(/^\/([a-z0-9]*)(?:\.[a-z0-9]*)?/i);
+    const match = p.match(/^\/([a-z0-9]*?)(?:\.[a-z0-9]*)?$/i);
     if (match) {
       const hash = match[1];
       const ext = match[2];
