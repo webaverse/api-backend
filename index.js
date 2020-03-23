@@ -13,6 +13,7 @@ const httpProxy = require('http-proxy');
 const ws = require('ws');
 const LRU = require('lru');
 const request = require('request');
+const mime = require('mime');
 const AWS = require('aws-sdk');
 const Stripe = require('stripe');
 // const puppeteer = require('puppeteer');
@@ -454,9 +455,14 @@ try {
   console.log('presence request', {method, p});
 
   if (method === 'GET') {
-    const hash = p.replace(/^\//, '');
-    if (hash) {
+    const match = p.match(/^\/([a-z0-9]*)(?:\.[a-z0-9]*)?/i);
+    if (match) {
+      const hash = match[1];
+      const ext = match[2];
+      const type = mime.getType(ext) || 'application/octet-stream';
+
       _setCorsHeaders(res);
+      res.setHeader('Content-Type', type);
       
       const cp = child_process.spawn('ipfs', [
         'cat',
