@@ -436,7 +436,7 @@ try {
 }
 };
 
-const _handleIfps = async (req, res, channels) => {
+const _handleIpfs = async (req, res, channels) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
