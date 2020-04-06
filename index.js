@@ -459,7 +459,7 @@ const _handleIpfs = async (req, res, channels) => {
     req.on('data', d => {
       _kickInterval();
     });
-    cp.stdout.addEventListener('data', d => {
+    cp.stdout.on('data', d => {
       _kickInterval();
     });
   };
