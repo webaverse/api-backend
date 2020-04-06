@@ -489,7 +489,12 @@ try {
         'cat',
         hash, // /
       ]);
-      cp.stdout.pipe(res);
+      let rs = cp.stdout;
+      if (req.headers.accept && /br/.test(req.headers.accept)) {
+        rs = rs.pipe(zlib.BrotliCompress());
+        res.setHeader('Content-Encoding', 'br');
+      }
+      rs.pipe(res);
       cp.once('error', err => {
         res.statusCode = 500;
         res.end(err.stack);
