@@ -494,6 +494,9 @@ try {
       if (req.headers.accept && /br/.test(req.headers.accept)) {
         rs = rs.pipe(zlib.BrotliCompress());
         res.setHeader('Content-Encoding', 'br');
+      } else if (req.headers.accept && /gzip/.test(req.headers.accept)) {
+        rs = rs.pipe(zlib.Gzip());
+        res.setHeader('Content-Encoding', 'gzip');
       }
       rs.pipe(res);
       cp.once('error', err => {
