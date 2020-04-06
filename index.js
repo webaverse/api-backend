@@ -6,6 +6,7 @@ const querystring = require('querystring');
 const http = require('http');
 const https = require('https');
 const crypto = require('crypto');
+const zlib = require('zlib');
 const child_process = require('child_process');
 
 const mkdirp = require('mkdirp');
