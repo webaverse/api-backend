@@ -467,7 +467,7 @@ const _handleIpfs = async (req, res, channels) => {
 try {
   const {method} = req;
   let {pathname: p} = url.parse(req.url);
-  console.log('presence request', {method, p});
+  // console.log('ipfs request', {method, p});
 
   p = p.replace(/^\/ipfs/, '');
 
