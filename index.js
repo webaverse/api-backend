@@ -448,6 +448,21 @@ const _handleIpfs = async (req, res, channels) => {
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
+  const _timeoutChildProcess = (req, cp) => {
+    let interval = 0;
+    const _kickInterval = () => {
+      interval = setInterval(() => {
+        cp.kill();
+      }, 10*1000);
+    };
+    _kickInterval();
+    req.on('data', d => {
+      _kickInterval();
+    });
+    cp.stdout.addEventListener('data', d => {
+      _kickInterval();
+    });
+  };
 
 try {
   const {method} = req;
@@ -479,6 +494,7 @@ try {
         res.statusCode = 500;
         res.end(err.stack);
       });
+      _timeoutChildProcess(req, cp);
     } else {
       _respond(404, JSON.stringify({
         error: 'not found',
@@ -507,6 +523,7 @@ try {
       res.statusCode = 500;
       res.end(err.stack);
     });
+    _timeoutChildProcess(req, cp);
   } else {
     _respond(404, JSON.stringify({
       error: 'not found',
