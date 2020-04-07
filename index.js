@@ -453,8 +453,9 @@ const _handleIpfs = async (req, res, channels) => {
     let interval = 0;
     const _kickInterval = () => {
       interval = setInterval(() => {
+        console.log('child process timed out');
         cp.kill();
-      }, 10*1000);
+      }, 60*1000);
     };
     _kickInterval();
     req.on('data', d => {
@@ -499,6 +500,7 @@ try {
         res.setHeader('Content-Encoding', 'gzip');
       }
       rs.pipe(res);
+      cp.stderr.pipe(process.stdout);
       cp.once('error', err => {
         res.statusCode = 500;
         res.end(err.stack);
@@ -528,6 +530,7 @@ try {
         hash,
       }));
     });
+    cp.stderr.pipe(process.stdout);
     cp.on('error', err => {
       res.statusCode = 500;
       res.end(err.stack);
