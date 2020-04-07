@@ -526,9 +526,16 @@ try {
       hash += d.replace(/\s+/g, '');
     });
     cp.stdout.once('end', () => {
-      res.end(JSON.stringify({
-        hash,
-      }));
+      if (hash) {
+        res.end(JSON.stringify({
+          hash,
+        }));
+      } else {
+        res.statusCode = 500;
+        res.end({
+          error: 'failed to get hash',
+        });
+      }
     });
     cp.stderr.pipe(process.stdout);
     cp.on('error', err => {
