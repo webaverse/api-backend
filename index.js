@@ -450,19 +450,25 @@ const _handleIpfs = async (req, res, channels) => {
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
   const _timeoutChildProcess = (req, cp) => {
-    let interval = 0;
-    const _kickInterval = () => {
-      interval = setInterval(() => {
+    let timeout;
+    const _kickTimeout = () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      timeout = setTimeout(() => {
         console.log('child process timed out');
         cp.kill();
-      }, 60*1000);
+      }, 10*1000);
     };
-    _kickInterval();
+    _kickTimeout();
     req.on('data', d => {
-      _kickInterval();
+      _kickTimeout();
     });
     cp.stdout.on('data', d => {
-      _kickInterval();
+      _kickTimeout();
+    });
+    cp.on('exit', () => {
+      clearTimeout(timeout);
     });
   };
 
