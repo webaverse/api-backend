@@ -10,6 +10,7 @@ const zlib = require('zlib');
 const child_process = require('child_process');
 
 const mkdirp = require('mkdirp');
+const express = require('express');
 const httpProxy = require('http-proxy');
 const ws = require('ws');
 const LRU = require('lru');
@@ -20,7 +21,7 @@ const Stripe = require('stripe');
 // const puppeteer = require('puppeteer');
 const namegen = require('./namegen.js');
 const Base64Encoder = require('./encoder.js').Encoder;
-const {HTMLServer, CustomEvent} = require('./sync-server.js');
+const {JSONServer, CustomEvent} = require('./sync/dist/sync-server.js');
 const {SHA3} = require('sha3');
 const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, stripeClientId, stripeClientSecret} = require('./config.json');
 const awsConfig = new AWS.Config({
@@ -338,6 +339,7 @@ try {
 }
 };
 
+const staticServer = express.static(__dirname);
 const _handlePresence = async (req, res, channels) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -363,8 +365,8 @@ try {
       const channelName = match[1];
       const channel = channels[channelName];
       if (channel) {
-        const html = channel.htmlServer.getHtml();
-        res.end(html);
+        const j = channel.htmlServer.getJson();
+        res.json(j);
       } else {
         _respond(404, JSON.stringify({
           error: 'not found',
@@ -393,9 +395,11 @@ try {
         }));
       } */
     } else {
-      _respond(404, JSON.stringify({
+      _setCorsHeaders(res);
+      staticServer(req, res);
+      /* _respond(404, JSON.stringify({
         error: 'not found',
-      }));
+      })); */
     }
   /* } else if (method === 'PUT') {
     const match = p.match(/^\/channels\/([^\/]+)\/([^\/]+)$/);
@@ -3366,7 +3370,7 @@ proxy.on('proxyRes', (proxyRes, req) => {
   proxyRes.headers['access-control-allow-origin'] = '*';
 });
 
-const _getChannels = async () => {
+/* const _getChannels = async () => {
   const objects = await s3.listObjects({
     Bucket: bucketNames.rooms,
   }).promise();
@@ -3392,15 +3396,26 @@ const _getChannelHtml = async channelName => {
   } catch(err) {
     return null;
   }
+}; */
+const _getChannelJson = async channelName => {
+  try {
+    const o = await s3.getObject({
+      Bucket: bucketNames.rooms,
+      Key: channelName,
+    }).promise();
+    return JSON.parse(o.Body.toString('utf8'));
+  } catch(err) {
+    return null;
+  }
 };
-const _makeChannel = (channelName, html, saveHtml) => {
+const _makeChannel = (channelName, j, saveHtml) => {
   let saving = false;
   let saveQueued = false;
   const channel = {
     channelName,
     connectionIds: [],
     sockets: [],
-    htmlServer: new HTMLServer(html),
+    jsonServer: new JSONServer(j),
     files: {},
     async save() {
       if (!saving) {
@@ -3409,8 +3424,8 @@ const _makeChannel = (channelName, html, saveHtml) => {
         await s3.putObject({
           Bucket: bucketNames.rooms,
           Key: channelName,
-          ContentType: 'text/html',
-          Body: this.htmlServer.getHtml(),
+          ContentType: 'application/json',
+          Body: JSON.stringify(this.jsonServer.getJson()),
         }).promise();
         await new Promise((accept, reject) => {
           setTimeout(accept, 1000);
@@ -3439,20 +3454,21 @@ const _makeChannel = (channelName, html, saveHtml) => {
       });
     },
   };
-  channel.htmlServer.addEventListener('send', e => {
-    const data = e.detail;
+  channel.jsonServer.addEventListener('send', e => {
+    const {data} = e;
     const {connection: socket, message} = data;
+    console.log('json server send', !!socket, message);
     socket.send(JSON.stringify(message));
   });
   return channel;
 };
-{
+/* {
   const newChannels = await _getChannels();
   for (let i = 0; i < newChannels.length; i++) {
     const {channelName, html} = newChannels[i];
     channels[channelName] = _makeChannel(channelName, html, true);
   }
-}
+} */
 
 const discordClients = [];
 const _getDiscordClient = token => {
@@ -3481,8 +3497,13 @@ presenceWss.on('connection', async (s, req, channels, saveHtml) => {
 
     let channel = channels[c];
     if (!channel) {
-      channel = _makeChannel(c, `<xr-site></xr-site>`, saveHtml);
+      let j = saveHtml ? (await _getChannelJson(c)) : null;
+      j = j || {};
+      console.log('make channel', c, j);
+      channel = _makeChannel(c, j, saveHtml);
       channels[c] = channel;
+    } else {
+      console.log('connect channel', c);
     }
 
     const _proxyMessage = m => {
@@ -3510,7 +3531,7 @@ presenceWss.on('connection', async (s, req, channels, saveHtml) => {
               connectionId = data.connectionId;
 
               // console.log('send back state', channel.state);
-              channel.htmlServer.connect(s);
+              channel.jsonServer.connect(s);
 
               console.log('send forward to sockets', channel.sockets.length);
               channel.sockets.forEach(s => {
@@ -3537,8 +3558,8 @@ presenceWss.on('connection', async (s, req, channels, saveHtml) => {
           } else if (data.method === 'ping') {
             // nothing
           } else if (data.method === 'ops' && Array.isArray(data.ops) && typeof data.baseIndex === 'number') {
-            // console.log('push ops', data);
-            channel.htmlServer.pushOps(data.ops, data.baseIndex, s);
+            // console.log('push ops', data, saveHtml);
+            channel.jsonServer.pushOps(data.ops, data.baseIndex, s);
             if (saveHtml) {
               channel.save();
             }
@@ -3636,7 +3657,7 @@ presenceWss.on('connection', async (s, req, channels, saveHtml) => {
         channel.connectionIds.splice(index, 1);
         channel.sockets.splice(index, 1);
 
-        channel.htmlServer.disconnect(s);
+        channel.jsonServer.disconnect(s);
       }
       channel.sockets.forEach(s => {
         s.send(JSON.stringify({
@@ -3644,9 +3665,9 @@ presenceWss.on('connection', async (s, req, channels, saveHtml) => {
           connectionId,
         }));
       });
-      /* if (channel.connectionIds.length === 0) {
+      if (channel.connectionIds.length === 0) {
         delete channels[c];
-      } */
+      }
     });
   } else {
     s.close();
@@ -3808,5 +3829,8 @@ process.on('unhandledRejection', _warn);
 
 server.listen(PORT);
 server2.listen(443);
+
+console.log(`http://127.0.0.1:${PORT}`);
+console.log(`http://127.0.0.1:443`);
 
 })();
