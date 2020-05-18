@@ -67,6 +67,7 @@ const bucketNames = {
   rooms: 'rooms.exokit.org',
   worlds: 'worlds.exokit.org',
   packages: 'packages.exokit.org',
+  scenes: 'scenes.exokit.org',
 };
 const channels = {};
 const gridChannels = {};
@@ -538,6 +539,7 @@ const _handleCrud = bucketName => async (req, res) => {
 };
 const _handleWorlds = _handleCrud(bucketNames.worlds);
 const _handlePackages = _handleCrud(bucketNames.packages);
+const _handleScenes = _handleCrud(bucketNames.scenes);
 
 const _handleIpfs = async (req, res, channels) => {
   const _respond = (statusCode, body) => {
@@ -3805,6 +3807,9 @@ try {
     return;
   } else if (o.host === 'packages.exokit.org') {
     _handlePackages(req, res);
+    return;
+  } else if (o.host === 'scenes.exokit.org') {
+    _handleScenes(req, res);
     return;
   /* } else if (o.host === 'raw.exokit.org') {
     _handleRaw(req, res);
