@@ -65,6 +65,8 @@ const bucketNames = {
   content: 'content.exokit.org',
   channels: 'channels.exokit.org',
   rooms: 'rooms.exokit.org',
+  worlds: 'worlds.exokit.org',
+  packages: 'packages.exokit.org',
 };
 const channels = {};
 const gridChannels = {};
@@ -441,6 +443,101 @@ try {
   }));
 }
 };
+
+const _handleCrud = bucketName => async (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+
+  const {method} = req;
+  const {pathname: p} = url.parse(req.url);
+
+  let match;
+  if (method === 'GET') {
+    if (p === '/') {
+      const objects = await s3.listObjects({
+        Bucket: bucketName,
+        Delimiter: '/',
+        // Prefix: 'users/',
+      }).promise();
+      const keys = objects.Contents.map(o => o.Key);
+      _respond(200, JSON.stringify(keys));
+    } else if (match = p.match(/^\/(.+)$/)) {
+      const o = await (async () => {
+        try {
+          return await s3.getObject({
+            Bucket: bucketName,
+            Key: match[1],
+          }).promise();
+        } catch(err) {
+          console.warn(err);
+          return null;
+        }
+      })();
+
+      if (o && o.Body) {
+        _respond(200, o.Body);
+      } else {
+        _respond(404, JSON.stringify({
+          error: 'not found',
+        }));
+      }
+    } else {
+      _respond(404, JSON.stringify({
+        error: 'not found',
+      }));
+    }
+  } else if (method === 'PUT' && (match = p.match(/^\/(.+)$/))) {
+    const bs = [];
+    const b = await new Promise((accept, reject) => {
+      req.on('data', d => {
+        bs.push(d);
+      });
+      req.on('end', () => {
+        const b = Buffer.concat(bs);
+        accept(b);
+      });
+      req.on('error', reject);
+    });
+    // const key = username + '/' + filename;
+    // const contentType = req.headers['content-type'] || 'application/octet-stream';
+    // const h = hash.digest('hex');
+
+    await s3.putObject({
+      Bucket: bucketName,
+      Key: match[1],
+      ContentType: 'application/json',
+      ContentLength: b.length,
+      Body: b,
+    }).promise();
+    _respond(200, JSON.stringify({
+      ok: true,
+    }));
+  } else if (method === 'DELETE' && (match = p.match(/^\/(.+)$/))) {
+    await s3.deleteObject({
+      Bucket: bucketName,
+      Key: match[1],
+    }).promise();
+    _respond(200, JSON.stringify({
+      ok: true,
+    }));
+  } else if (method === 'OPTIONS') {
+    _respond(200, JSON.stringify({}));
+  } else {
+    _respond(404, JSON.stringify({
+      error: 'not found',
+    }));
+  }
+};
+const _handleWorlds = _handleCrud(bucketNames.worlds);
+const _handlePackages = _handleCrud(bucketNames.packages);
 
 const _handleIpfs = async (req, res, channels) => {
   const _respond = (statusCode, body) => {
@@ -3702,6 +3799,12 @@ try {
     return;
   } else if (o.host === 'grid-presence.exokit.org') {
     _handlePresence(req, res, gridChannels);
+    return;
+  } else if (o.host === 'worlds.exokit.org') {
+    _handleWorlds(req, res);
+    return;
+  } else if (o.host === 'packages.exokit.org') {
+    _handlePackages(req, res);
     return;
   /* } else if (o.host === 'raw.exokit.org') {
     _handleRaw(req, res);
