@@ -616,6 +616,15 @@ try {
         res.statusCode = 500;
         res.end(err.stack);
       });
+      let live = true;
+      cp.once('exit', err => {
+        live = false;
+      });
+      res.once('close', () => {
+        if (live) {
+          cp.kill();
+        }
+      });
       _timeoutChildProcess(req, cp);
     } else {
       _respond(404, JSON.stringify({
