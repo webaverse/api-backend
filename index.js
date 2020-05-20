@@ -358,7 +358,7 @@ const _handlePresence = async (req, res, channels) => {
 try {
   const {method} = req;
   const {pathname: p} = url.parse(req.url);
-  console.log('presence request', {method, p});
+  // console.log('presence request', {method, p});
 
   if (method === 'GET') {
     let match;
