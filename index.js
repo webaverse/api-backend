@@ -3921,17 +3921,9 @@ const _ws = (req, socket, head) => {
   const host = req.headers['host'];
   if (host === 'presence.exokit.org') {
     presenceWss.handleUpgrade(req, socket, head, s => {
-      presenceWss.emit('connection', s, req, channels, true);
-    });
-  } else if (host === 'grid-presence.exokit.org') {
-    presenceWss.handleUpgrade(req, socket, head, s => {
-      presenceWss.emit('connection', s, req, gridChannels, false);
-    });
-  } else if (host === 'presence.webaverse.com') {
-    presenceWss.handleUpgrade(req, socket, head, s => {
       presenceWss.emit('connection', s, req, webaverseChannels, true);
     });
-  } else if (host === 'presence-tmp.webaverse.com') {
+  } else if (host === 'presence-tmp.exokit.org') {
     presenceWss.handleUpgrade(req, socket, head, s => {
       presenceWss.emit('connection', s, req, webaverseTmpChannels, false);
     });
