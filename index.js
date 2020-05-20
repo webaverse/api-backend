@@ -3605,6 +3605,12 @@ presenceWss.on('connection', async (s, req, channels, saveHtml) => {
     const {remoteAddress} = req.connection;
     console.log('got connection', remoteAddress, c);
 
+    const queue = [];
+    const _queueMessage = m => {
+      queue.push(m);
+    };
+    s.on('message', _queueMessage);
+
     let channel = channels[c];
     if (!channel) {
       let j = saveHtml ? (await _getChannelJson(c)) : null;
@@ -3779,6 +3785,12 @@ presenceWss.on('connection', async (s, req, channels, saveHtml) => {
         delete channels[c];
       }
     });
+
+    s.removeListener('message', _queueMessage);
+    for (let i = 0; i < queue.length; i++) {
+      s.emit('message', queue[i]);
+    }
+    queue.length = 0;
   } else {
     s.close();
   }
