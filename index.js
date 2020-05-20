@@ -10,7 +10,7 @@ const zlib = require('zlib');
 const child_process = require('child_process');
 
 const mkdirp = require('mkdirp');
-const express = require('express');
+// const express = require('express');
 const httpProxy = require('http-proxy');
 const ws = require('ws');
 const LRU = require('lru');
@@ -342,7 +342,7 @@ try {
 }
 };
 
-const staticServer = express.static(__dirname);
+// const staticServer = express.static(__dirname);
 const _handlePresence = async (req, res, channels) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -398,11 +398,11 @@ try {
         }));
       } */
     } else {
-      _setCorsHeaders(res);
-      staticServer(req, res);
-      /* _respond(404, JSON.stringify({
+      /* _setCorsHeaders(res);
+      staticServer(req, res); */
+      _respond(404, JSON.stringify({
         error: 'not found',
-      })); */
+      }));
     }
   /* } else if (method === 'PUT') {
     const match = p.match(/^\/channels\/([^\/]+)\/([^\/]+)$/);
