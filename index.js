@@ -3793,7 +3793,10 @@ try {
     _handleLogin(req, res);
     return;
   } else if (o.host === 'presence.exokit.org') {
-    _handlePresence(req, res, channels);
+    _handlePresence(req, res, webaverseChannels);
+    return;
+  } else if (o.host === 'presence-tmp.exokit.org') {
+    _handlePresence(req, res, webaverseTmpChannels);
     return;
   } else if (o.host === 'ipfs.exokit.org') {
     _handleIpfs(req, res);
@@ -3809,9 +3812,6 @@ try {
     return;
   } else if (o.host === 'grid.exokit.org') {
     _handleGrid(req, res);
-    return;
-  } else if (o.host === 'grid-presence.exokit.org') {
-    _handlePresence(req, res, gridChannels);
     return;
   } else if (o.host === 'worlds.exokit.org') {
     _handleWorlds(req, res);
