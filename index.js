@@ -636,6 +636,11 @@ try {
       cp.once('exit', err => {
         live = false;
       });
+      req.once('close', () => {
+        if (live) {
+          cp.kill();
+        }
+      });
       res.once('close', () => {
         if (live) {
           cp.kill();
