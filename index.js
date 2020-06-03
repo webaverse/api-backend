@@ -538,7 +538,7 @@ const _handleCrud = bucketName => async (req, res) => {
       }).promise();
       const keys = objects.Contents.map(o => o.Key);
       await s3.deleteObjects({
-        Bucket: 'bucket-name',
+        Bucket: bucketName,
         Delete: {
           Objects: keys.map(key => ({
             Key: key,
