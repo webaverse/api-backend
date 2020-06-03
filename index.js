@@ -536,11 +536,13 @@ const _handleCrud = bucketName => async (req, res) => {
         Delimiter: '/',
         // Prefix: 'users/',
       }).promise();
-      // const keys = objects.Contents.map(o => o.Key);
+      const keys = objects.Contents.map(o => o.Key);
       await s3.deleteObjects({
         Bucket: 'bucket-name',
         Delete: {
-          Objects: objects.Contents,
+          Objects: keys.map(key => ({
+            Key: key,
+          })),
         },
       }).promise();
     }
