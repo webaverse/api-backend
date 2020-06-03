@@ -523,11 +523,27 @@ const _handleCrud = bucketName => async (req, res) => {
     _respond(200, JSON.stringify({
       ok: true,
     }));
-  } else if (method === 'DELETE' && (match = p.match(/^\/(.+)$/))) {
-    await s3.deleteObject({
-      Bucket: bucketName,
-      Key: match[1],
-    }).promise();
+  } else if (method === 'DELETE' && (match = p.match(/^\/(.*)$/))) {
+    const key = match[1];
+    if (key) {
+      await s3.deleteObject({
+        Bucket: bucketName,
+        Key: key,
+      }).promise();
+    } else {
+      const objects = await s3.listObjects({
+        Bucket: bucketName,
+        Delimiter: '/',
+        // Prefix: 'users/',
+      }).promise();
+      // const keys = objects.Contents.map(o => o.Key);
+      await s3.deleteObjects({
+        Bucket: 'bucket-name',
+        Delete: {
+          Objects: objects.Contents,
+        },
+      }).promise();
+    }
     _respond(200, JSON.stringify({
       ok: true,
     }));
