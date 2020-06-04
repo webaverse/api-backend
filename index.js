@@ -153,7 +153,7 @@ try {
               email,
               token,
               name: tokenItem.Item.name.S,
-              mnemonic: tokenItem.Item.mnemonic.S,
+              // mnemonic: tokenItem.Item.mnemonic.S,
               addr: tokenItem.Item.addr.S,
               state: tokenItem.Item.state.S,
               stripeState: (tokenItem.Item.stripeState && tokenItem.Item.stripeState.S) ? !!JSON.parse(tokenItem.Item.stripeState.S) : false,
@@ -192,8 +192,8 @@ try {
               }).promise();
               const tokens = (tokenItem.Item && tokenItem.Item.tokens) ? JSON.parse(tokenItem.Item.tokens.S) : [];
               let name = (tokenItem.Item && tokenItem.Item.name) ? tokenItem.Item.name.S : null;
-              let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
-              let addr = (tokenItem.Item && tokenItem.Item.addr) ? tokenItem.Item.addr.S : null;
+              // let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
+              // let addr = (tokenItem.Item && tokenItem.Item.addr) ? tokenItem.Item.addr.S : null;
               let state = (tokenItem.Item && tokenItem.Item.state) ? tokenItem.Item.state.S : null;
               let stripeState = (tokenItem.Item && tokenItem.Item.stripeState) ? JSON.parse(tokenItem.Item.stripeState.S) : null;
               let stripeConnectState = (tokenItem.Item && tokenItem.Item.stripeConnectState) ? JSON.parse(tokenItem.Item.stripeConnectState.S) : null;
@@ -209,7 +209,7 @@ try {
               if (!name) {
                 name = namegen(2).join('-');
               }
-              if (!mnemonic) {
+              /* if (!mnemonic) {
                 mnemonic = bip39.entropyToMnemonic(crypto.randomBytes(32));
               }
               if (!addr) {
@@ -219,7 +219,7 @@ try {
                 addr = '0x' + ethUtil.privateToAddress(privateKey).toString('hex');
                 const end = Date.now();
                 console.log('get address time', end - start, addr);
-              }
+              } */
               if (!state) {
                 state = _randomString();
               }
@@ -241,13 +241,13 @@ try {
                   email: {S: email + '.token'},
                   name: {S: name},
                   tokens: {S: JSON.stringify(tokens)},
-                  mnemonic: {S: mnemonic},
-                  addr: {S: addr},
+                  // mnemonic: {S: mnemonic},
+                  // addr: {S: addr},
                   state: {S: state},
                   stripeState: {S: JSON.stringify(stripeState)},
                   stripeConnectState: {S: JSON.stringify(stripeConnectState)},
                   githubOauthState: {S: JSON.stringify(githubOauthState)},
-                  whitelisted: {BOOL: true},
+                  // whitelisted: {BOOL: true},
                 }
               }).promise();
 
@@ -255,8 +255,8 @@ try {
                 email,
                 token,
                 name,
-                mnemonic,
-                addr,
+                // mnemonic,
+                // addr,
                 state,
                 stripeState: !!stripeState,
                 stripeConnectState: !!stripeConnectState,
@@ -273,7 +273,7 @@ try {
             }));
           }
         } else {
-          const tokenItem = await ddb.getItem({
+          /* const tokenItem = await ddb.getItem({
             TableName: 'login',
             Key: {
               email: {S: email + '.token'},
@@ -282,7 +282,7 @@ try {
           const whitelisted = tokenItem.Item ? tokenItem.Item.whitelisted.BOOL : false;
           console.log('whitelist', {email, whitelisted});
 
-          if (whitelisted) {
+          if (whitelisted) { */
             const code = new Uint32Array(crypto.randomBytes(4).buffer, 0, 1).toString(10).slice(-6);
             
             console.log('verification', {email, code});
@@ -302,7 +302,7 @@ try {
                 Message: {
                     Body: {
                         Html: {
-                            Data: `<h1>${code}</h1><h2><a href="https://browser.exokit.org/?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}">Log in</a></h2>`
+                            Data: `<h1>${code}</h1><h2><a href="https://xrpackage.org/login.html?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}">Log in</a></h2>`
                         }
                     },
                     
@@ -319,11 +319,11 @@ try {
             console.log('got response', data);
             
             _respond(200, JSON.stringify({}));
-          } else {
+          /* } else {
             _respond(403, JSON.stringify({
               error: 'email not whitelisted',
             }));
-          }
+          } */
         }
       } else {
         _respond(400, JSON.stringify({
