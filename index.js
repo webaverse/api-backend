@@ -69,6 +69,7 @@ const bucketNames = {
   packages: 'packages.exokit.org',
   scenes: 'scenes.exokit.org',
 };
+const tableName = 'users';
 const channels = {};
 const gridChannels = {};
 const webaverseChannels = {};
@@ -139,7 +140,7 @@ try {
       if (email && emailRegex.test(email)) {
         if (token) {
           const tokenItem = await ddb.getItem({
-            TableName: 'login',
+            TableName: tableName,
             Key: {
               email: {S: email + '.token'},
             }
@@ -168,7 +169,7 @@ try {
         } else if (code) {
           if (codeTestRegex.test(code)) {
             const codeItem = await ddb.getItem({
-              TableName: 'login',
+              TableName: tableName,
               Key: {
                 email: {S: email + '.code'},
               }
@@ -178,14 +179,14 @@ try {
             
             if (codeItem.Item && codeItem.Item.code.S === code) {
               await ddb.deleteItem({
-                TableName: 'login',
+                TableName: tableName,
                 Key: {
                   email: {S: email + '.code'},
                 }
               }).promise();
               
               const tokenItem = await ddb.getItem({
-                TableName: 'login',
+                TableName: tableName,
                 Key: {
                   email: {S: email + '.token'},
                 },
@@ -236,7 +237,7 @@ try {
               // console.log('new item', {name, tokens, mnemonic, addr});
               
               await ddb.putItem({
-                TableName: 'login',
+                TableName: tableName,
                 Item: {
                   email: {S: email + '.token'},
                   name: {S: name},
@@ -274,7 +275,7 @@ try {
           }
         } else {
           /* const tokenItem = await ddb.getItem({
-            TableName: 'login',
+            TableName: tableName,
             Key: {
               email: {S: email + '.token'},
             }
@@ -288,7 +289,7 @@ try {
             console.log('verification', {email, code});
 
             await ddb.putItem({
-              TableName: 'login',
+              TableName: tableName,
               Item: {
                 email: {S: email + '.code'},
                 code: {S: code},
@@ -807,7 +808,7 @@ try {
         if (o.query.email && o.query.token) {
           let {email, token} = o.query;
           const tokenItem = await ddb.getItem({
-            TableName: 'login',
+            TableName: tableName,
             Key: {
               email: {S: email + '.token'},
             }
@@ -937,7 +938,7 @@ try {
         if (o.query.email && o.query.token) {
           let {email, token} = o.query;
           const tokenItem = await ddb.getItem({
-            TableName: 'login',
+            TableName: tableName,
             Key: {
               email: {S: email + '.token'},
             }
@@ -1063,7 +1064,7 @@ try {
         if (o.query.email && o.query.token) {
           let {email, token} = o.query;
           const tokenItem = await ddb.getItem({
-            TableName: 'login',
+            TableName: tableName,
             Key: {
               email: {S: email + '.token'},
             }
@@ -1419,7 +1420,7 @@ try {
   if (o.pathname === '/' && o.query.email && o.query.token) {
     let {email, token} = o.query;
     const tokenItem = await ddb.getItem({
-      TableName: 'login',
+      TableName: tableName,
       Key: {
         email: {S: email + '.token'},
       }
@@ -1445,7 +1446,7 @@ try {
   } else if (o.pathname === '/add' && o.query.email && o.query.token && o.query.src && o.query.name) {
     let {email, token, src, name} = o.query;
     const tokenItem = await ddb.getItem({
-      TableName: 'login',
+      TableName: tableName,
       Key: {
         email: {S: email + '.token'},
       }
@@ -1490,7 +1491,7 @@ try {
     let {email, token, index} = o.query;
     index = parseInt(index, 10);
      const tokenItem = await ddb.getItem({
-      TableName: 'login',
+      TableName: tableName,
       Key: {
         email: {S: email + '.token'},
       }
@@ -1535,7 +1536,7 @@ try {
     exp_month = parseInt(exp_month, 10);
     exp_year = parseInt(exp_year, 10);
     const tokenItem = await ddb.getItem({
-      TableName: 'login',
+      TableName: tableName,
       Key: {
         email: {S: email + '.token'},
       }
@@ -1555,7 +1556,7 @@ try {
       });
 
       await ddb.putItem({
-        TableName: 'login',
+        TableName: tableName,
         Item: {
           email: {S: tokenItem.Item.email.S},
           name: {S: tokenItem.Item.name.S},
@@ -1587,7 +1588,7 @@ try {
   } else if (o.pathname === '/uncard') {
     let {email, token, number, exp_month, exp_year, cvc} = o.query;
     const tokenItem = await ddb.getItem({
-      TableName: 'login',
+      TableName: tableName,
       Key: {
         email: {S: email + '.token'},
       }
@@ -1599,7 +1600,7 @@ try {
     if (tokens.includes(token)) {
       const stripeState = null;
       await ddb.putItem({
-        TableName: 'login',
+        TableName: tableName,
         Item: {
           email: {S: tokenItem.Item.email.S},
           name: {S: tokenItem.Item.name.S},
@@ -1631,7 +1632,7 @@ try {
   } else if (o.pathname === '/authorize' && o.query.email && o.query.token) {
     let {email, token, redirectUrl} = o.query;
     const tokenItem = await ddb.getItem({
-      TableName: 'login',
+      TableName: tableName,
       Key: {
         email: {S: email + '.token'},
       }
@@ -1701,7 +1702,7 @@ try {
       const queryUrl = match[3];
 
       const tokenItem = await ddb.getItem({
-        TableName: 'login',
+        TableName: tableName,
         Key: {
           email: {S: queryEmail + '.token'},
         }
@@ -1722,7 +1723,7 @@ try {
         }); */
 
         await ddb.putItem({
-          TableName: 'login',
+          TableName: tableName,
           Item: {
             email: {S: tokenItem.Item.email.S},
             name: {S: tokenItem.Item.name.S},
@@ -1749,7 +1750,7 @@ try {
   } else if (o.pathname === '/untoken' && o.query.email && o.query.token) {
     const {email, token} = o.query;
     const tokenItem = await ddb.getItem({
-      TableName: 'login',
+      TableName: tableName,
       Key: {
         email: {S: email + '.token'},
       }
@@ -1758,7 +1759,7 @@ try {
     const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
     if (tokens.includes(token)) {
       await ddb.putItem({
-        TableName: 'login',
+        TableName: tableName,
         Item: {
           email: {S: tokenItem.Item.email.S},
           name: {S: tokenItem.Item.name.S},
@@ -1809,7 +1810,7 @@ try {
       const redirect = match[3];
 
       const tokenItem = await ddb.getItem({
-        TableName: 'login',
+        TableName: tableName,
         Key: {
           email: {S: email + '.token'},
         }
@@ -1845,7 +1846,7 @@ try {
           });
 
           await ddb.putItem({
-            TableName: 'login',
+            TableName: tableName,
             Item: {
               email: {S: tokenItem.Item.email.S},
               name: {S: tokenItem.Item.name.S},
@@ -2004,7 +2005,7 @@ try {
       {
         const start = Date.now();
         tokenItem = await ddb.getItem({
-          TableName: 'login',
+          TableName: tableName,
           Key: {
             email: {S: email + '.token'},
           }
@@ -2194,7 +2195,7 @@ try {
       {
         const start = Date.now();
         tokenItem = await ddb.getItem({
-          TableName: 'login',
+          TableName: tableName,
           Key: {
             email: {S: email + '.token'},
           }
@@ -2309,7 +2310,7 @@ try {
       const password = match2[2];
 
       const tokenItem = await ddb.getItem({
-        TableName: 'login',
+        TableName: tableName,
         Key: {
           email: {S: username + '.token'},
         }
@@ -2681,7 +2682,7 @@ try {
             console.log('files request 2 3', username, password);
 
             const tokenItem = await ddb.getItem({
-              TableName: 'login',
+              TableName: tableName,
               Key: {
                 email: {S: username + '.token'},
               }
@@ -2943,7 +2944,7 @@ try {
       const {email, token} = query;
       if (email && token) {
         const tokenItem = await ddb.getItem({
-          TableName: 'login',
+          TableName: tableName,
           Key: {
             email: {S: email + '.token'},
           }
