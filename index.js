@@ -155,7 +155,7 @@ try {
               token,
               name: tokenItem.Item.name.S,
               // mnemonic: tokenItem.Item.mnemonic.S,
-              addr: tokenItem.Item.addr.S,
+              // addr: tokenItem.Item.addr.S,
               state: tokenItem.Item.state.S,
               stripeState: (tokenItem.Item.stripeState && tokenItem.Item.stripeState.S) ? !!JSON.parse(tokenItem.Item.stripeState.S) : false,
               stripeConnectState: (tokenItem.Item.stripeConnectState && tokenItem.Item.stripeConnectState.S) ? !!JSON.parse(tokenItem.Item.stripeConnectState.S) : false,
@@ -1561,13 +1561,13 @@ try {
           email: {S: tokenItem.Item.email.S},
           name: {S: tokenItem.Item.name.S},
           tokens: {S: tokenItem.Item.tokens.S},
-          mnemonic: {S: tokenItem.Item.mnemonic.S},
-          addr: {S: tokenItem.Item.addr.S},
+          // mnemonic: {S: tokenItem.Item.mnemonic.S},
+          // addr: {S: tokenItem.Item.addr.S},
           state: {S: tokenItem.Item.state.S},
           stripeState: {S: JSON.stringify(stripeState)},
           stripeConnectState: {S: tokenItem.Item.stripeConnectState.S},
           githubOauthState: {S: tokenItem.Item.githubOauthState.S},
-          whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
+          // whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
         }
       }).promise();
 
@@ -1575,8 +1575,8 @@ try {
         email,
         token,
         name: tokenItem.Item.name.S,
-        mnemonic: tokenItem.Item.mnemonic.S,
-        addr: tokenItem.Item.addr.S,
+        // mnemonic: tokenItem.Item.mnemonic.S,
+        // addr: tokenItem.Item.addr.S,
         state: tokenItem.Item.state.S,
         stripeState: !!stripeState,
         stripeConnectState: !!JSON.parse(tokenItem.Item.stripeConnectState.S),
@@ -1605,13 +1605,13 @@ try {
           email: {S: tokenItem.Item.email.S},
           name: {S: tokenItem.Item.name.S},
           tokens: {S: tokenItem.Item.tokens.S},
-          mnemonic: {S: tokenItem.Item.mnemonic.S},
-          addr: {S: tokenItem.Item.addr.S},
+          // mnemonic: {S: tokenItem.Item.mnemonic.S},
+          // addr: {S: tokenItem.Item.addr.S},
           state: {S: tokenItem.Item.state.S},
           stripeState: {S: JSON.stringify(stripeState)},
           stripeConnectState: {S: tokenItem.Item.stripeConnectState.S},
           githubOauthState: {S: tokenItem.Item.githubOauthState.S},
-          whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
+          // whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
         }
       }).promise();
 
@@ -1619,8 +1619,8 @@ try {
         email,
         token,
         name: tokenItem.Item.name.S,
-        mnemonic: tokenItem.Item.mnemonic.S,
-        addr: tokenItem.Item.addr.S,
+        // mnemonic: tokenItem.Item.mnemonic.S,
+        // addr: tokenItem.Item.addr.S,
         state: tokenItem.Item.state.S,
         stripeState: !!stripeState,
         stripeConnectState: !!JSON.parse(tokenItem.Item.stripeConnectState.S),
@@ -1728,13 +1728,13 @@ try {
             email: {S: tokenItem.Item.email.S},
             name: {S: tokenItem.Item.name.S},
             tokens: {S: tokenItem.Item.tokens.S},
-            mnemonic: {S: tokenItem.Item.mnemonic.S},
-            addr: {S: tokenItem.Item.addr.S},
+            // mnemonic: {S: tokenItem.Item.mnemonic.S},
+            // addr: {S: tokenItem.Item.addr.S},
             state: {S: tokenItem.Item.state.S},
             stripeState: {S: tokenItem.Item.stripeState.S},
             stripeConnectState: {S: JSON.stringify(stripeConnectState)},
             githubOauthState: {S: tokenItem.Item.githubOauthState.S},
-            whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
+            // whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
           }
         }).promise();
 
@@ -1764,13 +1764,13 @@ try {
           email: {S: tokenItem.Item.email.S},
           name: {S: tokenItem.Item.name.S},
           tokens: {S: tokenItem.Item.tokens.S},
-          mnemonic: {S: tokenItem.Item.mnemonic.S},
-          addr: {S: tokenItem.Item.addr.S},
+          // mnemonic: {S: tokenItem.Item.mnemonic.S},
+          // addr: {S: tokenItem.Item.addr.S},
           state: {S: tokenItem.Item.state.S},
           stripeState: {S: tokenItem.Item.stripeState.S},
           stripeConnectState: {S: JSON.stringify(null)},
           githubOauthState: {S: tokenItem.Item.githubOauthState.S},
-          whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
+          // whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
         }
       }).promise();
 
@@ -1851,13 +1851,13 @@ try {
               email: {S: tokenItem.Item.email.S},
               name: {S: tokenItem.Item.name.S},
               tokens: {S: tokenItem.Item.tokens.S},
-              mnemonic: {S: tokenItem.Item.mnemonic.S},
-              addr: {S: tokenItem.Item.addr.S},
+              // mnemonic: {S: tokenItem.Item.mnemonic.S},
+              // addr: {S: tokenItem.Item.addr.S},
               state: {S: tokenItem.Item.state.S},
               stripeState: {S: tokenItem.Item.stripeState.S},
               stripeConnectState: {S: tokenItem.Item.stripeConnectState.S},
               githubOauthState: {S: JSON.stringify(githubOauthState)},
-              whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
+              // whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
             }
           }).promise();
 
