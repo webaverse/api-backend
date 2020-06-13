@@ -473,7 +473,7 @@ const _handleCrud = bucketName => async (req, res) => {
       }).promise();
       const keys = objects.Contents.map(o => o.Key);
       _respond(200, JSON.stringify(keys));
-    } else if (match = p.match(/^\/(.+)$/)) {
+    } else if (match = p.match(/^\/([a-z0-9][a-z0-9-._~]*)$/)) {
       const o = await (async () => {
         try {
           return await s3.getObject({
@@ -498,7 +498,7 @@ const _handleCrud = bucketName => async (req, res) => {
         error: 'not found',
       }));
     }
-  } else if (method === 'PUT' && (match = p.match(/^\/(.+)$/))) {
+  } else if (method === 'PUT' && (match = p.match(/^\/([a-z0-9][a-z0-9-._~]*)$/))) {
     const bs = [];
     const b = await new Promise((accept, reject) => {
       req.on('data', d => {
@@ -524,7 +524,7 @@ const _handleCrud = bucketName => async (req, res) => {
     _respond(200, JSON.stringify({
       ok: true,
     }));
-  } else if (method === 'DELETE' && (match = p.match(/^\/(.*)$/))) {
+  } else if (method === 'DELETE' && (match = p.match(/^\/([a-z0-9][a-z0-9-._~]*)$/))) {
     const key = match[1];
     if (key) {
       await s3.deleteObject({
