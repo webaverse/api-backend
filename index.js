@@ -524,7 +524,7 @@ const _handleCrud = bucketName => async (req, res) => {
     _respond(200, JSON.stringify({
       ok: true,
     }));
-  } else if (method === 'DELETE' && (match = p.match(/^\/([a-z0-9][a-z0-9-._~]*)$/))) {
+  } else if (method === 'DELETE' && (match = p.match(/^\/([a-z0-9][a-z0-9-._~]*)?$/))) {
     const key = match[1];
     if (key) {
       await s3.deleteObject({
