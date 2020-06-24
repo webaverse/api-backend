@@ -1,3 +1,3 @@
 # *.exokit.org backend code
 
-This code is not licensed or supported.
+This code is here for reference but not supported.
