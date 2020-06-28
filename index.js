@@ -76,6 +76,15 @@ const gridChannels = {};
 const webaverseChannels = {};
 const webaverseTmpChannels = {};
 
+const fcl = require('./fcl.js');
+const sdk = require('./sdk.js');
+const t = require('./types.js');
+const {genKeys} = require('./create-flow-account.js');
+const {signingFunction} = require('./signing-function.js');
+const flowJson = require('./flow.json');
+const serviceAddress = flowJson.accounts.service.address;
+const sf = signingFunction(flowJson.accounts.service.privateKey);
+
 const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 const codeTestRegex = /^[0-9]{6}$/;
 function _randomString() {
@@ -563,6 +572,150 @@ const _handleWorlds = _handleCrud(bucketNames.worlds);
 const _handlePackages = _handleCrud(bucketNames.packages);
 const _handleUsers = _handleCrud(bucketNames.users);
 const _handleScenes = _handleCrud(bucketNames.scenes);
+
+const _handleContracts = async (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+  const _readBuffer = () => new Promise((accept, reject) => {
+    const bs = [];
+    req.on('data', b => {
+      bs.push(b);
+    });
+    req.on('end', () => {
+      const b = Buffer.concat(bs);
+      accept(b);
+    });
+    req.on('error', reject);
+  });
+
+  const {method} = req;
+  const {pathname: p} = url.parse(req.url);
+
+  let match;
+  if (method === 'OPTIONS') {
+    // res.statusCode = 200;
+    _setCorsHeaders(res);
+    res.end();
+  } else if (method === 'PUT' && p === '/createContractAccount') {
+    const b = await _readBuffer();
+    const code = b.toString('utf8');
+
+    const keys2 = genKeys();
+    let addr2, sf2;
+    {
+      const acctResponse = await sdk.send(await sdk.pipe(await sdk.build([
+        sdk.getAccount(serviceAddress),
+      ]), [
+        sdk.resolve([
+          sdk.resolveParams,
+        ]),
+      ]), { node: "http://localhost:8080" });
+      const seqNum = acctResponse.account.keys[0].sequenceNumber;
+
+      const response = await sdk.send(await sdk.pipe(await sdk.build([
+
+        sdk.params([
+          sdk.param(keys2.flowKey, t.Identity, "publicKey"),
+          sdk.param('[' + new TextEncoder().encode(code).map(n => '0x' + n.toString(16)).join(',') + ']', t.Identity, "code"),
+        ]),
+
+        sdk.authorizations([sdk.authorization(serviceAddress, sf, 0)]),
+        sdk.payer(sdk.authorization(serviceAddress, sf, 0)),
+        sdk.proposer(sdk.authorization(serviceAddress, sf, 0, seqNum)),
+        sdk.limit(100),
+
+        sdk.transaction`
+          transaction {
+            let payer: AuthAccount
+            prepare(payer: AuthAccount) {
+              self.payer = payer
+            }
+            execute {
+              let account = AuthAccount(payer: self.payer)
+              account.addPublicKey("${p => p.publicKey}".decodeHex())
+              account.setCode(${p => p.code})
+            }
+          }
+        `,
+      ]), [
+        sdk.resolve([
+          sdk.resolveParams,
+          sdk.resolveAccounts,
+          sdk.resolveSignatures,
+        ]),
+      ]), { node: "http://localhost:8080" });
+      const seal = await fcl.tx(response).onceSealed();
+      addr2 = seal.events.length >= 1 ? seal.events[0].data.address.slice(2) : null;
+      // sf2 = signingFunction(keys2.privateKey);
+      console.log('seal 1', seal, addr2);
+      _setCorsHeaders(res);
+      res.end(JSON.stringify({
+        address: addr2,
+        keys: keys2,
+      }, null, 2));
+    }
+  } else if (method === 'PUT' && p === '/createUserAccount') {
+    const keys3 = genKeys();
+    let addr3, sf3;
+
+    const acctResponse = await sdk.send(await sdk.pipe(await sdk.build([
+      sdk.getAccount(serviceAddress),
+    ]), [
+      sdk.resolve([
+        sdk.resolveParams,
+      ]),
+    ]), { node: "http://localhost:8080" })
+
+    const seqNum = acctResponse.account.keys[0].sequenceNumber;
+
+    const response = await sdk.send(await sdk.pipe(await sdk.build([
+      sdk.params([
+        sdk.param(keys3.flowKey, t.Identity, "publicKey"),
+      ]),
+
+      sdk.authorizations([sdk.authorization(serviceAddress, sf, 0)]),
+      sdk.payer(sdk.authorization(serviceAddress, sf, 0)),
+      sdk.proposer(sdk.authorization(serviceAddress, sf, 0, seqNum)),
+
+      sdk.transaction`
+        transaction {
+          let payer: AuthAccount
+          prepare(payer: AuthAccount) {
+            self.payer = payer
+          }
+          execute {
+            let account = AuthAccount(payer: self.payer)
+            account.addPublicKey("${p => p.publicKey}".decodeHex())
+          }
+        }
+      `,
+    ]), [
+      sdk.resolve([
+        sdk.resolveParams,
+        sdk.resolveAccounts,
+        sdk.resolveSignatures,
+      ]),
+    ]), { node: "http://localhost:8080" });
+    const seal = await fcl.tx(response).onceSealed();
+    addr3 = seal.events.length >= 1 ? seal.events[0].data.address.slice(2) : null;
+    // sf3 = SigningFunction.signingFunction(keys3.privateKey);
+    _setCorsHeaders(res);
+    res.end(JSON.stringify({
+      address: addr3,
+      keys: keys3,
+    }, null, 2));
+  } else {
+    _respond(404, 'not found');
+  }
+};
 
 const _handleIpfs = async (req, res, channels) => {
   const _respond = (statusCode, body) => {
@@ -3862,6 +4015,9 @@ try {
     return;
   } else if (o.host === 'scenes.exokit.org') {
     _handleScenes(req, res);
+    return;
+  } else if (o.host === 'contracts.exokit.org') {
+    _handleContracts(req, res);
     return;
   /* } else if (o.host === 'raw.exokit.org') {
     _handleRaw(req, res);
