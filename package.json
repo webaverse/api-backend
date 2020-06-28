@@ -20,6 +20,8 @@
   },
   "homepage": "https://github.com/modulesio/webaverse-server#readme",
   "dependencies": {
+    "@onflow/bytes": "0.0.2",
+    "@onflow/fcl": "0.0.38",
     "aws-sdk": "^2.592.0",
     "discord.js": "^11.5.1",
     "http-proxy": "^1.17.0",
