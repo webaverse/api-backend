@@ -3990,6 +3990,13 @@ process.on('unhandledRejection', _warn);
 server.listen(PORT);
 server2.listen(443);
 
+child_process.spawn('flow', [
+  'emulator',
+  'start',
+], {
+  stdio: 'inherit',
+});
+
 console.log(`http://127.0.0.1:${PORT}`);
 console.log(`http://127.0.0.1:443`);
 
