@@ -597,14 +597,14 @@ const _handleContracts = async (req, res) => {
   });
 
   const {method} = req;
-  const {pathname: p} = url.parse(req.url);
+  const {pathname: p, query: q} = url.parse(req.url, true);
 
   let match;
   if (method === 'OPTIONS') {
     // res.statusCode = 200;
     _setCorsHeaders(res);
     res.end();
-  } else if (method === 'PUT' && p === '/createContractAccount') {
+  } else if (method === 'PUT' && (match = p.match(/^\/(.+?)$/))) {
     const b = await _readBuffer();
     const code = b.toString('utf8');
 
@@ -624,7 +624,8 @@ const _handleContracts = async (req, res) => {
 
         sdk.params([
           sdk.param(keys2.flowKey, t.Identity, "publicKey"),
-          sdk.param('[' + new TextEncoder().encode(code).map(n => '0x' + n.toString(16)).join(',') + ']', t.Identity, "code"),
+          sdk.param(code ? ('[' + new TextEncoder().encode(code).map(n => '0x' + n.toString(16)).join(',') + ']') : '', t.Identity, "code"),
+          sdk.param(q.userFlowKey || '', t.Identity, "userFlowKey"),
         ]),
 
         sdk.authorizations([sdk.authorization(serviceAddress, sf, 0)]),
@@ -641,7 +642,8 @@ const _handleContracts = async (req, res) => {
             execute {
               let account = AuthAccount(payer: self.payer)
               account.addPublicKey("${p => p.publicKey}".decodeHex())
-              account.setCode(${p => p.code})
+              ${p => p.code ? `account.setCode(${p.code})` : ''}
+              ${p => p.userFlowKey ? `account.addPublicKey("${p.userFlowKey}".decodeHex())` : ''}
             }
           }
         `,
@@ -662,56 +664,6 @@ const _handleContracts = async (req, res) => {
         keys: keys2,
       }, null, 2));
     }
-  } else if (method === 'PUT' && p === '/createUserAccount') {
-    const keys3 = genKeys();
-    let addr3, sf3;
-
-    const acctResponse = await sdk.send(await sdk.pipe(await sdk.build([
-      sdk.getAccount(serviceAddress),
-    ]), [
-      sdk.resolve([
-        sdk.resolveParams,
-      ]),
-    ]), { node: "http://localhost:8080" })
-
-    const seqNum = acctResponse.account.keys[0].sequenceNumber;
-
-    const response = await sdk.send(await sdk.pipe(await sdk.build([
-      sdk.params([
-        sdk.param(keys3.flowKey, t.Identity, "publicKey"),
-      ]),
-
-      sdk.authorizations([sdk.authorization(serviceAddress, sf, 0)]),
-      sdk.payer(sdk.authorization(serviceAddress, sf, 0)),
-      sdk.proposer(sdk.authorization(serviceAddress, sf, 0, seqNum)),
-
-      sdk.transaction`
-        transaction {
-          let payer: AuthAccount
-          prepare(payer: AuthAccount) {
-            self.payer = payer
-          }
-          execute {
-            let account = AuthAccount(payer: self.payer)
-            account.addPublicKey("${p => p.publicKey}".decodeHex())
-          }
-        }
-      `,
-    ]), [
-      sdk.resolve([
-        sdk.resolveParams,
-        sdk.resolveAccounts,
-        sdk.resolveSignatures,
-      ]),
-    ]), { node: "http://localhost:8080" });
-    const seal = await fcl.tx(response).onceSealed();
-    addr3 = seal.events.length >= 1 ? seal.events[0].data.address.slice(2) : null;
-    // sf3 = SigningFunction.signingFunction(keys3.privateKey);
-    _setCorsHeaders(res);
-    res.end(JSON.stringify({
-      address: addr3,
-      keys: keys3,
-    }, null, 2));
   } else {
     _respond(404, 'not found');
   }
