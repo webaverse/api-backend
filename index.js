@@ -4101,6 +4101,7 @@ server2.listen(443);
 child_process.spawn('flow', [
   'emulator',
   'start',
+  '--persist',
 ], {
   stdio: 'inherit',
 });
