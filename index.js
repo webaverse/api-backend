@@ -572,6 +572,190 @@ const _handlePackages = _handleCrud(bucketNames.packages);
 const _handleUsers = _handleCrud(bucketNames.users);
 const _handleScenes = _handleCrud(bucketNames.scenes);
 
+let contractsInitializeTriggered = false;
+const contractsInitializedPromise = _makePromise();
+const waitForContractsInitialized = async () => {
+  if (!contractsInitializeTriggered) {
+    (async () => {
+      const metaKeys = genKeys();
+      let metaAddr, metaSf;
+
+      const acctResponse = await sdk.send(await sdk.pipe(await sdk.build([
+        sdk.getAccount(serviceAddress),
+      ]), [
+        sdk.resolve([
+          sdk.resolveParams,
+        ]),
+      ]), { node: "http://localhost:8080" });
+      const seqNum = acctResponse.account.keys[0].sequenceNumber;
+
+      {
+        const code = `\
+          pub contract MetaContract {
+            pub resource Vault {
+              pub var contracts: {String: Address}
+              pub var keys: {String: String}
+              init() {
+                self.contracts = {}
+                self.keys = {}
+              }
+            }
+
+            init() {
+              // create the Vault with the initial balance and put it in storage
+              // account.save saves an object to the specified to path
+              // The path is a literal path that consists of a domain and identifier
+              // The domain must be storage, private, or public
+              // the identifier can be any name
+              let vault <- create Vault()
+              self.account.save(<-vault, to: /storage/MainVault)
+
+              self.account.link<&Vault>(/public/Vault, target: /storage/MainVault)
+            }
+          }
+        `;
+        const response = await sdk.send(await sdk.pipe(await sdk.build([
+          sdk.params([
+            sdk.param(metaKeys.flowKey, t.Identity, "publicKey"),
+            sdk.param(code ? ('[' + new TextEncoder().encode(code).map(n => '0x' + n.toString(16)).join(',') + ']') : '', t.Identity, "code"),
+          ]),
+          sdk.authorizations([sdk.authorization(serviceAddress, sf, 0)]),
+          sdk.payer(sdk.authorization(serviceAddress, sf, 0)),
+          sdk.proposer(sdk.authorization(serviceAddress, sf, 0, seqNum)),
+          sdk.limit(100),
+          sdk.transaction`
+            transaction {
+              let payer: AuthAccount
+              prepare(payer: AuthAccount) {
+                self.payer = payer
+              }
+              execute {
+                let account = AuthAccount(payer: self.payer)
+                account.addPublicKey("${p => p.publicKey}".decodeHex())
+                account.setCode(${p => p.code})
+              }
+            }
+          `,
+        ]), [
+          sdk.resolve([
+            sdk.resolveParams,
+            sdk.resolveAccounts,
+            sdk.resolveSignatures,
+          ]),
+        ]), { node: "http://localhost:8080" });
+
+        const response2 = await sdk.send(await sdk.pipe(await sdk.build([
+          sdk.getTransactionStatus(response.transactionId),
+        ]), [
+          sdk.resolve([
+            sdk.resolveParams,
+          ]),
+        ]), { node: "http://localhost:8080" });
+
+        metaAddr = response2.transaction.events.length >= 1 ? response2.transaction.events[0].payload.value.fields[0].value.value.slice(2) : null;
+        // console.log('got response', response2, metaAddr);
+        metaSf = signingFunction(metaKeys.privateKey);
+      }
+      /* {
+        const response = await sdk.send(await sdk.pipe(await sdk.build([
+          sdk.params([
+            sdk.param('lol', t.String, 'key'),
+            sdk.param('f8d6e0586b0a20c7', t.Address, 'address'),
+            sdk.param(JSON.stringify(metaKeys), t.String, 'keys'),
+          ]),
+          sdk.authorizations([sdk.authorization(metaAddr, metaSf, 0)]),
+          sdk.payer(sdk.authorization(metaAddr, metaSf, 0)),
+          sdk.proposer(sdk.authorization(metaAddr, metaSf, 0, seqNum)),
+          sdk.limit(100),
+          sdk.transaction`
+            import MetaContract from 0x${metaAddr}
+
+            transaction {
+              let acct: AuthAccount
+              prepare(acct: AuthAccount) {
+                self.acct = acct
+              }
+              execute {
+                let v <- self.acct.load<@MetaContract.Vault>(from: /storage/MainVault)!
+                v.contracts["${p => p.key}"] = 0x${p => p.address}
+                v.keys["${p => p.key}"] = "${p => p.keys}"
+                self.acct.save(<-v, to: /storage/MainVault)
+              }
+            }
+          `,
+        ]), [
+          sdk.resolve([
+            sdk.resolveParams,
+            sdk.resolveAccounts,
+            sdk.resolveSignatures,
+          ]),
+        ]), { node: "http://localhost:8080" });
+      }
+      {
+        const response = await sdk.send(await sdk.pipe(await sdk.build([
+          sdk.params([
+            sdk.param('lol', t.Identity, 'key'),
+            // sdk.param('[' + new TextEncoder().encode(code).map(n => '0x' + n.toString(16)).join(',') + ']', t.Identity, "code"),
+          ]),
+          // sdk.authorizations([sdk.authorization(serviceAddress, sf, 0)]),
+          // sdk.payer(sdk.authorization(serviceAddress, sf, 0)),
+          // sdk.proposer(sdk.authorization(serviceAddress, sf, 0, seqNum)),
+          sdk.script`
+            import MetaContract from 0x${metaAddr}
+
+            pub fun main() : Address? {
+              let publicAccount = getAccount(0x${metaAddr})
+              let capability = publicAccount.getCapability(/public/Vault)!
+              let vaultRef = capability.borrow<&MetaContract.Vault>()!
+              return vaultRef.contracts["${p => p.key}"]
+            }
+          `,
+        ]), [
+          sdk.resolve([
+            sdk.resolveParams,
+            sdk.resolveAccounts,
+            sdk.resolveSignatures,
+          ]),
+        ]), { node: "http://localhost:8080" });
+        console.log('got meta response 2', response.encodedData.value);
+      }
+
+      {
+        const response = await sdk.send(await sdk.pipe(await sdk.build([
+          // sdk.authorizations([sdk.authorization(serviceAddress, sf, 0)]),
+          // sdk.payer(sdk.authorization(serviceAddress, sf, 0)),
+          // sdk.proposer(sdk.authorization(serviceAddress, sf, 0, seqNum)),
+          sdk.script`
+            import MetaContract from 0x${metaAddr}
+
+            pub fun main() : [String] {
+              let publicAccount = getAccount(0x${metaAddr})
+              let capability = publicAccount.getCapability(/public/Vault)!
+              let vaultRef = capability.borrow<&MetaContract.Vault>()!
+              return vaultRef.contracts.keys
+            }
+          `,
+        ]), [
+          sdk.resolve([
+            sdk.resolveParams,
+            sdk.resolveAccounts,
+            sdk.resolveSignatures,
+          ]),
+        ]), { node: "http://localhost:8080" });
+        // console.log('got meta response 3', response.encodedData.value);
+      } */
+
+      contractsInitializedPromise.accept({
+        address: metaAddr,
+        keys: metaKeys,
+        sf: metaSf,
+      });
+    })();
+
+    contractsInitializeTriggered = true;
+  }
+  return await contractsInitializedPromise;
+};
 const _handleContracts = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -598,19 +782,257 @@ const _handleContracts = async (req, res) => {
   const {method} = req;
   const {pathname: p, query: q} = url.parse(req.url, true);
 
+  const metaContract = await waitForContractsInitialized();
+  console.log('got meta contract', metaContract);
+
   let match;
   if (method === 'OPTIONS') {
     // res.statusCode = 200;
     _setCorsHeaders(res);
     res.end();
-  } else if (method === 'PUT' && (match = p.match(/^\/(.+?)$/))) {
+  } else if (method === 'GET' && p === '/') {
+    const response = await sdk.send(await sdk.pipe(await sdk.build([
+      /* sdk.params([
+        sdk.param('lol', t.Identity, 'key'),
+      ]), */
+      // sdk.authorizations([sdk.authorization(serviceAddress, sf, 0)]),
+      // sdk.payer(sdk.authorization(serviceAddress, sf, 0)),
+      // sdk.proposer(sdk.authorization(serviceAddress, sf, 0, seqNum)),
+      sdk.script`
+        import MetaContract from 0x${metaContract.address}
+
+        pub fun main() : [String] {
+          let publicAccount = getAccount(0x${metaContract.address})
+          let capability = publicAccount.getCapability(/public/Vault)!
+          let vaultRef = capability.borrow<&MetaContract.Vault>()!
+          return vaultRef.contracts.keys
+        }
+      `,
+    ]), [
+      sdk.resolve([
+        sdk.resolveParams,
+        sdk.resolveAccounts,
+        sdk.resolveSignatures,
+      ]),
+    ]), { node: "http://localhost:8080" });
+    const keys = response.encodedData.value.map(o => o.value);
+    _respond(200, JSON.stringify(keys));
+  } else if (method === 'GET') {
+    const response = await sdk.send(await sdk.pipe(await sdk.build([
+      sdk.params([
+        sdk.param(p, t.Identity, 'path'),
+      ]),
+      // sdk.authorizations([sdk.authorization(serviceAddress, sf, 0)]),
+      // sdk.payer(sdk.authorization(serviceAddress, sf, 0)),
+      // sdk.proposer(sdk.authorization(serviceAddress, sf, 0, seqNum)),
+      sdk.script`
+        import MetaContract from 0x${metaContract.address}
+
+        pub fun main() : Address? {
+          let publicAccount = getAccount(0x${metaContract.address})
+          let capability = publicAccount.getCapability(/public/Vault)!
+          let vaultRef = capability.borrow<&MetaContract.Vault>()!
+          return vaultRef.contracts["${p => p.path}"]
+        }
+      `,
+    ]), [
+      sdk.resolve([
+        sdk.resolveParams,
+        sdk.resolveAccounts,
+        sdk.resolveSignatures,
+      ]),
+    ]), { node: "http://localhost:8080" });
+    const address = response.encodedData.value.value;
+
+    const response2 = await sdk.send(await sdk.pipe(await sdk.build([
+      sdk.params([
+        sdk.param(p, t.Identity, 'path'),
+      ]),
+      // sdk.authorizations([sdk.authorization(serviceAddress, sf, 0)]),
+      // sdk.payer(sdk.authorization(serviceAddress, sf, 0)),
+      // sdk.proposer(sdk.authorization(serviceAddress, sf, 0, seqNum)),
+      sdk.script`
+        import MetaContract from 0x${metaContract.address}
+
+        pub fun main() : String? {
+          let publicAccount = getAccount(0x${metaContract.address})
+          let capability = publicAccount.getCapability(/public/Vault)!
+          let vaultRef = capability.borrow<&MetaContract.Vault>()!
+          return vaultRef.keys["${p => p.path}"]
+        }
+      `,
+    ]), [
+      sdk.resolve([
+        sdk.resolveParams,
+        sdk.resolveAccounts,
+        sdk.resolveSignatures,
+      ]),
+    ]), { node: "http://localhost:8080" });
+    const keys = JSON.parse(response2.encodedData.value.value);
+
+    _setCorsHeaders(res);
+    res.end(JSON.stringify({
+      address,
+      keys,
+    }, null, 2));
+  } else if (method === 'PUT') {
     const b = await _readBuffer();
     const code = b.toString('utf8');
 
-    const keys2 = genKeys();
-    let addr2, sf2;
-    {
-      const acctResponse = await sdk.send(await sdk.pipe(await sdk.build([
+    const oldContract = await (async () => {
+      const response = await sdk.send(await sdk.pipe(await sdk.build([
+        sdk.params([
+          sdk.param(p, t.Identity, 'key'),
+        ]),
+        // sdk.authorizations([sdk.authorization(serviceAddress, sf, 0)]),
+        // sdk.payer(sdk.authorization(serviceAddress, sf, 0)),
+        // sdk.proposer(sdk.authorization(serviceAddress, sf, 0, seqNum)),
+        sdk.script`
+          import MetaContract from 0x${metaContract.address}
+
+          pub fun main() : Address? {
+            let publicAccount = getAccount(0x${metaContract.address})
+            let capability = publicAccount.getCapability(/public/Vault)!
+            let vaultRef = capability.borrow<&MetaContract.Vault>()!
+            return vaultRef.contracts["${p => p.key}"]
+          }
+        `,
+      ]), [
+        sdk.resolve([
+          sdk.resolveParams,
+          sdk.resolveAccounts,
+          sdk.resolveSignatures,
+        ]),
+      ]), { node: "http://localhost:8080" });
+      return response.encodedData.value;
+    })();
+    console.log('got old contract', oldContract);
+
+    if (!oldContract) {
+      const keys2 = genKeys();
+      let addr2, sf2;
+      {
+        const acctResponse = await sdk.send(await sdk.pipe(await sdk.build([
+          sdk.getAccount(serviceAddress),
+        ]), [
+          sdk.resolve([
+            sdk.resolveParams,
+          ]),
+        ]), { node: "http://localhost:8080" });
+        const seqNum = acctResponse.account.keys[0].sequenceNumber;
+
+        const response = await sdk.send(await sdk.pipe(await sdk.build([
+          sdk.params([
+            sdk.param(keys2.flowKey, t.Identity, "publicKey"),
+            sdk.param(code ? ('[' + new TextEncoder().encode(code).map(n => '0x' + n.toString(16)).join(',') + ']') : '', t.Identity, "code"),
+            sdk.param(q.userFlowKey || '', t.Identity, "userFlowKey"),
+            sdk.param(p, t.Identity, "path"),
+          ]),
+          sdk.authorizations([sdk.authorization(serviceAddress, sf, 0)]),
+          sdk.payer(sdk.authorization(serviceAddress, sf, 0)),
+          sdk.proposer(sdk.authorization(serviceAddress, sf, 0, seqNum)),
+          sdk.limit(100),
+          sdk.transaction`
+            import MetaContract from 0x${metaContract.address}
+
+            transaction {
+              let payer: AuthAccount
+              prepare(payer: AuthAccount) {
+                self.payer = payer
+              }
+              execute {
+                let account = AuthAccount(payer: self.payer)
+                account.addPublicKey("${p => p.publicKey}".decodeHex())
+                ${p => p.code ? `account.setCode(${p.code})` : ''}
+                ${p => p.userFlowKey ? `account.addPublicKey("${p.userFlowKey}".decodeHex())` : ''}
+              }
+            }
+          `,
+        ]), [
+          sdk.resolve([
+            sdk.resolveParams,
+            sdk.resolveAccounts,
+            sdk.resolveSignatures,
+          ]),
+        ]), { node: "http://localhost:8080" });
+        console.log('got contract response 1', response.transactionId);
+
+        const response2 = await sdk.send(await sdk.pipe(await sdk.build([
+          sdk.getTransactionStatus(response.transactionId),
+        ]), [
+          sdk.resolve([
+            sdk.resolveParams,
+          ]),
+        ]), { node: "http://localhost:8080" });
+        console.log('got contract response 2', response2);
+
+        addr2 = response2.transaction.events.length >= 1 ? response2.transaction.events[0].payload.value.fields[0].value.value.slice(2) : null;
+        sf2 = signingFunction(keys2.privateKey);
+      }
+      {
+        const acctResponse = await sdk.send(await sdk.pipe(await sdk.build([
+          sdk.getAccount(metaContract.address),
+        ]), [
+          sdk.resolve([
+            sdk.resolveParams,
+          ]),
+        ]), { node: "http://localhost:8080" });
+        const seqNum = acctResponse.account.keys[0].sequenceNumber;
+
+        const response = await sdk.send(await sdk.pipe(await sdk.build([
+          sdk.params([
+            sdk.param(p, t.Identity, "path"),
+            sdk.param(addr2, t.Address, "address"),
+            sdk.param(JSON.stringify(JSON.stringify(keys2)), t.String, "keys"),
+          ]),
+          sdk.authorizations([sdk.authorization(metaContract.address, metaContract.sf, 0)]),
+          sdk.payer(sdk.authorization(metaContract.address, metaContract.sf, 0)),
+          sdk.proposer(sdk.authorization(metaContract.address, metaContract.sf, 0, seqNum)),
+          sdk.limit(100),
+          sdk.transaction`
+            import MetaContract from 0x${metaContract.address}
+
+            transaction {
+              let payer: AuthAccount
+              prepare(payer: AuthAccount) {
+                self.payer = payer
+              }
+              execute {
+                let v <- self.payer.load<@MetaContract.Vault>(from: /storage/MainVault)!
+                v.contracts["${p => p.path}"] = 0x${p => p.address}
+                v.keys["${p => p.path}"] = ${p => p.keys}
+                self.payer.save(<-v, to: /storage/MainVault)
+              }
+            }
+          `,
+        ]), [
+          sdk.resolve([
+            sdk.resolveParams,
+            sdk.resolveAccounts,
+            sdk.resolveSignatures,
+          ]),
+        ]), { node: "http://localhost:8080" });
+        console.log('got contract response 3', response.transactionId);
+
+        const response2 = await sdk.send(await sdk.pipe(await sdk.build([
+          sdk.getTransactionStatus(response.transactionId),
+        ]), [
+          sdk.resolve([
+            sdk.resolveParams,
+          ]),
+        ]), { node: "http://localhost:8080" });
+        console.log('got contract response 4', response2);
+      }
+
+      _setCorsHeaders(res);
+      res.end(JSON.stringify({
+        created: true,
+        address: addr2,
+        keys: keys2,
+      }, null, 2));
+    } else {
+      throw 'updating';
+      /* const acctResponse = await sdk.send(await sdk.pipe(await sdk.build([
         sdk.getAccount(serviceAddress),
       ]), [
         sdk.resolve([
@@ -636,10 +1058,7 @@ const _handleContracts = async (req, res) => {
               self.payer = payer
             }
             execute {
-              let account = AuthAccount(payer: self.payer)
-              account.addPublicKey("${p => p.publicKey}".decodeHex())
-              ${p => p.code ? `account.setCode(${p.code})` : ''}
-              ${p => p.userFlowKey ? `account.addPublicKey("${p.userFlowKey}".decodeHex())` : ''}
+              ${p => p.code ? `self.payer.setCode(${p.code})` : ''}
             }
           }
         `,
@@ -662,13 +1081,12 @@ const _handleContracts = async (req, res) => {
       console.log('got contract response 2', response2);
 
       addr2 = response2.transaction.events.length >= 1 ? response2.transaction.events[0].payload.value.fields[0].value.value.slice(2) : null;
-      // sf2 = signingFunction(keys2.privateKey);
-      // console.log('seal 1', seal, addr2);
       _setCorsHeaders(res);
       res.end(JSON.stringify({
+        created: true,
         address: addr2,
         keys: keys2,
-      }, null, 2));
+      }, null, 2)); */
     }
   } else {
     _respond(404, 'not found');
