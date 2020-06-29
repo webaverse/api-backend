@@ -921,63 +921,70 @@ const _handleContracts = async (req, res) => {
         keys: keys2,
       }, null, 2));
     } else {
-      const address = oldContract.address;
-      const sf = signingFunction(oldContract.keys.privateKey);
-      const acctResponse = await sdk.send(await sdk.pipe(await sdk.build([
-        sdk.getAccount(address),
-      ]), [
-        sdk.resolve([
-          sdk.resolveParams,
-        ]),
-      ]), { node: "http://localhost:8080" });
-      const seqNum = acctResponse.account.keys[0].sequenceNumber;
+      if (code) {
+        const address = oldContract.address;
+        const sf = signingFunction(oldContract.keys.privateKey);
+        const acctResponse = await sdk.send(await sdk.pipe(await sdk.build([
+          sdk.getAccount(address),
+        ]), [
+          sdk.resolve([
+            sdk.resolveParams,
+          ]),
+        ]), { node: "http://localhost:8080" });
+        const seqNum = acctResponse.account.keys[0].sequenceNumber;
 
-      const response = await sdk.send(await sdk.pipe(await sdk.build([
-        sdk.params([
-          // sdk.param(keys2.flowKey, t.Identity, "publicKey"),
-          sdk.param(code ? ('[' + new TextEncoder().encode(code).map(n => '0x' + n.toString(16)).join(',') + ']') : '', t.Identity, "code"),
-          // sdk.param(q.userFlowKey || '', t.Identity, "userFlowKey"),
-        ]),
-        sdk.authorizations([sdk.authorization(address, sf, 0)]),
-        sdk.payer(sdk.authorization(address, sf, 0)),
-        sdk.proposer(sdk.authorization(address, sf, 0, seqNum)),
-        sdk.limit(100),
-        sdk.transaction`
-          transaction {
-            let payer: AuthAccount
-            prepare(payer: AuthAccount) {
-              self.payer = payer
+        const response = await sdk.send(await sdk.pipe(await sdk.build([
+          sdk.params([
+            // sdk.param(keys2.flowKey, t.Identity, "publicKey"),
+            sdk.param(code ? ('[' + new TextEncoder().encode(code).map(n => '0x' + n.toString(16)).join(',') + ']') : '', t.Identity, "code"),
+            // sdk.param(q.userFlowKey || '', t.Identity, "userFlowKey"),
+          ]),
+          sdk.authorizations([sdk.authorization(address, sf, 0)]),
+          sdk.payer(sdk.authorization(address, sf, 0)),
+          sdk.proposer(sdk.authorization(address, sf, 0, seqNum)),
+          sdk.limit(100),
+          sdk.transaction`
+            transaction {
+              let payer: AuthAccount
+              prepare(payer: AuthAccount) {
+                self.payer = payer
+              }
+              execute {
+                self.payer.setCode(${p => p.code})
+              }
             }
-            execute {
-              self.payer.setCode(${p => p.code})
-            }
-          }
-        `,
-      ]), [
-        sdk.resolve([
-          sdk.resolveParams,
-          sdk.resolveAccounts,
-          sdk.resolveSignatures,
-        ]),
-      ]), { node: "http://localhost:8080" });
-      console.log('got update contract response 1', response.transactionId);
+          `,
+        ]), [
+          sdk.resolve([
+            sdk.resolveParams,
+            sdk.resolveAccounts,
+            sdk.resolveSignatures,
+          ]),
+        ]), { node: "http://localhost:8080" });
+        console.log('got update contract response 1', response.transactionId);
 
-      const response2 = await sdk.send(await sdk.pipe(await sdk.build([
-        sdk.getTransactionStatus(response.transactionId),
-      ]), [
-        sdk.resolve([
-          sdk.resolveParams,
-        ]),
-      ]), { node: "http://localhost:8080" });
-      console.log('got update contract response 2', response2);
+        const response2 = await sdk.send(await sdk.pipe(await sdk.build([
+          sdk.getTransactionStatus(response.transactionId),
+        ]), [
+          sdk.resolve([
+            sdk.resolveParams,
+          ]),
+        ]), { node: "http://localhost:8080" });
+        console.log('got update contract response 2', response2);
 
-      // addr2 = response2.transaction.events.length >= 1 ? response2.transaction.events[0].payload.value.fields[0].value.value.slice(2) : null;
-      _setCorsHeaders(res);
-      res.end(JSON.stringify({
-        updated: true,
-        address: oldContract.address,
-        keys: oldContract.keys,
-      }, null, 2));
+        // addr2 = response2.transaction.events.length >= 1 ? response2.transaction.events[0].payload.value.fields[0].value.value.slice(2) : null;
+        _setCorsHeaders(res);
+        res.end(JSON.stringify({
+          updated: true,
+          address: oldContract.address,
+          keys: oldContract.keys,
+        }, null, 2));
+      } else {
+        res.end(JSON.stringify({
+          address: oldContract.address,
+          keys: oldContract.keys,
+        }, null, 2));
+      }
     }
   } else {
     _respond(404, 'not found');
