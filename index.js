@@ -76,7 +76,7 @@ const gridChannels = {};
 const webaverseChannels = {};
 const webaverseTmpChannels = {};
 
-const fcl = require('./fcl.js');
+// const fcl = require('./fcl.js');
 const sdk = require('./sdk.js');
 const t = require('./types.js');
 const {genKeys} = require('./create-flow-account.js');
@@ -621,18 +621,15 @@ const _handleContracts = async (req, res) => {
       const seqNum = acctResponse.account.keys[0].sequenceNumber;
 
       const response = await sdk.send(await sdk.pipe(await sdk.build([
-
         sdk.params([
           sdk.param(keys2.flowKey, t.Identity, "publicKey"),
           sdk.param(code ? ('[' + new TextEncoder().encode(code).map(n => '0x' + n.toString(16)).join(',') + ']') : '', t.Identity, "code"),
           sdk.param(q.userFlowKey || '', t.Identity, "userFlowKey"),
         ]),
-
         sdk.authorizations([sdk.authorization(serviceAddress, sf, 0)]),
         sdk.payer(sdk.authorization(serviceAddress, sf, 0)),
         sdk.proposer(sdk.authorization(serviceAddress, sf, 0, seqNum)),
         sdk.limit(100),
-
         sdk.transaction`
           transaction {
             let payer: AuthAccount
@@ -654,10 +651,20 @@ const _handleContracts = async (req, res) => {
           sdk.resolveSignatures,
         ]),
       ]), { node: "http://localhost:8080" });
-      const seal = await fcl.tx(response).onceSealed();
-      addr2 = seal.events.length >= 1 ? seal.events[0].data.address.slice(2) : null;
+      console.log('got contract response 1', response.transactionId);
+
+      const response2 = await sdk.send(await sdk.pipe(await sdk.build([
+        sdk.getTransactionStatus(response.transactionId),
+      ]), [
+        sdk.resolve([
+          sdk.resolveParams,
+        ]),
+      ]), { node: "http://localhost:8080" });
+      console.log('got contract response 2', response2.transaction);
+
+      // addr2 = seal.events.length >= 1 ? seal.events[0].data.address.slice(2) : null;
       // sf2 = signingFunction(keys2.privateKey);
-      console.log('seal 1', seal, addr2);
+      // console.log('seal 1', seal, addr2);
       _setCorsHeaders(res);
       res.end(JSON.stringify({
         address: addr2,
