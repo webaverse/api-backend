@@ -76,7 +76,6 @@ const gridChannels = {};
 const webaverseChannels = {};
 const webaverseTmpChannels = {};
 
-// const fcl = require('./fcl.js');
 const sdk = require('./sdk.js');
 const t = require('./types.js');
 const {genKeys} = require('./create-flow-account.js');
@@ -660,9 +659,9 @@ const _handleContracts = async (req, res) => {
           sdk.resolveParams,
         ]),
       ]), { node: "http://localhost:8080" });
-      console.log('got contract response 2', response2.transaction);
+      console.log('got contract response 2', response2);
 
-      // addr2 = seal.events.length >= 1 ? seal.events[0].data.address.slice(2) : null;
+      addr2 = response2.transaction.events.length >= 1 ? response2.transaction.events[0].payload.value.fields[0].value.value.slice(2) : null;
       // sf2 = signingFunction(keys2.privateKey);
       // console.log('seal 1', seal, addr2);
       _setCorsHeaders(res);
