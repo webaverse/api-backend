@@ -980,6 +980,7 @@ const _handleContracts = async (req, res) => {
           keys: oldContract.keys,
         }, null, 2));
       } else {
+        _setCorsHeaders(res);
         res.end(JSON.stringify({
           address: oldContract.address,
           keys: oldContract.keys,
