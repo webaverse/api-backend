@@ -11,7 +11,7 @@ Node server hosted on AWS, mainly used for REST endpoints.
 ```
 {
     "accessKeyId": "<ACCESS_KEY_ID>",
-    "secretAccessKey": "<SECRET_ACCESS_KEY"
+    "secretAccessKey": "<SECRET_ACCESS_KEY>"
 }
 ```
 
