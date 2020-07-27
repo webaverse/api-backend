@@ -4,11 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "sudo $(which node) $(which forever) start index.js",
-    "stop": "sudo $(which node) $(which forever) stop index.js",
-    "start-browser": "sudo xvfb-run $(which node) index.js",
+    "start": "sudo cross-env NODE_ENV=production $(which node) $(which forever) start index.js",
+    "stop": "sudo cross-env NODE_ENV=production $(which node) $(which forever) stop index.js",
+    "start-browser": "sudo cross-env NODE_ENV=production xvfb-run $(which node) index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon index.js"
+    "dev": "cross-env NODE_ENV=development nodemon index.js"
   },
   "repository": {
     "type": "git",
@@ -34,6 +34,7 @@
   },
   "devDependencies": {
     "forever": "^3.0.0",
-    "nodemon": "^2.0.4"
+    "nodemon": "^2.0.4",
+    "cross-env": "^7.0.2"
   }
 }

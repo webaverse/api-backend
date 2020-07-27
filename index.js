@@ -24,6 +24,8 @@ const Base64Encoder = require('./encoder.js').Encoder;
 const {JSONServer, CustomEvent} = require('./dist/sync-server.js');
 const {SHA3} = require('sha3');
 const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, stripeClientId, stripeClientSecret} = require('./config.json');
+const { env } = require('./constants.js');
+
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
     accessKeyId,
@@ -3896,7 +3898,7 @@ try {
   } else if (o.host === 'presence-tmp.exokit.org') {
     _handlePresence(req, res, webaverseTmpChannels);
     return;
-  } else if (o.host === 'ipfs.exokit.org' || o.path.slice(0, 6) === '/ipfs/') {
+  } else if (o.host === 'ipfs.exokit.org' || (o.path.slice(0, 6) === '/ipfs/' && env === 'dev')) {
     _handleIpfs(req, res);
     return;
   } else if (o.host === 'upload.exokit.org') {
