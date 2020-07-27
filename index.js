@@ -736,7 +736,7 @@ const _handleIpfs = async (req, res) => {
         res.setHeader('Content-Type', type);
         const s3Object = await getObject(bucketNames.ipfs, fileName);
         if (s3Object.code !== 'NoSuchKey') {
-          s3Object.Body.toString('utf-8').pipe(res);
+          s3Object.Body.pipe(res);
         }
         else {
           _respond(404, JSON.stringify({
