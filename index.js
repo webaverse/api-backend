@@ -729,8 +729,7 @@ const _handleIpfs = async (req, res) => {
     }
     else if (method === 'GET') {
       if (fileName) {
-        const type = mime.getType(ext) || 'application/octet-stream';
-        const ext = mime.getExtension(type); 
+        const type = mime.getType(fileName) || 'application/octet-stream';
         const s3Object = await getObject(bucketNames.ipfs, fileName);
         if (s3Object.code !== 'NoSuchKey') {        
           _setCorsHeaders(res);
