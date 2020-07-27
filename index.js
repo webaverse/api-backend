@@ -1,3 +1,4 @@
+const { getObject, uploadObject } = require('./aws.js');
 const path = require('path');
 const stream = require('stream');
 const fs = require('fs');
@@ -8,7 +9,6 @@ const https = require('https');
 const crypto = require('crypto');
 const zlib = require('zlib');
 const child_process = require('child_process');
-
 const mkdirp = require('mkdirp');
 // const express = require('express');
 const httpProxy = require('http-proxy');
@@ -69,6 +69,7 @@ const bucketNames = {
   packages: 'packages.exokit.org',
   users: 'users.exokit.org',
   scenes: 'scenes.exokit.org',
+  ipfs: 'ipfs.exokit.org'
 };
 const tableName = 'users';
 const channels = {};
@@ -564,7 +565,148 @@ const _handlePackages = _handleCrud(bucketNames.packages);
 const _handleUsers = _handleCrud(bucketNames.users);
 const _handleScenes = _handleCrud(bucketNames.scenes);
 
-const _handleIpfs = async (req, res, channels) => {
+// const _handleIpfs = async (req, res, channels) => {
+//   const _respond = (statusCode, body) => {
+//     res.statusCode = statusCode;
+//     _setCorsHeaders(res);
+//     res.end(body);
+//   };
+//   const _setCorsHeaders = res => {
+//     res.setHeader('Access-Control-Allow-Origin', '*');
+//     res.setHeader('Access-Control-Allow-Headers', '*');
+//     res.setHeader('Access-Control-Allow-Methods', '*');
+//   };
+//   const _timeoutChildProcess = (req, cp) => {
+//     let timeout;
+//     const _kickTimeout = () => {
+//       if (timeout) {
+//         clearTimeout(timeout);
+//       }
+//       timeout = setTimeout(() => {
+//         console.log('child process timed out');
+//         cp.kill();
+//       }, 10*1000);
+//     };
+//     _kickTimeout();
+//     req.on('data', d => {
+//       _kickTimeout();
+//     });
+//     cp.stdout.on('data', d => {
+//       _kickTimeout();
+//     });
+//     cp.on('exit', () => {
+//       clearTimeout(timeout);
+//     });
+//   };
+
+// try {
+//   const {method} = req;
+//   let {pathname: p} = url.parse(req.url);
+//   // console.log('ipfs request', {method, p});
+
+//   p = p.replace(/^\/ipfs/, '');
+
+//   console.log(p)
+
+//   if (method === 'OPTIONS') {
+//     // res.statusCode = 200;
+//     _setCorsHeaders(res);
+//     res.end();
+//   } else if (method === 'GET') {
+//     const match = p.match(/^\/([a-z0-9]*?)(\.[a-z0-9]*)?$/i);
+//     if (match) {
+//       const hash = match[1];
+//       const ext = match[2];
+//       const type = mime.getType(ext) || 'application/octet-stream';
+
+//       _setCorsHeaders(res);
+//       res.setHeader('Content-Type', type);
+      
+//       const cp = child_process.spawn('ipfs', [
+//         'cat',
+//         hash, // /
+//       ]);
+//       let rs = cp.stdout;
+//       /*if (req.headers['accept-encoding'] && /br/.test(req.headers['accept-encoding'])) {
+//         rs = rs.pipe(zlib.BrotliCompress());
+//         res.setHeader('Content-Encoding', 'br');
+//       } else */if (req.headers['accept-encoding'] && /gzip/.test(req.headers['accept-encoding'])) {
+//         rs = rs.pipe(zlib.Gzip());
+//         res.setHeader('Content-Encoding', 'gzip');
+//       }
+//       rs.pipe(res);
+//       cp.stderr.pipe(process.stdout);
+//       cp.once('error', err => {
+//         res.statusCode = 500;
+//         res.end(err.stack);
+//       });
+//       let live = true;
+//       cp.once('exit', err => {
+//         live = false;
+//       });
+//       req.once('close', () => {
+//         if (live) {
+//           cp.kill();
+//         }
+//       });
+//       res.once('close', () => {
+//         if (live) {
+//           cp.kill();
+//         }
+//       });
+//       _timeoutChildProcess(req, cp);
+//     } else {
+//       _respond(404, JSON.stringify({
+//         error: 'not found',
+//       }));
+//     }
+//   } else if (method === 'PUT' && p === '/') {
+//     _setCorsHeaders(res);
+//     res.setHeader('Content-Type', 'application/json');
+    
+//     const cp = child_process.spawn('ipfs', [
+//       'add',
+//       '-Q',
+//     ]);
+//     req.pipe(cp.stdin);
+//     cp.stdout.setEncoding('utf8');
+//     let hash = '';
+//     cp.stdout.on('data', d => {
+//       hash += d.replace(/\s+/g, '');
+//     });
+//     cp.stdout.once('end', () => {
+//       if (hash) {
+//         res.end(JSON.stringify({
+//           hash,
+//         }));
+//       } else {
+//         res.statusCode = 500;
+//         res.end({
+//           error: 'failed to get hash',
+//         });
+//       }
+//     });
+//     cp.stderr.pipe(process.stdout);
+//     cp.on('error', err => {
+//       res.statusCode = 500;
+//       res.end(err.stack);
+//     });
+//     _timeoutChildProcess(req, cp);
+//   } else {
+//     _respond(404, JSON.stringify({
+//       error: 'not found',
+//     }));
+//   }
+// } catch(err) {
+//   console.warn(err);
+
+//   _respond(500, JSON.stringify({
+//     error: err.stack,
+//   }));
+// }
+// };
+
+const _handleIpfs = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -575,133 +717,52 @@ const _handleIpfs = async (req, res, channels) => {
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
-  const _timeoutChildProcess = (req, cp) => {
-    let timeout;
-    const _kickTimeout = () => {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-      timeout = setTimeout(() => {
-        console.log('child process timed out');
-        cp.kill();
-      }, 10*1000);
-    };
-    _kickTimeout();
-    req.on('data', d => {
-      _kickTimeout();
-    });
-    cp.stdout.on('data', d => {
-      _kickTimeout();
-    });
-    cp.on('exit', () => {
-      clearTimeout(timeout);
-    });
-  };
 
-try {
-  const {method} = req;
-  let {pathname: p} = url.parse(req.url);
-  // console.log('ipfs request', {method, p});
+  try {
+      const { method } = req;
+      const { pathname: p } = url.parse(req.url);
+      const fileName = p.replace(/^\/ipfs/, '');
 
-  p = p.replace(/^\/ipfs/, '');
-
-  if (method === 'OPTIONS') {
-    // res.statusCode = 200;
-    _setCorsHeaders(res);
-    res.end();
-  } else if (method === 'GET') {
-    const match = p.match(/^\/([a-z0-9]*?)(\.[a-z0-9]*)?$/i);
-    if (match) {
-      const hash = match[1];
-      const ext = match[2];
-      const type = mime.getType(ext) || 'application/octet-stream';
-
+    if (method === 'OPTIONS') {
       _setCorsHeaders(res);
-      res.setHeader('Content-Type', type);
-      
-      const cp = child_process.spawn('ipfs', [
-        'cat',
-        hash, // /
-      ]);
-      let rs = cp.stdout;
-      /*if (req.headers['accept-encoding'] && /br/.test(req.headers['accept-encoding'])) {
-        rs = rs.pipe(zlib.BrotliCompress());
-        res.setHeader('Content-Encoding', 'br');
-      } else */if (req.headers['accept-encoding'] && /gzip/.test(req.headers['accept-encoding'])) {
-        rs = rs.pipe(zlib.Gzip());
-        res.setHeader('Content-Encoding', 'gzip');
-      }
-      rs.pipe(res);
-      cp.stderr.pipe(process.stdout);
-      cp.once('error', err => {
-        res.statusCode = 500;
-        res.end(err.stack);
-      });
-      let live = true;
-      cp.once('exit', err => {
-        live = false;
-      });
-      req.once('close', () => {
-        if (live) {
-          cp.kill();
-        }
-      });
-      res.once('close', () => {
-        if (live) {
-          cp.kill();
-        }
-      });
-      _timeoutChildProcess(req, cp);
-    } else {
-      _respond(404, JSON.stringify({
-        error: 'not found',
-      }));
+      res.end();
     }
-  } else if (method === 'PUT' && p === '/') {
-    _setCorsHeaders(res);
-    res.setHeader('Content-Type', 'application/json');
-    
-    const cp = child_process.spawn('ipfs', [
-      'add',
-      '-Q',
-    ]);
-    req.pipe(cp.stdin);
-    cp.stdout.setEncoding('utf8');
-    let hash = '';
-    cp.stdout.on('data', d => {
-      hash += d.replace(/\s+/g, '');
-    });
-    cp.stdout.once('end', () => {
-      if (hash) {
-        res.end(JSON.stringify({
-          hash,
-        }));
-      } else {
-        res.statusCode = 500;
-        res.end({
-          error: 'failed to get hash',
-        });
+    else if (method === 'GET') {
+      const match = fileName.match(/^\/([a-z0-9]*?)(\.[a-z0-9]*)?$/i);
+      if (match) {
+        const ext = match[2];
+        const type = mime.getType(ext) || 'application/octet-stream';
+        _setCorsHeaders(res);
+        res.setHeader('Content-Type', type);
+        const s3Object = await getObject(bucketNames.ipfs, fileName);
+        if (s3Object.code !== 'NoSuchKey') {
+          s3Object.Body.toString('utf-8').pipe(res);
+        }
+        else {
+          _respond(404, JSON.stringify({
+            error: 'File not found',
+          }));  
+        }
       }
-    });
-    cp.stderr.pipe(process.stdout);
-    cp.on('error', err => {
-      res.statusCode = 500;
-      res.end(err.stack);
-    });
-    _timeoutChildProcess(req, cp);
-  } else {
-    _respond(404, JSON.stringify({
-      error: 'not found',
+      else {
+        _respond(405, JSON.stringify({
+          message: 'File type not allowed',
+        }));    
+      }
+    }
+    else if (method === 'PUT') {
+      _setCorsHeaders(res);
+      res.setHeader('Content-Type', 'application/json');
+      req.pipe(uploadObject(bucketNames.ipfs, fileName))
+    }
+  }
+  catch(e) {
+    console.warn(e);
+    _respond(500, JSON.stringify({
+      error: e.stack,
     }));
   }
-} catch(err) {
-  console.warn(err);
-
-  _respond(500, JSON.stringify({
-    error: err.stack,
-  }));
 }
-};
 
 const _fetchPrefix = prefix => {
   // console.log('got prefix', prefix);
@@ -711,6 +772,7 @@ const _fetchPrefix = prefix => {
     Prefix: prefix,
   }).promise();
 };
+
 const _fetchRecursive = async prefix => {
   const results = [];
   const _recurse = async p => {
@@ -3836,7 +3898,7 @@ try {
   } else if (o.host === 'presence-tmp.exokit.org') {
     _handlePresence(req, res, webaverseTmpChannels);
     return;
-  } else if (o.host === 'ipfs.exokit.org') {
+  } else if (o.host === 'ipfs.exokit.org' || o.path.slice(0, 6) === '/ipfs/') {
     _handleIpfs(req, res);
     return;
   } else if (o.host === 'upload.exokit.org') {
