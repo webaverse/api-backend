@@ -728,14 +728,13 @@ const _handleIpfs = async (req, res) => {
       res.end();
     }
     else if (method === 'GET') {
-      const match = fileName.match(/^\/([a-z0-9]*?)(\.[a-z0-9]*)?$/i);
-      if (match) {
-        const ext = match[2];
+      if (fileName) {
         const type = mime.getType(ext) || 'application/octet-stream';
-        _setCorsHeaders(res);
-        res.setHeader('Content-Type', type);
+        const ext = mime.getExtension(type); 
         const s3Object = await getObject(bucketNames.ipfs, fileName);
-        if (s3Object.code !== 'NoSuchKey') {
+        if (s3Object.code !== 'NoSuchKey') {        
+          _setCorsHeaders(res);
+          res.setHeader('Content-Type', type);
           s3Object.Body.pipe(res);
         }
         else {
@@ -746,7 +745,7 @@ const _handleIpfs = async (req, res) => {
       }
       else {
         _respond(405, JSON.stringify({
-          message: 'File type not allowed',
+          message: 'Filename does not meet requirments.',
         }));    
       }
     }
