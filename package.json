@@ -9,7 +9,7 @@
     "start-browser": "sudo xvfb-run $(which node) index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "cross-env NODE_ENV=development nodemon index.js",
-    "migrate": "nodemon ipfsMigration.js"
+    "migrate": "node ipfsMigration.js"
   },
   "repository": {
     "type": "git",
