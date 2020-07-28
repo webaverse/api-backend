@@ -8,7 +8,8 @@
     "stop": "sudo $(which node) $(which forever) stop index.js",
     "start-browser": "sudo xvfb-run $(which node) index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon index.js"
+    "dev": "cross-env NODE_ENV=development nodemon index.js",
+    "migrate": "nodemon ipfsMigration.js"
   },
   "repository": {
     "type": "git",
@@ -22,8 +23,10 @@
   "homepage": "https://github.com/modulesio/webaverse-server#readme",
   "dependencies": {
     "aws-sdk": "^2.719.0",
+    "bl": "^4.0.2",
     "discord.js": "^12.2.0",
     "http-proxy": "^1.18.1",
+    "ipfs": "^0.48.1",
     "lru": "^3.1.0",
     "mime": "^2.4.6",
     "mkdirp": "^1.0.4",
