@@ -12,10 +12,7 @@ const s3 = new AWS.S3(awsConfig);
 
 const getObject = (bucket, key) => {
     return new Promise(async (resolve, reject) => {
-        const params = {
-            Bucket: bucket,
-            Key: key
-        };
+        const params = { Bucket: bucket, Key: key };
         s3.getObject(params, (error, data) => {
             if (error) {
                 resolve(error)
