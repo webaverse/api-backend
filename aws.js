@@ -38,12 +38,26 @@ const uploadObject = (bucket, key) => {
             else {
                 resolve(data)
             }
-        });   
+        });
     })
+}
 
+const putObject = (bucket, key, data) => {
+    return new Promise(async (resolve, reject) => {
+        const params = { Body: data, Bucket: bucket, Key: key };
+        s3.putObject(params, (error, data) => {
+            if (error) {
+                reject(error)
+            }
+            else {
+                resolve(data)
+            }
+        });
+    })
 }
 
 module.exports = {
     getObject,
-    uploadObject
+    uploadObject,
+    putObject
 }
