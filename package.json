@@ -8,7 +8,6 @@
     "stop": "sudo $(which node) $(which forever) stop index.js",
     "start-browser": "sudo xvfb-run $(which node) index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "cross-env NODE_ENV=development nodemon index.js",
     "migrate": "node ipfsMigration.js"
   },
   "repository": {
