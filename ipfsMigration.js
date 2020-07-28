@@ -1,5 +1,6 @@
 const { putObject } = require('./aws.js')
 const fetch = require('node-fetch');
+const mime = require('mime');
 
 const main = async () => {
     const listRes = await fetch('https://packages.exokit.org/')
@@ -8,12 +9,10 @@ const main = async () => {
         const detailsRes = await fetch(`https://packages.exokit.org/${package}`)
         const details = await detailsRes.json()
         const webBundle = await fetch(`https://ipfs.exokit.org/ipfs/${details.dataHash}`)
-        console.log(webBundle)
-        // upload to s3
-        details.icons.forEach((icon) => {
+        const s3BundleRes = await putObject('ipfs.exokit.org', `${details.dataHash}.wbn`, webBundle.toString())
+        details.icons.forEach(async (icon) => {
             const preview = await fetch(`https://ipfs.exokit.org/ipfs/${icon.hash}`)
-            console.log(preview)
-            // upload to s3
+            const s3IconRes = await putObject('ipfs.exokit.org', `${icon.hash}.${mime.getExtension(icon.type)}`, preview.toString())
         })
     })
 }
