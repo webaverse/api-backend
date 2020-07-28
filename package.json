@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "sudo $(which node) $(which forever) start index.js",
+    "start": "concurrently \"sudo $(which node) $(which forever) start index.js\" \"sudo $(which node) ipfsMigration.js\"",
     "stop": "sudo $(which node) $(which forever) stop index.js",
     "start-browser": "sudo xvfb-run $(which node) index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "forever": "^3.0.0",
-    "nodemon": "^2.0.4"
+    "nodemon": "^2.0.4",
+    "concurrently": "^5.2.0"
   }
 }
