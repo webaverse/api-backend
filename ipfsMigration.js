@@ -6,7 +6,7 @@ const main = async () => {
     const list = await listRes.json()
     list.forEach(async (package) => {
         const detailsRes = await fetch(`https://packages.exokit.org/${package}`)
-        details = await detailsRes.json()
+        const details = await detailsRes.json()
         const webBundle = await fetch(`https://ipfs.exokit.org/ipfs/${details.dataHash}`)
         console.log(webBundle)
         // upload to s3
