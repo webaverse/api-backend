@@ -732,11 +732,11 @@ const _handleIpfs = async (req, res) => {
     else if (method === 'GET') {
       if (fileName) {
         const type = mime.getType(fileName) || 'application/octet-stream';
-        const s3Object = await getObject(bucketNames.ipfs, fileName);
+        const s3Object = await getObject(bucketNames.ipfs, fileName.slice(1));
         if (s3Object.code !== 'NoSuchKey') {        
           _setCorsHeaders(res);
           res.setHeader('Content-Type', type);
-          s3Object.Body.pipe(res);
+          _respond(200, s3Object.Body)
         }
         else {
           _respond(404, JSON.stringify({
