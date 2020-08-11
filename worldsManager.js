@@ -29,7 +29,7 @@ const fetchWorldList = () => {
         if (!error) {
             data.Reservations[0].Instances.forEach(instance => {
                 instance.Tags.forEach(tag => {
-                    if (tag.Key === 'Name') {
+                    if (tag.Name === 'Purpose' && tag.Value === 'world') {
                         worldMap.set(tag.Value, instance)
                     }
                 })
@@ -74,17 +74,16 @@ const _handleWorldsRequest = (req, res) => {
             };
             EC2.runInstances(instanceParams, (error, data) => {
                 if (!error) {
-                    console.log('New World Instance:', data);
+                    // console.log('New World Instance:', data);
                     const conn = new Client();
                     ssh.on('ready', function () {
-                        console.log('Client :: ready');
                         conn.sftp(function (err, sftp) {
-                            if (err) throw err;
-                            sftp.readdir('foo', function (err, list) {
-                                if (err) throw err;
-                                console.dir(list);
-                                conn.end();
-                            });
+                            // if (err) throw err;
+                            // sftp.readdir('foo', function (err, list) {
+                            //     if (err) throw err;
+                            //     console.dir(list);
+                            //     conn.end();
+                            // });
                         }).connect({
                             host: data.Instances[0].PrivateIpAddress,
                             port: 22,
@@ -92,14 +91,13 @@ const _handleWorldsRequest = (req, res) => {
                             privateKey: require('fs').readFileSync('/here/is/my/key')
                         });
                         const newWorld = {
-                            uuid: uuid,
-                            instanceId: data.Instances[0].InstanceId,
-                            privateIp: data.Instances[0].PrivateIpAddress,
+                            worldName: 'world' + uuid,
                             launchTime: data.Instances[0].LaunchTime
                         }
                         res.statusCode = 200;
                         res.end(JSON.stringify(newWorld));
-                    }
+                    })
+                }
                 else {
                     console.error(error, error.stack)
                     res.statusCode = 500;
