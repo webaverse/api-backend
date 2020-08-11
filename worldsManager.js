@@ -26,7 +26,7 @@ const fetchWorldList = () => {
         ]
     };
     EC2.describeInstances(describeParams, (error, data) => {
-        if (!error) {
+        if (!error && data.Reservations.length > 0) {
             data.Reservations[0].Instances.forEach(instance => {
                 instance.Tags.forEach(tag => {
                     if (tag.Name === 'Purpose' && tag.Value === 'world') {
@@ -76,19 +76,26 @@ const _handleWorldsRequest = (req, res) => {
                 if (!error) {
                     // console.log('New World Instance:', data);
                     const conn = new Client();
-                    ssh.on('ready', function () {
-                        conn.sftp(function (err, sftp) {
-                            // if (err) throw err;
-                            // sftp.readdir('foo', function (err, list) {
-                            //     if (err) throw err;
-                            //     console.dir(list);
-                            //     conn.end();
-                            // });
+                    conn.on('ready', function () {
+                        conn.sftp(function (error, sftp) {
+                            if (!error) {
+                                sftp.fastPut('./worldSrc/package.json', '~/worldSrc', (error, data) =>{
+                                    if (!error) {
+                                        console.log(data)
+                                    }
+                                    else{
+                                        console.error(error, error.stack)
+                                    }
+                                })
+                            }
+                            else {
+                                console.error(error, error.stack)
+                            }
                         }).connect({
                             host: data.Instances[0].PrivateIpAddress,
                             port: 22,
                             username: 'ubuntu',
-                            privateKey: require('fs').readFileSync('/here/is/my/key')
+                            privateKey: require('fs').readFileSync('./keys/server.pem')
                         });
                         const newWorld = {
                             worldName: 'world-' + uuid,
