@@ -91,7 +91,7 @@ const _handleWorldsRequest = (req, res) => {
                             privateKey: require('fs').readFileSync('/here/is/my/key')
                         });
                         const newWorld = {
-                            worldName: 'world' + uuid,
+                            worldName: 'world-' + uuid,
                             launchTime: data.Instances[0].LaunchTime
                         }
                         res.statusCode = 200;
