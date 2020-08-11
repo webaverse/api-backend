@@ -7,7 +7,7 @@ const awsConfig = new AWS.Config({
     }),
     region: 'us-west-1',
 });
-const s3 = new AWS.S3(awsConfig);
+const ec2 = new AWS.EC2(awsConfig);
 
 // handles tracking and monitoring of worlds, reboots and errors.
 const __worldsManager = (req) => {
@@ -28,7 +28,53 @@ const __handleWorldsRequest = (req, res) => {
     };
 
     try {
+        const { method } = req;
+        if (method === 'GET') {
+            const instanceParams = {
+                ImageId: 'AMI_ID',
+                InstanceType: 't2.micro',
+                KeyName: 'KEY_PAIR_NAME',
+                MinCount: 1,
+                MaxCount: 1
+            };
+            const instancePromise = new AWS.EC2(awsConfig).runInstances(instanceParams).promise();
+            instancePromise.then(data => {
+                console.log(data);
+                const instanceId = data.Instances[0].InstanceId;
+                console.log("Created instance", instanceId);
+                // Add tags to the instance
+                const tagParams = {
+                    Resources: [instanceId], 
+                    Tags: [
+                        {
+                            Key: 'Name',
+                            Value: 'SDK Sample'
+                        }
+                    ]
+                };
+                // Create a promise on an EC2 service object
+                const tagPromise = new AWS.EC2(awsConfig).createTags(tagParams).promise();
+                // Handle promise's fulfilled/rejected states
+                tagPromise.then(data => {
+                    console.log("Instance tagged");
+                })
+                .catch(err => {
+                    console.error(err, err.stack);
+                });
+            })
+            .catch(e => {
+                console.error(err, err.stack);
+            });
+        }
+        else if (method === 'POST') {
 
+        }
+        else if (method === 'DELETE') {
+
+        }   
+        else {
+            
+        }
     }
 
     catch (e) {
