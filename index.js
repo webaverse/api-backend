@@ -53,6 +53,8 @@ const bip39 = require('./bip39.js');
 const ethUtil = require('./ethereumjs-util.js');
 const api = require('./api.js');
 
+const { _handleWorldsRequest } = require('./worldsManager.js');
+
 const CERT = fs.readFileSync('./cert/fullchain.pem');
 const PRIVKEY = fs.readFileSync('./cert/privkey.pem');
 
@@ -3909,10 +3911,9 @@ try {
   } else if (o.host === 'tokens.exokit.org') {
     _handleTokens(req, res);
     return;
-  } /* else if (o.host === 'browser.exokit.org') {
-    _handleBrowser(req, res);
-    return;
-  } */
+  } else if (o.host === 'worlds.exokit.org' || o.path.split('/')[1] === 'worlds') {
+    _handleWorldsRequest(req, res)
+  }
 
   if (match = o.host.match(/^(.+)\.proxy\.exokit.org$/)) {
     const raw = match[1];

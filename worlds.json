@@ -1,0 +1,10 @@
+{
+    "worlds": [
+        {
+            "uuid": "4dc1d4c8-1622-4369-b897-5f0265bc311d",
+            "instanceId": "i-0f0cf62450c33310b",
+            "privateIp": "172.31.23.72",
+            "launchTime": "2020-08-11T06:23:29.000Z"
+        }
+    ]
+}

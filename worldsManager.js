@@ -1,4 +1,5 @@
 const AWS = require('aws-sdk');
+const { v4: uuidv4 } = require('uuid');
 const { accessKeyId, secretAccessKey } = require('./config.json');
 const awsConfig = new AWS.Config({
     credentials: new AWS.Credentials({
@@ -7,71 +8,58 @@ const awsConfig = new AWS.Config({
     }),
     region: 'us-west-1',
 });
-const ec2 = new AWS.EC2(awsConfig);
 
-// handles tracking and monitoring of worlds, reboots and errors.
-const __worldsManager = () => {
-
-}
+const EC2 = new AWS.EC2(awsConfig);
 
 // Routes API requests for interfacing with worlds.
-const __handleWorldsRequest = (req, res) => {
-    const _respond = (statusCode, body) => {
-        res.statusCode = statusCode;
-        _setCorsHeaders(res);
-        res.end(body);
-    };
-    const _setCorsHeaders = res => {
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Headers', '*');
-        res.setHeader('Access-Control-Allow-Methods', '*');
-    };
-
+const _handleWorldsRequest = (req, res) => {
     try {
         const { method } = req;
         if (method === 'POST') {
+            const uuid = uuidv4();
             const instanceParams = {
-                ImageId: 'AMI_ID',
-                InstanceType: 't2.micro',
-                KeyName: 'KEY_PAIR_NAME',
+                ImageId: 'ami-0cd230f950c3de5d8',
+                InstanceType: 't2.nano',
+                KeyName: 'Exokit',
                 MinCount: 1,
-                MaxCount: 1
+                MaxCount: 1,
+                TagSpecifications: [
+                    {
+                        ResourceType: "instance",
+                        Tags: [
+                            {
+                                Key: "Name",
+                                Value: "world-" + uuid
+                            }
+                        ]
+                    }
+                ]
             };
-            const instancePromise = new AWS.EC2(awsConfig).runInstances(instanceParams).promise();
-            instancePromise.then(data => {
-                console.log(data);
-                const instanceId = data.Instances[0].InstanceId;
-                console.log("Created instance", instanceId);
-                // Add tags to the instance
-                const tagParams = {
-                    Resources: [instanceId], 
-                    Tags: [
-                        {
-                            Key: 'Name',
-                            Value: 'SDK Sample'
-                        }
-                    ]
-                };
-                // Create a promise on an EC2 service object
-                const tagPromise = new AWS.EC2(awsConfig).createTags(tagParams).promise();
-                // Handle promise's fulfilled/rejected states
-                tagPromise.then(data => {
-                    console.log("Instance tagged");
-                })
-                .catch(err => {
-                    console.error(err, err.stack);
-                });
+            EC2.runInstances(instanceParams, (error, data) => {
+                if (!error) {
+                    console.log('New World Instance:', data);
+                    const newWorld = {
+                        uuid: uuid,
+                        instanceId: data.Instances[0].InstanceId,
+                        privateIp: data.Instances[0].PrivateIpAddress,
+                        launchTime: data.Instances[0].LaunchTime
+                    }
+                    res.statusCode = 200;
+                    res.end(JSON.stringify(newWorld));
+                }
+                else {
+                    console.error(error, error.stack)
+                    res.statusCode = 500;
+                    res.end()
+                }
             })
-            .catch(e => {
-                console.error(err, err.stack);
-            });
         }
         else if (method === 'GET') {
 
         }
         else if (method === 'DELETE') {
 
-        }   
+        }
         else {
 
         }
@@ -82,8 +70,6 @@ const __handleWorldsRequest = (req, res) => {
     }
 }
 
-__worldsManager();
-
 module.exports = {
-    __handleWorldsRequest
+    _handleWorldsRequest
 };
