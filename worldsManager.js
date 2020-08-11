@@ -1,6 +1,7 @@
 const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
 const Client = require('ssh2').Client;
+const fs = require('fs');
 const { accessKeyId, secretAccessKey } = require('./config.json');
 const awsConfig = new AWS.Config({
     credentials: new AWS.Credentials({
@@ -37,7 +38,7 @@ const fetchWorldList = () => {
             // console.log(worldMap)
         }
         else {
-            console.error(error, error.stack)
+            console.error(error)
         }
     })
 }
@@ -48,6 +49,7 @@ fetchWorldList();
 const _handleWorldsRequest = (req, res) => {
     try {
         const { method } = req;
+        // Create a new ec2 instance, SSH copy the worldSrc into new instance, return host and port.
         if (method === 'POST') {
             const uuid = uuidv4();
             const instanceParams = {
@@ -56,6 +58,9 @@ const _handleWorldsRequest = (req, res) => {
                 KeyName: 'Exokit',
                 MinCount: 1,
                 MaxCount: 1,
+                SecurityGroupIds: [
+                    "sg-0c41f4cc265915ed7"
+                ],
                 TagSpecifications: [
                     {
                         ResourceType: "instance",
@@ -77,37 +82,35 @@ const _handleWorldsRequest = (req, res) => {
                     // console.log('New World Instance:', data);
                     worldMap.set('world-' + uuid, data.Instances[0])
                     const conn = new Client();
-                    conn.on('ready', function () {
-                        conn.sftp(function (error, sftp) {
+                    conn.on('ready', () => {
+                        conn.sftp((error, sftp) => {
                             if (!error) {
-                                sftp.fastPut('./worldSrc/package.json', '~/worldSrc', (error, data) =>{
-                                    if (!error) {
-                                        console.log(data)
-                                    }
-                                    else{
-                                        console.error(error, error.stack)
+                                sftp.fastPut('worldSrc/package.json', '/home/ubuntu/package.json', (error) => {
+                                    if (error) {
+                                        console.error(error)
                                     }
                                 })
                             }
                             else {
-                                console.error(error, error.stack)
+                                console.error(error)
                             }
-                        }).connect({
-                            host: data.Instances[0].PrivateIpAddress,
-                            port: 22,
-                            username: 'ubuntu',
-                            privateKey: require('fs').readFileSync('./keys/server.pem')
-                        });
+                        })
                         const newWorld = {
                             worldName: 'world-' + uuid,
-                            launchTime: data.Instances[0].LaunchTime
+                            launchTime: data.Instances[0].LaunchTime,
                         }
                         res.statusCode = 200;
                         res.end(JSON.stringify(newWorld));
-                    })
+                    }).connect({
+                        // todo: this DNS is missing for some reason in the instance callback, need to fetch public DNS after
+                        host: data.Instances[0].PublicDnsName,
+                        port: 22,
+                        username: 'ubuntu',
+                        privateKey: fs.readFileSync('keys/server.pem')
+                    });
                 }
                 else {
-                    console.error(error, error.stack)
+                    console.error(error)
                     res.statusCode = 500;
                     res.end()
                 }
