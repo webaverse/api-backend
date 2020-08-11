@@ -29,7 +29,7 @@ const fetchWorldList = () => {
         if (!error && data.Reservations.length > 0) {
             data.Reservations[0].Instances.forEach(instance => {
                 instance.Tags.forEach(tag => {
-                    if (tag.Name === 'Purpose' && tag.Value === 'world') {
+                    if (tag.Value.split('-')[0] === 'world') {
                         worldMap.set(tag.Value, instance)
                     }
                 })
@@ -75,6 +75,7 @@ const _handleWorldsRequest = (req, res) => {
             EC2.runInstances(instanceParams, (error, data) => {
                 if (!error) {
                     // console.log('New World Instance:', data);
+                    worldMap.set('world-' + uuid, data.Instances[0])
                     const conn = new Client();
                     conn.on('ready', function () {
                         conn.sftp(function (error, sftp) {
