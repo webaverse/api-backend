@@ -8,8 +8,40 @@ const awsConfig = new AWS.Config({
     }),
     region: 'us-west-1',
 });
-
 const EC2 = new AWS.EC2(awsConfig);
+
+const worldMap = new Map();
+
+// searchs through all of our ec2 instances and makes Map of worlds with their unique name as the key.
+const fetchWorldList = () => {
+    const describeParams = {
+        Filters: [
+            {
+                Name: "tag:Purpose",
+                Values: [
+                    "world"
+                ]
+            }
+        ]
+    };
+    EC2.describeInstances(describeParams, (error, data) => {
+        if (!error) {
+            data.Reservations[0].Instances.forEach(instance => {
+                instance.Tags.forEach(tag => {
+                    if (tag.Key === 'Name') {
+                        worldMap.set(tag.Value, instance)
+                    }
+                })
+            })
+            // console.log(worldMap)
+        }
+        else {
+            console.error(error, error.stack)
+        }
+    })
+}
+
+fetchWorldList();
 
 // Routes API requests for interfacing with worlds.
 const _handleWorldsRequest = (req, res) => {
@@ -30,6 +62,10 @@ const _handleWorldsRequest = (req, res) => {
                             {
                                 Key: "Name",
                                 Value: "world-" + uuid
+                            },
+                            {
+                                Key: "Purpose",
+                                Value: "world"
                             }
                         ]
                     }
