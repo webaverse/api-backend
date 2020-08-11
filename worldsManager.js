@@ -10,7 +10,7 @@ const awsConfig = new AWS.Config({
 const ec2 = new AWS.EC2(awsConfig);
 
 // handles tracking and monitoring of worlds, reboots and errors.
-const __worldsManager = (req) => {
+const __worldsManager = () => {
 
 }
 
@@ -29,7 +29,7 @@ const __handleWorldsRequest = (req, res) => {
 
     try {
         const { method } = req;
-        if (method === 'GET') {
+        if (method === 'POST') {
             const instanceParams = {
                 ImageId: 'AMI_ID',
                 InstanceType: 't2.micro',
@@ -66,14 +66,14 @@ const __handleWorldsRequest = (req, res) => {
                 console.error(err, err.stack);
             });
         }
-        else if (method === 'POST') {
+        else if (method === 'GET') {
 
         }
         else if (method === 'DELETE') {
 
         }   
         else {
-            
+
         }
     }
 
