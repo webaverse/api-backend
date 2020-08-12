@@ -3,7 +3,6 @@ const { v4: uuidv4 } = require('uuid');
 const Client = require('ssh2').Client;
 const fs = require('fs');
 const { accessKeyId, secretAccessKey } = require('./config.json');
-const { wordlists } = require('./bip39');
 const awsConfig = new AWS.Config({
     credentials: new AWS.Credentials({
         accessKeyId,
@@ -129,8 +128,22 @@ const _handleWorldsRequest = async (req, res) => {
             }
         }
         else if (method === 'GET') {
-            res.statusCode = 200;
-            res.end(JSON.stringify({ message: 'lol' }));
+            await getWorldList();
+            // to-do use the proper URL param from request
+            const requestedWorld = worldMap.get('lol');
+            if (requestedWorld) {
+                res.statusCode = 200;
+                res.end(JSON.stringify({
+                    name: requestedWorld.Tags[1].Value,
+                    host: requestedWorld.PublicDnsName,
+                    launchTime: requestedWorld.LaunchTime,
+                }));
+            }
+            else {
+                console.log('World not found :(')
+                res.statusCode = 500;
+                res.end();
+            }
         }
         else if (method === 'DELETE') {
 
@@ -139,7 +152,6 @@ const _handleWorldsRequest = async (req, res) => {
 
         }
     }
-
     catch (e) {
         console.log(e);
     }
