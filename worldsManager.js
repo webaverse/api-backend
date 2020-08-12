@@ -2,6 +2,7 @@ const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
 const Client = require('ssh2').Client;
 const fs = require('fs');
+const download = require('download-git-repo');
 const { accessKeyId, secretAccessKey } = require('./config.json');
 const awsConfig = new AWS.Config({
     credentials: new AWS.Credentials({
@@ -75,10 +76,18 @@ const createNewWorld = () => {
                     const newInstance = worldMap.get('world-' + uuid);
                     const conn = new Client();
                     conn.on('ready', () => {
-                        conn.sftp((error, sftp) => {
+                        conn.sftp(async (error, sftp) => {
                             if (!error) {
-                                sftp.fastPut('worldSrc/package.json', '/home/ubuntu/package.json', (error) => {
-                                    if (error) {
+                                download('https://github.com/webaverse/world-server.git', './world-server', (error) => {
+                                    if (!error) {
+                                        sftp.fastPut('world-server/package.json', '/home/ubuntu/package.json', (error) => {
+                                            if (error) {
+                                                console.error(error)
+                                                reject(error)
+                                            }
+                                        })
+                                    }
+                                    else {
                                         console.error(error)
                                         reject(error)
                                     }
@@ -100,7 +109,7 @@ const createNewWorld = () => {
                         username: 'ubuntu',
                         privateKey: fs.readFileSync('keys/server.pem')
                     });
-                }, 30000)
+                }, 120000)
             }
             else {
                 console.error(error)
@@ -167,7 +176,7 @@ const worldsManager = async () => {
             activeWorlds.set(world.Tags[1].Value, world)
         }
     })
-    console.log(`World Manager Online! ${activeWorlds.size} active World(s)`)
+    console.log(`World Manager Online! ${worldMap.size} total Worlds. ${activeWorlds.size} active Worlds.`)
 }
 
 worldsManager()

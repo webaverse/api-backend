@@ -23,6 +23,7 @@
   "dependencies": {
     "aws-sdk": "^2.719.0",
     "discord.js": "^12.2.0",
+    "download-git-repo": "^3.0.2",
     "http-proxy": "^1.18.1",
     "lru": "^3.1.0",
     "mime": "^2.4.6",
