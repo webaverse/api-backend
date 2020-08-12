@@ -225,9 +225,10 @@ const worldsManager = async () => {
         }
         console.log(`${status.activeWorlds} active Worlds. ${status.bufferedWorlds} buffered Worlds.`);
     } else {
-        // run 2 worlds as buffer, AWS must of been empty, only a case if everything is wiped out
-        createNewWorld(true)
-        createNewWorld(true)
+        // spin up buffers from a empty EC2 AWS library. Only happens if we have no worlds for some reason.
+        for (let i = 0; i < MAX_INSTANCES_BUFFER; i++) {
+            createNewWorld(true)
+        }
     }
 };
 
