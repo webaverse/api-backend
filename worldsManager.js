@@ -12,7 +12,6 @@ const awsConfig = new AWS.Config({
     region: 'us-west-1',
 });
 const EC2 = new AWS.EC2(awsConfig);
-
 const worldMap = new Map();
 
 // searchs through all of our ec2 instances and makes Map of worlds with their unique name as the key.
@@ -29,12 +28,12 @@ const getWorldList = () => {
         EC2.describeInstances(describeParams, (error, data) => {
             if (!error && data.Reservations.length > 0) {
                 data.Reservations.forEach(r => {
-                    worldMap.set(r.Instances[0].Tags[0].Value, r.Instances[0])
-                    resolve(worldMap)
+                    worldMap.set(r.Instances[0].Tags[0].Value, r.Instances[0]);
+                    resolve(worldMap);
                 })
             } else {
-                console.error(error)
-                reject()
+                console.error(error);
+                reject();
             }
         })
     })
@@ -80,25 +79,26 @@ const createNewWorld = () => {
                                 download('https://github.com/webaverse/world-server.git', './world-server', (error) => {
                                     if (!error) {
                                         sftp.fastPut('world-server/package.json', '/home/ubuntu/package.json', (error) => {
-                                            if (error) {
-                                                console.error(error)
-                                                reject(error)
+                                            if (!error) {
+                                                resolve({
+                                                    name: 'world-' + uuid,
+                                                    host: newInstance.PublicDnsName,
+                                                    launchTime: newInstance.LaunchTime,
+                                                })
+                                            } else {
+                                                console.error(error);
+                                                reject(error);
                                             }
                                         })
                                     } else {
-                                        console.error(error)
-                                        reject(error)
+                                        console.error(error);
+                                        reject(error);
                                     }
                                 })
                             } else {
-                                console.error(error)
-                                reject(error)
+                                console.error(error);
+                                reject(error);
                             }
-                        })
-                        resolve({
-                            name: 'world-' + uuid,
-                            host: newInstance.PublicDnsName,
-                            launchTime: newInstance.LaunchTime,
                         })
                     }).connect({
                         host: newInstance.PublicDnsName,
@@ -108,8 +108,8 @@ const createNewWorld = () => {
                     });
                 }, 120000)
             } else {
-                console.error(error)
-                reject(error)
+                console.error(error);
+                reject(error);
             }
         })
     })
@@ -117,17 +117,15 @@ const createNewWorld = () => {
 
 const deleteWorld = (worldUUID) => {
     return new Promise(async (resolve, reject) => {
-        await getWorldList()
-        const instanceToDelete = worldMap.get(worldUUID)
-        console.log(worldMap)
-        console.log(instanceToDelete)
+        await getWorldList();
+        const instanceToDelete = worldMap.get(worldUUID);
         EC2.terminateInstances({ InstanceIds: [instanceToDelete.InstanceId] }, (error, data) => {
             if (!error) {
-                console.log(data)
-                resolve(data)
+                console.log(data);
+                resolve(data);
             } else {
-                console.error(error)
-                reject(error)
+                console.error(error);
+                reject(error);
             }
         })
     })
@@ -141,7 +139,7 @@ const _handleWorldsRequest = async (req, res) => {
         if (method === 'POST') {
             const newWorld = await createNewWorld();
             if (newWorld) {
-                console.log('New World created:', newWorld.name)
+                console.log('New World created:', newWorld.name);
                 res.statusCode = 200;
                 res.end(JSON.stringify(newWorld));
             } else {
@@ -150,9 +148,7 @@ const _handleWorldsRequest = async (req, res) => {
             }
         } else if (method === 'GET') {
             await getWorldList();
-            // to-do use the proper URL param from request
             const requestedWorld = worldMap.get('world-03176ebd-f0cd-4965-a9c5-996680104bcd');
-            console.log(requestedWorld)
             if (requestedWorld) {
                 res.statusCode = 200;
                 res.end(JSON.stringify({
@@ -161,12 +157,12 @@ const _handleWorldsRequest = async (req, res) => {
                     launchTime: requestedWorld.LaunchTime,
                 }));
             } else {
-                console.log('World not found :(')
+                console.log('World not found :(');
                 res.statusCode = 500;
                 res.end();
             }
         } else if (method === 'DELETE') {
-            await deleteWorld('world-c5c2cca8-36ca-453a-a146-371dbcdaeba7')
+            await deleteWorld('world-c5c2cca8-36ca-453a-a146-371dbcdaeba7');
             res.statusCode = 200;
             res.end();
         } else {
@@ -191,7 +187,7 @@ const worldsManager = async () => {
     console.log(`World Manager Online! ${worldMap.size} total Worlds. ${activeWorlds.size} active Worlds.`)
 }
 
-worldsManager()
+worldsManager();
 
 module.exports = {
     _handleWorldsRequest
