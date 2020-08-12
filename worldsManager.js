@@ -12,7 +12,21 @@ const awsConfig = new AWS.Config({
     region: 'us-west-1',
 });
 const EC2 = new AWS.EC2(awsConfig);
+
 const worldMap = new Map();
+const MAX_INSTANCES = 20;
+const MAX_INSTANCES_BUFFER = 2;
+
+const findTag = (tags, key) => {
+    let returnTag = null;
+    tags.forEach(tag => {
+        if (tag.Key === key) {
+            returnTag = tag;
+            return returnTag;
+        }
+    })
+    return returnTag;
+}
 
 // searchs through all of our ec2 instances and makes Map of worlds with their unique name as the key.
 const getWorldList = () => {
@@ -28,18 +42,24 @@ const getWorldList = () => {
         EC2.describeInstances(describeParams, (error, data) => {
             if (!error && data.Reservations.length > 0) {
                 data.Reservations.forEach(r => {
-                    worldMap.set(r.Instances[0].Tags[0].Value, r.Instances[0]);
-                    resolve(worldMap);
+                    const instance = r.Instances[0];
+                    const worldName = findTag(instance.Tags, 'Name')
+                    // running or pending
+                    if (worldName && (instance.State.Code === 16 || instance.State.Code === 0)) {
+                        worldMap.set(worldName.Value, instance);
+                    }
                 })
+                resolve(worldMap);
             } else {
                 console.error(error);
                 reject();
             }
         })
     })
-}
+};
 
-const createNewWorld = () => {
+// Create a new ec2 instance, SSH copy the worldSrc into new instance, return host and port.
+const createNewWorld = (isBuffer) => {
     return new Promise((resolve, reject) => {
         const uuid = uuidv4();
         const instanceParams = {
@@ -62,6 +82,10 @@ const createNewWorld = () => {
                         {
                             Key: "Purpose",
                             Value: "world"
+                        },
+                        {
+                            Key: "IsBuffer",
+                            Value: isBuffer.toString()
                         }
                     ]
                 }
@@ -76,7 +100,7 @@ const createNewWorld = () => {
                     conn.on('ready', () => {
                         conn.sftp(async (error, sftp) => {
                             if (!error) {
-                                download('https://github.com/webaverse/world-server.git', './world-server', (error) => {
+                                download('webaverse/world-server/', './world-server', (error) => {
                                     if (!error) {
                                         sftp.fastPut('world-server/package.json', '/home/ubuntu/package.json', (error) => {
                                             if (!error) {
@@ -106,14 +130,14 @@ const createNewWorld = () => {
                         username: 'ubuntu',
                         privateKey: fs.readFileSync('keys/server.pem')
                     });
-                }, 120000)
+                }, 30000)
             } else {
                 console.error(error);
                 reject(error);
             }
         })
     })
-}
+};
 
 const deleteWorld = (worldUUID) => {
     return new Promise(async (resolve, reject) => {
@@ -135,13 +159,13 @@ const deleteWorld = (worldUUID) => {
 const _handleWorldsRequest = async (req, res) => {
     try {
         const { method } = req;
-        // Create a new ec2 instance, SSH copy the worldSrc into new instance, return host and port.
         if (method === 'POST') {
-            const newWorld = await createNewWorld();
+            const newWorld = await createNewWorld(false);
             if (newWorld) {
                 console.log('New World created:', newWorld.name);
                 res.statusCode = 200;
                 res.end(JSON.stringify(newWorld));
+                // createNewWorld(true); // start new buffer world to replace the one we just gave to user.
             } else {
                 res.statusCode = 500;
                 res.end();
@@ -173,19 +197,37 @@ const _handleWorldsRequest = async (req, res) => {
     catch (e) {
         console.log(e);
     }
+};
+
+const determineWorldBuffer = () => {
+    let activeWorlds = 0;
+    let bufferedWorlds = 0;
+    worldMap.forEach(world => {
+        const isBuffer = findTag(world.Tags, 'IsBuffer').Value === 'true';
+        if (isBuffer) {
+            bufferedWorlds++;
+        } else {
+            activeWorlds++;
+        }
+    })
+    return {
+        activeWorlds: activeWorlds,
+        bufferedWorlds: bufferedWorlds
+    }
 }
 
 const worldsManager = async () => {
-    await getWorldList()
-    const activeWorlds = new Map()
-    worldMap.forEach(world => {
-        // running or pending
-        if (world.State.Code === 16 || world.State.Code === 0) {
-            activeWorlds.set(world.Tags[1].Value, world)
+    await getWorldList();
+    if (worldMap.size > 0) {
+        const status = determineWorldBuffer();
+        if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
+            // createNewWorld(true) // to-do this need to recurse for buffers, this whole manager function should be a update loop thing on a soft 
         }
-    })
-    console.log(`World Manager Online! ${worldMap.size} total Worlds. ${activeWorlds.size} active Worlds.`)
-}
+        console.log(`World Manager Online! ${status.activeWorlds} active Worlds. ${status.bufferedWorlds} buffered Worlds.`);
+    } else {
+        // run 2 worlds as buffer, AWS must of been empty, only a case if everything is wiped out
+    }
+};
 
 worldsManager();
 
