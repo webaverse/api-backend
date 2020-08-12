@@ -17,6 +17,7 @@ const worldMap = new Map();
 const MAX_INSTANCES = 20;
 const MAX_INSTANCES_BUFFER = 2;
 
+// Finds a tag by key in random ordered array of tags.
 const findTag = (tags, key) => {
     let returnTag = null;
     tags.forEach(tag => {
@@ -58,7 +59,7 @@ const getWorldList = () => {
     })
 };
 
-// Create a new ec2 instance, SSH copy the worldSrc into new instance, return host and port.
+// Create a new ec2 instance, pull world-server code from Github, SSH copy the code into new instance, return host and other useful metadata for user.
 const createNewWorld = (isBuffer) => {
     return new Promise((resolve, reject) => {
         const uuid = uuidv4();
@@ -139,6 +140,7 @@ const createNewWorld = (isBuffer) => {
     })
 };
 
+// Finds a world in our Map with the UUID key and terminates the AWS instance
 const deleteWorld = (worldUUID) => {
     return new Promise(async (resolve, reject) => {
         await getWorldList();
@@ -165,7 +167,6 @@ const _handleWorldsRequest = async (req, res) => {
                 console.log('New World created:', newWorld.name);
                 res.statusCode = 200;
                 res.end(JSON.stringify(newWorld));
-                // createNewWorld(true); // start new buffer world to replace the one we just gave to user.
             } else {
                 res.statusCode = 500;
                 res.end();
@@ -199,6 +200,7 @@ const _handleWorldsRequest = async (req, res) => {
     }
 };
 
+// Searches through our Map of worlds, counts the ones who have IsBuffer = true | false attached as AWS instance Tag. Useful for buffer math.
 const determineWorldBuffer = () => {
     let activeWorlds = 0;
     let bufferedWorlds = 0;
@@ -216,6 +218,7 @@ const determineWorldBuffer = () => {
     }
 }
 
+// Polls the world list from AWS. Determines if buffer is OK and if we need to make more buffered instances. Useful for server reboot and monitoring.
 const worldsManager = async () => {
     await getWorldList();
     if (worldMap.size > 0) {
