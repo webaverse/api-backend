@@ -32,8 +32,7 @@ const getWorldList = () => {
                     worldMap.set(r.Instances[0].Tags[0].Value, r.Instances[0])
                     resolve(worldMap)
                 })
-            }
-            else {
+            } else {
                 console.error(error)
                 reject()
             }
@@ -86,14 +85,12 @@ const createNewWorld = () => {
                                                 reject(error)
                                             }
                                         })
-                                    }
-                                    else {
+                                    } else {
                                         console.error(error)
                                         reject(error)
                                     }
                                 })
-                            }
-                            else {
+                            } else {
                                 console.error(error)
                                 reject(error)
                             }
@@ -102,7 +99,7 @@ const createNewWorld = () => {
                             name: 'world-' + uuid,
                             host: newInstance.PublicDnsName,
                             launchTime: newInstance.LaunchTime,
-                        }) 
+                        })
                     }).connect({
                         host: newInstance.PublicDnsName,
                         port: 22,
@@ -110,8 +107,25 @@ const createNewWorld = () => {
                         privateKey: fs.readFileSync('keys/server.pem')
                     });
                 }, 120000)
+            } else {
+                console.error(error)
+                reject(error)
             }
-            else {
+        })
+    })
+}
+
+const deleteWorld = (worldUUID) => {
+    return new Promise(async (resolve, reject) => {
+        await getWorldList()
+        const instanceToDelete = worldMap.get(worldUUID)
+        console.log(worldMap)
+        console.log(instanceToDelete)
+        EC2.terminateInstances({ InstanceIds: [instanceToDelete.InstanceId] }, (error, data) => {
+            if (!error) {
+                console.log(data)
+                resolve(data)
+            } else {
                 console.error(error)
                 reject(error)
             }
@@ -130,13 +144,11 @@ const _handleWorldsRequest = async (req, res) => {
                 console.log('New World created:', newWorld.name)
                 res.statusCode = 200;
                 res.end(JSON.stringify(newWorld));
-            }
-            else {
+            } else {
                 res.statusCode = 500;
                 res.end();
             }
-        }
-        else if (method === 'GET') {
+        } else if (method === 'GET') {
             await getWorldList();
             // to-do use the proper URL param from request
             const requestedWorld = worldMap.get('world-03176ebd-f0cd-4965-a9c5-996680104bcd');
@@ -148,17 +160,14 @@ const _handleWorldsRequest = async (req, res) => {
                     host: requestedWorld.PublicDnsName,
                     launchTime: requestedWorld.LaunchTime,
                 }));
-            }
-            else {
+            } else {
                 console.log('World not found :(')
                 res.statusCode = 500;
                 res.end();
             }
-        }
-        else if (method === 'DELETE') {
-
-        }
-        else {
+        } else if (method === 'DELETE') {
+            await deleteWorld('world-c5c2cca8-36ca-453a-a146-371dbcdaeba7')
+        } else {
 
         }
     }
