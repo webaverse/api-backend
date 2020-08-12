@@ -167,6 +167,8 @@ const _handleWorldsRequest = async (req, res) => {
             }
         } else if (method === 'DELETE') {
             await deleteWorld('world-c5c2cca8-36ca-453a-a146-371dbcdaeba7')
+            res.statusCode = 200;
+            res.end();
         } else {
 
         }
