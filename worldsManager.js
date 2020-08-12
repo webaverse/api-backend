@@ -221,15 +221,18 @@ const worldsManager = async () => {
     if (worldMap.size > 0) {
         const status = determineWorldBuffer();
         if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
-            // createNewWorld(true) // to-do this need to recurse for buffers, this whole manager function should be a update loop thing on a soft 
+            createNewWorld(true)
         }
-        console.log(`World Manager Online! ${status.activeWorlds} active Worlds. ${status.bufferedWorlds} buffered Worlds.`);
+        console.log(`${status.activeWorlds} active Worlds. ${status.bufferedWorlds} buffered Worlds.`);
     } else {
         // run 2 worlds as buffer, AWS must of been empty, only a case if everything is wiped out
+        createNewWorld(true)
+        createNewWorld(true)
     }
 };
 
 worldsManager();
+const managerLoop = setInterval(worldsManager, 5000);
 
 module.exports = {
     _handleWorldsRequest
