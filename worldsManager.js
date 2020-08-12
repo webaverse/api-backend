@@ -130,7 +130,8 @@ const _handleWorldsRequest = async (req, res) => {
         else if (method === 'GET') {
             await getWorldList();
             // to-do use the proper URL param from request
-            const requestedWorld = worldMap.get('lol');
+            const requestedWorld = worldMap.get('world-03176ebd-f0cd-4965-a9c5-996680104bcd');
+            console.log(requestedWorld)
             if (requestedWorld) {
                 res.statusCode = 200;
                 res.end(JSON.stringify({
