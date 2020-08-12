@@ -170,7 +170,8 @@ const _handleWorldsRequest = async (req, res) => {
             res.statusCode = 200;
             res.end();
         } else {
-
+            res.statusCode = 404;
+            res.end();
         }
     }
     catch (e) {
