@@ -101,7 +101,7 @@ const createNewWorld = (isBuffer) => {
             if (!error) {
                 console.log(`New world begun setup: world-${uuid}`)
                 console.log(`Waiting for public DNS to resolve for ${DNS_WAIT_TIME / 1000} seconds...`)
-                setTimeout(async () => {
+                setTimeout(async () => { // to-do change this to a poll method to get publicDNS
                     await getWorldList();
                     const newInstance = worldMap.get('world-' + uuid);
                     const conn = new Client();
@@ -139,10 +139,11 @@ const createNewWorld = (isBuffer) => {
                             }
                         })
                     }).connect({
-                        host: newInstance.PublicDnsName,
+                        host: newInstance.PublicIpAddress,
                         port: 22,
                         username: 'ubuntu',
-                        privateKey: fs.readFileSync('keys/server.pem')
+                        privateKey: fs.readFileSync('keys/server.pem'),
+                        forceIPv4: true
                     });
                 }, DNS_WAIT_TIME)
             } else {
@@ -282,7 +283,7 @@ const worldsManager = async () => {
         const status = determineWorldBuffer();
         if (worldMap.size > 0) {
             if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
-                for (let i = 0; i < MAX_INSTANCES_BUFFER; i++) {
+                for (let i = 0; i < MAX_INSTANCES_BUFFER - status.bufferedWorlds; i++) {
                     createNewWorld(true)
                 }
             }
