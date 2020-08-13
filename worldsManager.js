@@ -118,13 +118,17 @@ const createNewWorld = (isBuffer) => {
                                             if (!error) {
                                                 stream.on('close', (code, signal) => {
                                                     conn.end();
-                                                    console.log('New World successfully created:', 'world-' + uuid, 'IsBuffer: ' + isBuffer);
-                                                    console.timeEnd('world-' + uuid)
-                                                    resolve({
-                                                        name: 'world-' + uuid,
-                                                        host: newInstance.PublicDnsName,
-                                                        launchTime: newInstance.LaunchTime,
-                                                    });
+                                                    if (code === 0) {
+                                                        console.log('New World successfully created:', 'world-' + uuid, 'IsBuffer: ' + isBuffer);
+                                                        console.timeEnd('world-' + uuid)
+                                                        resolve({
+                                                            name: 'world-' + uuid,
+                                                            host: newInstance.PublicDnsName,
+                                                            launchTime: newInstance.LaunchTime,
+                                                        });
+                                                    } else {
+                                                        console.error('code:', code, signal)
+                                                    }
                                                   })
                                             } else {
                                                 console.error(error)
