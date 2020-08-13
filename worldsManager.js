@@ -281,15 +281,8 @@ const worldsManager = async () => {
     try {
         await getWorldList();
         const status = determineWorldBuffer();
-        if (worldMap.size > 0) {
-            if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
-                for (let i = 0; i < MAX_INSTANCES_BUFFER - status.bufferedWorlds; i++) {
-                    createNewWorld(true)
-                }
-            }
-        } else {
-            // spin up buffers from a empty EC2 AWS library. Only happens if we have no worlds for some reason.
-            for (let i = 0; i < MAX_INSTANCES_BUFFER; i++) {
+        if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
+            for (let i = 0; i < MAX_INSTANCES_BUFFER - status.bufferedWorlds; i++) {
                 createNewWorld(true)
             }
         }
