@@ -117,7 +117,7 @@ const createNewWorld = (isBuffer) => {
                                             if (!error) {
                                                 stream.close();
                                                 conn.end();
-                                                console.log('New World sucessfully created:', 'world-' + uuid, 'IsBuffer: ' + isBuffer);
+                                                console.log('New World successfully created:', 'world-' + uuid, 'IsBuffer: ' + isBuffer);
                                                 console.timeEnd('world-' + uuid)
                                                 resolve({
                                                     name: 'world-' + uuid,
