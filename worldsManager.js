@@ -61,10 +61,11 @@ const getWorldList = () => {
 // Create a new ec2 instance, pull world-server code from Github, SSH copy the code into new instance, return host and other useful metadata for user.
 const createNewWorld = (isBuffer) => {
     return new Promise((resolve, reject) => {
+        console.time()
         const uuid = uuidv4();
         const instanceParams = {
             ImageId: 'ami-0cd230f950c3de5d8',
-            InstanceType: 't2.nano',
+            InstanceType: 't2.micro',
             KeyName: 'Exokit',
             MinCount: 1,
             MaxCount: 1,
@@ -105,17 +106,20 @@ const createNewWorld = (isBuffer) => {
                                 sftp.fastPut('world-server/package.json', '/home/ubuntu/package.json', (error) => {
                                     if (!error) {
                                         console.log('package.json uploaded')
-                                        conn.exec('sudo apt-get update -y && sudo apt-get upgrade -y && sudo apt-get install build-essential -y && sudo apt-get install python3 -y && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && nvm install 12 && nvm use 12 && npm install && npm run start', (error, stream) => {
-                                            if (error) throw error;
-                                            stream.on('close', (code, signal) => {
-                                                conn.end()
+                                        conn.exec('sudo apt-get update -y && sudo apt-get upgrade -y && sudo apt-get install build-essential -y && sudo apt-get install python -y && sudo apt-get install python3 -y && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && nvm install 14 && nvm use 14 && npm install', (error, stream) => {
+                                            if (!error) {
+                                                stream.close();
+                                                conn.end();
                                                 console.log('New World created:', 'world-' + uuid, 'IsBuffer: ' + isBuffer);
+                                                console.timeEnd()
                                                 resolve({
                                                     name: 'world-' + uuid,
                                                     host: newInstance.PublicDnsName,
                                                     launchTime: newInstance.LaunchTime,
                                                 });
-                                            })
+                                            } else {
+                                                console.error(error)
+                                            }
                                         });
                                     } else {
                                         console.error(error);
