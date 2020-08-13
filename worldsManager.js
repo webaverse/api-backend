@@ -2,6 +2,7 @@ const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
 const Client = require('ssh2').Client;
 const fs = require('fs');
+const url = require('url');
 const { accessKeyId, secretAccessKey } = require('./config.json');
 const awsConfig = new AWS.Config({
     credentials: new AWS.Credentials({
@@ -210,10 +211,12 @@ const toggleTag = (instanceId, key, value) => {
 
 // Routes API requests for interfacing with worlds.
 const _handleWorldsRequest = async (req, res) => {
+    const request = url.parse(req.url)
+    const path = request.path.split('/')[2]
     try {
         await getWorldList();
         const { method } = req;
-        if (method === 'POST') {
+        if (method === 'POST' && path === 'create') {
             const newWorld = getWorldFromBuffer();
             if (newWorld) {
                 const worldName = findTag(newWorld.Tags, 'Name').Value;
@@ -230,8 +233,8 @@ const _handleWorldsRequest = async (req, res) => {
                 res.statusCode = 500;
                 res.end();
             }
-        } else if (method === 'GET') {
-            const requestedWorld = worldMap.get('world-03176ebd-f0cd-4965-a9c5-996680104bcd');
+        } else if (method === 'GET' && path) {
+            const requestedWorld = worldMap.get(path);
             if (requestedWorld) {
                 res.statusCode = 200;
                 res.end(JSON.stringify({
@@ -244,8 +247,8 @@ const _handleWorldsRequest = async (req, res) => {
                 res.statusCode = 500;
                 res.end();
             }
-        } else if (method === 'DELETE') {
-            await deleteWorld('world-c5c2cca8-36ca-453a-a146-371dbcdaeba7');
+        } else if (method === 'DELETE' && path) {
+            await deleteWorld(path);
             res.statusCode = 200;
             res.end();
         } else {
