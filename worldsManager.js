@@ -2,7 +2,6 @@ const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
 const Client = require('ssh2').Client;
 const fs = require('fs');
-const download = require('download-git-repo');
 const { accessKeyId, secretAccessKey } = require('./config.json');
 const awsConfig = new AWS.Config({
     credentials: new AWS.Credentials({
@@ -103,58 +102,26 @@ const createNewWorld = (isBuffer) => {
                         conn.sftp(async (error, sftp) => {
                             if (!error) {
                                 console.log('sftp connected')
-                                // download('webaverse/world-server/', './world-server', (error) => {
-                                //     if (!error) {
-                                        console.log('downloaded GH')
-                                        sftp.fastPut('world-server/package.json', '/home/ubuntu/package.json', (error) => {
-                                            if (!error) {
-                                                console.log('package.json uploaded')
-                                                conn.exec('sudo apt-get update -y && sudo apt-get upgrade -y && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash && exit', (error, stream) => {
-                                                    if (error) throw error;
-                                                    stream.on('close', (code, signal) => {
-                                                        conn.end()
-                                                        setTimeout(() => {
-                                                            const conn2 = new Client();
-                                                            conn2.on('ready', () => {
-                                                                conn2.exec('nvm install 12 && nvm use 12 && npm run start', (error, stream) => {
-                                                                    if (error) throw error;
-                                                                    stream.on('close', (code, signal) => {
-                                                                        console.log('New World created:', 'world-' + uuid, 'IsBuffer: ' + isBuffer);
-                                                                        conn2.end();
-                                                                        resolve({
-                                                                            name: 'world-' + uuid,
-                                                                            host: newInstance.PublicDnsName,
-                                                                            launchTime: newInstance.LaunchTime,
-                                                                        });
-                                                                    }).on('data', data => {
-                                                                        console.log('STDOUT: ' + data);
-                                                                    }).stderr.on('data', data => {
-                                                                        console.log('STDERR: ' + data);
-                                                                    });
-                                                                });
-                                                            }).connect({
-                                                                host: newInstance.PublicDnsName,
-                                                                port: 22,
-                                                                username: 'ubuntu',
-                                                                privateKey: fs.readFileSync('keys/server.pem')
-                                                            });
-                                                        }, 5000)
-                                                    }).on('data', data => {
-                                                        console.log('STDOUT: ' + data);
-                                                    }).stderr.on('data', data => {
-                                                        console.log('STDERR: ' + data);
-                                                    });
+                                sftp.fastPut('world-server/package.json', '/home/ubuntu/package.json', (error) => {
+                                    if (!error) {
+                                        console.log('package.json uploaded')
+                                        conn.exec('sudo apt-get update -y && sudo apt-get upgrade -y && sudo apt-get install build-essential -y && sudo apt-get install python3 -y && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && nvm install 12 && nvm use 12 && npm install && npm run start', (error, stream) => {
+                                            if (error) throw error;
+                                            stream.on('close', (code, signal) => {
+                                                conn.end()
+                                                console.log('New World created:', 'world-' + uuid, 'IsBuffer: ' + isBuffer);
+                                                resolve({
+                                                    name: 'world-' + uuid,
+                                                    host: newInstance.PublicDnsName,
+                                                    launchTime: newInstance.LaunchTime,
                                                 });
-                                            } else {
-                                                console.error(error);
-                                                reject(error);
-                                            }
-                                        })
-                                //     } else {
-                                //         console.error(error);
-                                //         reject(error);
-                                //     }
-                                // })
+                                            })
+                                        });
+                                    } else {
+                                        console.error(error);
+                                        reject(error);
+                                    }
+                                })
                             } else {
                                 console.error(error);
                                 reject(error);
