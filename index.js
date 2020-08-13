@@ -3983,7 +3983,7 @@ const server2 = https.createServer({
 server2.on('upgrade', _ws);
 
 const _warn = err => {
-  console.warn('uncaught: ' + err.stack);
+  console.warn('uncaught: ' + err);
 };
 process.on('uncaughtException', _warn);
 process.on('unhandledRejection', _warn);

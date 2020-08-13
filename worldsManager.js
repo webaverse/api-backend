@@ -15,6 +15,7 @@ const EC2 = new AWS.EC2(awsConfig);
 let worldMap = new Map();
 const MAX_INSTANCES = 20;
 const MAX_INSTANCES_BUFFER = 2;
+const DNS_WAIT_TIME = 45000;
 
 // Finds a tag by key in random ordered array of tags.
 const findTag = (tags, key) => {
@@ -31,38 +32,42 @@ const findTag = (tags, key) => {
 // searchs through all of our ec2 instances and makes Map of worlds with their unique name as the key.
 const getWorldList = () => {
     return new Promise((resolve, reject) => {
-        const describeParams = {
-            Filters: [
-                {
-                    Name: "tag:Purpose",
-                    Values: ["world"]
-                }
-            ]
-        };
-        EC2.describeInstances(describeParams, (error, data) => {
-            if (!error && data.Reservations.length > 0) {
-                worldMap = new Map();
-                data.Reservations.forEach(r => {
-                    const instance = r.Instances[0];
-                    const worldName = findTag(instance.Tags, 'Name')
-                    if (worldName && (instance.State.Code === 16 || instance.State.Code === 0)) { // running or pending
-                        worldMap.set(worldName.Value, instance);
+        try {
+            const describeParams = {
+                Filters: [
+                    {
+                        Name: "tag:Purpose",
+                        Values: ["world"]
                     }
-                })
-                resolve(worldMap);
-            } else {
-                console.error(error);
-                reject();
-            }
-        })
+                ]
+            };
+            EC2.describeInstances(describeParams, (error, data) => {
+                if (!error && data.Reservations) {
+                    worldMap = new Map();
+                    data.Reservations.forEach(r => {
+                        const instance = r.Instances[0];
+                        const worldName = findTag(instance.Tags, 'Name')
+                        if (worldName && (instance.State.Code === 16 || instance.State.Code === 0)) { // running or pending
+                            worldMap.set(worldName.Value, instance);
+                        }
+                    })
+                    resolve(worldMap);
+                } else {
+                    console.error(error);
+                    reject();
+                }
+            })
+        } catch (e) {
+            console.error(e)
+        }
     })
 };
 
 // Create a new ec2 instance, pull world-server code from Github, SSH copy the code into new instance, return host and other useful metadata for user.
 const createNewWorld = (isBuffer) => {
-    return new Promise((resolve, reject) => {
-        console.time()
+    return new Promise((resolve, reject) => {        
         const uuid = uuidv4();
+        console.time('world-' + uuid)
         const instanceParams = {
             ImageId: 'ami-0cd230f950c3de5d8',
             InstanceType: 't2.micro',
@@ -94,24 +99,26 @@ const createNewWorld = (isBuffer) => {
         };
         EC2.runInstances(instanceParams, (error, data) => {
             if (!error) {
+                console.log(`New world begun setup: world-${uuid}`)
+                console.log(`Waiting for public DNS to resolve for ${DNS_WAIT_TIME / 1000} seconds...`)
                 setTimeout(async () => {
                     await getWorldList();
                     const newInstance = worldMap.get('world-' + uuid);
                     const conn = new Client();
                     conn.on('ready', () => {
-                        console.log('connected')
+                        console.log(`SSH connected: world-${uuid}`)
                         conn.sftp(async (error, sftp) => {
                             if (!error) {
-                                console.log('sftp connected')
+                                console.log(`SFTP connected: world-${uuid}`)
                                 sftp.fastPut('world-server/package.json', '/home/ubuntu/package.json', (error) => {
                                     if (!error) {
-                                        console.log('package.json uploaded')
+                                        console.log(`package.json uploaded to: world-${uuid}`)
                                         conn.exec('sudo apt-get update -y && sudo apt-get upgrade -y && sudo apt-get install build-essential -y && sudo apt-get install python -y && sudo apt-get install python3 -y && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && nvm install 14 && nvm use 14 && npm install', (error, stream) => {
                                             if (!error) {
                                                 stream.close();
                                                 conn.end();
-                                                console.log('New World created:', 'world-' + uuid, 'IsBuffer: ' + isBuffer);
-                                                console.timeEnd()
+                                                console.log('New World sucessfully created:', 'world-' + uuid, 'IsBuffer: ' + isBuffer);
+                                                console.timeEnd('world-' + uuid)
                                                 resolve({
                                                     name: 'world-' + uuid,
                                                     host: newInstance.PublicDnsName,
@@ -137,7 +144,7 @@ const createNewWorld = (isBuffer) => {
                         username: 'ubuntu',
                         privateKey: fs.readFileSync('keys/server.pem')
                     });
-                }, 30000)
+                }, DNS_WAIT_TIME)
             } else {
                 console.error(error);
                 reject(error);
@@ -208,15 +215,17 @@ const _handleWorldsRequest = async (req, res) => {
         if (method === 'POST') {
             const newWorld = getWorldFromBuffer();
             if (newWorld) {
+                const worldName = findTag(newWorld.Tags, 'Name').Value;
+                console.log('World taken from buffer:', worldName)
                 res.statusCode = 200;
                 res.end(JSON.stringify({
-                    name: findTag(newWorld.Tags, 'Name').Value,
+                    name: worldName,
                     host: newWorld.PublicDnsName,
                     launchTime: newWorld.LaunchTime,
                 }));
                 await toggleTag(newWorld.InstanceId, 'IsBuffer', 'false')
             } else {
-                console.error('no more worlds in buffer')
+                console.error('No more worlds in buffer :(')
                 res.statusCode = 500;
                 res.end();
             }
@@ -268,19 +277,25 @@ const determineWorldBuffer = () => {
 
 // Polls the world list from AWS. Determines if buffer is OK and if we need to make more buffered instances. Useful for server reboot and monitoring.
 const worldsManager = async () => {
-    await getWorldList();
-    const status = determineWorldBuffer();
-    if (worldMap.size > 0) {
-        if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
-            createNewWorld(true)
+    try {
+        await getWorldList();
+        const status = determineWorldBuffer();
+        if (worldMap.size > 0) {
+            if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
+                for (let i = 0; i < MAX_INSTANCES_BUFFER; i++) {
+                    createNewWorld(true)
+                }
+            }
+        } else {
+            // spin up buffers from a empty EC2 AWS library. Only happens if we have no worlds for some reason.
+            for (let i = 0; i < MAX_INSTANCES_BUFFER; i++) {
+                createNewWorld(true)
+            }
         }
-    } else {
-        // spin up buffers from a empty EC2 AWS library. Only happens if we have no worlds for some reason.
-        for (let i = 0; i < MAX_INSTANCES_BUFFER; i++) {
-            createNewWorld(true)
-        }
+        console.log(`${status.activeWorlds} active Worlds. ${status.bufferedWorlds} buffered Worlds.`);
+    } catch (e) {
+        console.error(e);
     }
-    console.log(`${status.activeWorlds} active Worlds. ${status.bufferedWorlds} buffered Worlds.`);
 };
 
 worldsManager();
