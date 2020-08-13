@@ -116,15 +116,16 @@ const createNewWorld = (isBuffer) => {
                                         console.log(`package.json uploaded to: world-${uuid}`)
                                         conn.exec('sudo apt-get update -y && sudo apt-get upgrade -y && sudo apt-get install build-essential -y && sudo apt-get install python -y && sudo apt-get install python3 -y && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && nvm install 14 && nvm use 14 && npm install', (error, stream) => {
                                             if (!error) {
-                                                stream.close();
-                                                conn.end();
-                                                console.log('New World successfully created:', 'world-' + uuid, 'IsBuffer: ' + isBuffer);
-                                                console.timeEnd('world-' + uuid)
-                                                resolve({
-                                                    name: 'world-' + uuid,
-                                                    host: newInstance.PublicDnsName,
-                                                    launchTime: newInstance.LaunchTime,
-                                                });
+                                                stream.on('close', (code, signal) => {
+                                                    conn.end();
+                                                    console.log('New World successfully created:', 'world-' + uuid, 'IsBuffer: ' + isBuffer);
+                                                    console.timeEnd('world-' + uuid)
+                                                    resolve({
+                                                        name: 'world-' + uuid,
+                                                        host: newInstance.PublicDnsName,
+                                                        launchTime: newInstance.LaunchTime,
+                                                    });
+                                                  })
                                             } else {
                                                 console.error(error)
                                             }
