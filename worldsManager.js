@@ -115,7 +115,7 @@ const createNewWorld = (isBuffer) => {
                             console.error(`stderr: ${stderr}`);
                             console.log('SCP file transfer complete:', worldName)
                             console.log('Installing dependencies and booting dialog server:', worldName)
-                            exec(`ssh -o StrictHostKeyChecking=no -i keys/server.pem ubuntu@${newInstance.PublicIpAddress} && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && nvm install 14 && nvm use 14 && npm run start`, (error, stdout, stderr) => {
+                            exec(`ssh -o StrictHostKeyChecking=no -i keys/server.pem ubuntu@${newInstance.PublicIpAddress} && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && nvm install 14 && nvm use 14 && cd world-server && npm run start`, (error, stdout, stderr) => {
                                 if (error) {
                                     console.error(`Error with Installing dependencies on: ${worldName} Error: ${error}`);
                                     return;
