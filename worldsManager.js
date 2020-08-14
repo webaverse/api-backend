@@ -226,13 +226,13 @@ const _handleWorldsRequest = async (req, res) => {
             if (newWorld) {
                 const worldName = findTag(newWorld.Tags, 'Name').Value;
                 console.log('World taken from buffer:', worldName)
+                await toggleTag(newWorld.InstanceId, 'IsBuffer', 'false')
                 res.statusCode = 200;
                 res.end(JSON.stringify({
                     name: worldName,
                     host: newWorld.PublicDnsName,
                     launchTime: newWorld.LaunchTime,
                 }));
-                await toggleTag(newWorld.InstanceId, 'IsBuffer', 'false')
             } else {
                 console.error('No more worlds in buffer :(')
                 res.statusCode = 500;
