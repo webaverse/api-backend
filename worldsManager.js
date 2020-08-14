@@ -66,7 +66,7 @@ const getWorldList = () => {
 
 // Create a new ec2 instance, pull world-server code from Github, SSH copy the code into new instance, return host and other useful metadata for user.
 const createNewWorld = (isBuffer) => {
-    return new Promise((resolve, reject) => {        
+    return new Promise((resolve, reject) => {
         const uuid = uuidv4();
         console.time('world-' + uuid)
         const instanceParams = {
@@ -114,8 +114,9 @@ const createNewWorld = (isBuffer) => {
                                 sftp.fastPut('world-server/package.json', '/home/ubuntu/package.json', (error) => {
                                     if (!error) {
                                         console.log(`package.json uploaded to: world-${uuid}`)
-                                        conn.exec('sudo apt-get update -y && sudo apt-get upgrade -y && sudo apt-get install build-essential -y && sudo apt-get install python -y && sudo apt-get install python3 -y && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && nvm install 14 && nvm use 14 && npm install', (error, stream) => {
+                                        conn.exec('curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && nvm install 14 && nvm use 14 && npm run start', (error, stream) => {
                                             if (!error) {
+                                                console.log('Running "npm run start" on new world instance...')
                                                 stream.on('close', (code, signal) => {
                                                     conn.end();
                                                     if (code === 0) {
@@ -129,7 +130,11 @@ const createNewWorld = (isBuffer) => {
                                                     } else {
                                                         console.error('code:', code, signal)
                                                     }
-                                                  })
+                                                }).on('data', data => {
+                                                    console.log(data);
+                                                }).stderr.on('data', data => {
+                                                    console.log(data);
+                                                });
                                             } else {
                                                 console.error(error)
                                             }
