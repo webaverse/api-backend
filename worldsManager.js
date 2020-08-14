@@ -1,8 +1,7 @@
 const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
-const Client = require('ssh2').Client;
-const fs = require('fs');
 const url = require('url');
+const { exec } = require('child_process');
 const { accessKeyId, secretAccessKey } = require('./config.json');
 const awsConfig = new AWS.Config({
     credentials: new AWS.Credentials({
@@ -68,7 +67,8 @@ const getWorldList = () => {
 const createNewWorld = (isBuffer) => {
     return new Promise((resolve, reject) => {
         const uuid = uuidv4();
-        console.time('world-' + uuid)
+        const worldName = 'world-' + uuid;
+        console.time(worldName)
         const instanceParams = {
             ImageId: 'ami-0cd230f950c3de5d8',
             InstanceType: 't2.micro',
@@ -84,7 +84,7 @@ const createNewWorld = (isBuffer) => {
                     Tags: [
                         {
                             Key: "Name",
-                            Value: "world-" + uuid
+                            Value: worldName
                         },
                         {
                             Key: "Purpose",
@@ -100,62 +100,39 @@ const createNewWorld = (isBuffer) => {
         };
         EC2.runInstances(instanceParams, (error, data) => {
             if (!error) {
-                console.log(`New world begun setup: world-${uuid}`)
+                console.log('New world begun setup:', worldName)
                 console.log(`Waiting for public DNS to resolve for ${DNS_WAIT_TIME / 1000} seconds...`)
                 setTimeout(async () => { // to-do change this to a poll method to get publicDNS
                     await getWorldList();
-                    const newInstance = worldMap.get('world-' + uuid);
-                    const conn = new Client();
-                    conn.on('ready', () => {
-                        console.log(`SSH connected: world-${uuid}`)
-                        conn.sftp(async (error, sftp) => {
-                            if (!error) {
-                                console.log(`SFTP connected: world-${uuid}`)
-                                sftp.fastPut('world-server/package.json', '/home/ubuntu/package.json', (error) => {
-                                    if (!error) {
-                                        console.log(`package.json uploaded to: world-${uuid}`)
-                                        conn.exec('curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && nvm install 14 && nvm use 14 && npm run start', (error, stream) => {
-                                            if (!error) {
-                                                console.log('Running "npm run start" on new world instance...')
-                                                stream.on('close', (code, signal) => {
-                                                    conn.end();
-                                                    if (code === 0) {
-                                                        console.log('New World successfully created:', 'world-' + uuid, 'IsBuffer: ' + isBuffer);
-                                                        console.timeEnd('world-' + uuid)
-                                                        resolve({
-                                                            name: 'world-' + uuid,
-                                                            host: newInstance.PublicDnsName,
-                                                            launchTime: newInstance.LaunchTime,
-                                                        });
-                                                    } else {
-                                                        console.error('code:', code, signal)
-                                                    }
-                                                }).on('data', data => {
-                                                    console.log(data);
-                                                }).stderr.on('data', data => {
-                                                    console.log(data);
-                                                });
-                                            } else {
-                                                console.error(error)
-                                            }
-                                        });
-                                    } else {
-                                        console.error(error);
-                                        reject(error);
-                                    }
-                                })
-                            } else {
-                                console.error(error);
-                                reject(error);
-                            }
-                        })
-                    }).connect({
-                        host: newInstance.PublicIpAddress,
-                        port: 22,
-                        username: 'ubuntu',
-                        privateKey: fs.readFileSync('keys/server.pem'),
-                        forceIPv4: true
-                    });
+                    const newInstance = worldMap.get(worldName);
+                    console.log('SCP transfer started:', worldName);
+                    exec(`scp -o StrictHostKeyChecking=no -i keys/server.pem -r ./world-server/ ubuntu@${newInstance.PublicIpAddress}:/home/ubuntu/`, (error, stdout, stderr) => {
+                        if (error) {
+                            console.error(`Error with SCP transfer on: ${worldName} Error: ${error}`);
+                            reject();
+                        } else {
+                            console.log(`stdout: ${stdout}`);
+                            console.error(`stderr: ${stderr}`);
+                            console.log('SCP file transfer complete:', worldName)
+                            console.log('Installing dependencies and booting dialog server:', worldName)
+                            exec(`ssh -o StrictHostKeyChecking=no -i keys/server.pem ubuntu@${newInstance.PublicIpAddress} && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && nvm install 14 && nvm use 14 && npm run start`, (error, stdout, stderr) => {
+                                if (error) {
+                                    console.error(`Error with Installing dependencies on: ${worldName} Error: ${error}`);
+                                    return;
+                                } else {
+                                    console.log(`stdout: ${stdout}`);
+                                    console.error(`stderr: ${stderr}`);
+                                    console.log('New World successfully created:', worldName, 'IsBuffer: ' + isBuffer);
+                                    console.timeEnd(worldName)
+                                    resolve({
+                                        name: worldName,
+                                        host: newInstance.PublicDnsName,
+                                        launchTime: newInstance.LaunchTime,
+                                    });
+                                }
+                            });
+                        }
+                    })
                 }, DNS_WAIT_TIME)
             } else {
                 console.error(error);
