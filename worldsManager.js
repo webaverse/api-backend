@@ -106,7 +106,8 @@ const createNewWorld = (isBuffer) => {
                     await getWorldList();
                     const newInstance = worldMap.get(worldName);
                     console.log('SCP transfer started:', worldName);
-                    exec(`scp -o StrictHostKeyChecking=no -i keys/server.pem -r ./world-server/ ubuntu@${newInstance.PublicIpAddress}:/home/ubuntu/`, (error, stdout, stderr) => {
+                    console.log(newInstance.PublicDnsName)
+                    exec(`scp -o StrictHostKeyChecking=no -i keys/server.pem -r worldSrc/ ubuntu@${newInstance.PublicDnsName}:~`, (error, stdout, stderr) => {
                         if (error) {
                             console.error(`Error with SCP transfer on: ${worldName} Error: ${error}`);
                             reject();
@@ -115,7 +116,7 @@ const createNewWorld = (isBuffer) => {
                             console.error(`stderr: ${stderr}`);
                             console.log('SCP file transfer complete:', worldName)
                             console.log('Installing dependencies and booting dialog server:', worldName)
-                            exec(`ssh -o StrictHostKeyChecking=no -i keys/server.pem -t ubuntu@${newInstance.PublicIpAddress} 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && nvm install 14 && nvm use 14 && cd world-server && npm run start'`, (error, stdout, stderr) => {
+                            exec(`ssh -o StrictHostKeyChecking=no -i keys/server.pem -t ubuntu@${newInstance.PublicDnsName} 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && nvm install 14 && nvm use 14 && cd worldSrc/ && sudo apt-get update -y && sudo apt-get upgrade -y && sudo apt-get install build-essential -y && sudo apt-get install python -y && sudo apt-get install python3 -y && npm install && mkdir node_modules/dialog/certs/ && cp -r certs/ node_modules/dialog/ && cd node_modules/dialog/ && MEDIASOUP_LISTEN_IP=${newInstance.PrivateIpAddress} MEDIASOUP_ANNOUNCED_IP=${newInstance.PrivateIpAddress} DEBUG=\${DEBUG:='*mediasoup* *INFO* *WARN* *ERROR*'} INTERACTIVE=\${INTERACTIVE:='false'} node index.js'`, (error, stdout, stderr) => {
                                 if (error) {
                                     console.error(`Error with Installing dependencies on: ${worldName} Error: ${error}`);
                                     reject();
