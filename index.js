@@ -3911,7 +3911,7 @@ try {
   } else if (o.host === 'tokens.exokit.org') {
     _handleTokens(req, res);
     return;
-  } else if (o.host === 'worlds.exokit.org' || o.path.split('/')[1] === 'worlds') {
+  } else if (o.host === 'worlds.exokit.org') {
     _handleWorldsRequest(req, res)
   }
 
