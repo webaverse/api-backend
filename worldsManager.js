@@ -109,12 +109,14 @@ const createNewWorld = (isBuffer) => {
                 setTimeout(async () => { // to-do change this to a poll method to get publicDNS
                     await getWorldList();
                     const newInstance = worldMap.get(worldName);
-                    console.log('SCP transfer started:', worldName);
+                    console.log('Fetching world-server ZIP release:', worldName);
                     const response = await fetch('https://github.com/webaverse/world-server/releases/download/214667748/world-server.zip');
                     if (response.ok) {
+                        console.log('Got the ZIP release:', worldName);
+                        console.log('Writing ZIP to local file on server:', worldName);
                         await streamPipeline(response.body, fs.createWriteStream('./world-server/world-server.zip'))
                     }
-
+                    console.log('Spawning bash script and installing world on EC2:', worldName);
                     const process = spawn('./installWorld.sh', [newInstance.PublicDnsName, newInstance.PrivateIpAddress]);
 
                     process.stdout.on('data', (data) => {
