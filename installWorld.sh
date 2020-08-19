@@ -1,5 +1,8 @@
 #!/bin/bash
 
+PUBLIC_DNS = $1
+PRIVATE_IP = $2
+
 scp -o StrictHostKeyChecking=no -i keys/server.pem world-server.zip ubuntu@$PUBLIC_DNS:~
 ssh -o StrictHostKeyChecking=no -i keys/server.pem -t ubuntu@$PUBLIC_DNS << EOF
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash 
