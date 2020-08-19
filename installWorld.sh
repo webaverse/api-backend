@@ -3,7 +3,10 @@
 PUBLIC_DNS=$1
 PRIVATE_IP=$2
 
+zip -ur ./world-server/world-server.zip ./certs/
+
 scp -o StrictHostKeyChecking=no -i keys/server.pem world-server/world-server.zip ubuntu@$PUBLIC_DNS:~
+
 ssh -o StrictHostKeyChecking=no -i keys/server.pem -t ubuntu@$PUBLIC_DNS << EOF
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash 
     export NVM_DIR="$([ -z "\${XDG_CONFIG_HOME-}" ] && printf %s "\${HOME}/.nvm" || printf %s "\${XDG_CONFIG_HOME}/nvm")"
@@ -17,7 +20,7 @@ ssh -o StrictHostKeyChecking=no -i keys/server.pem -t ubuntu@$PUBLIC_DNS << EOF
     sudo apt-get install python -y
     sudo apt-get install python3 -y
     sudo apt-get install unzip -y
-    unzip world-server.zip -d ./
+    unzip world-server.zip
     npm i forever -g
     mkdir node_modules/dialog/certs/ 
     cp -r certs/ node_modules/dialog/
