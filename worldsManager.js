@@ -1,7 +1,11 @@
 const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
 const url = require('url');
-const { exec } = require('child_process');
+const util = require('util');
+const fs = require('fs');
+const { spawn } = require('child_process');
+const fetch = require('node-fetch');
+const streamPipeline = util.promisify(require('stream').pipeline);
 const { accessKeyId, secretAccessKey } = require('./config.json');
 const awsConfig = new AWS.Config({
     credentials: new AWS.Credentials({
@@ -14,7 +18,7 @@ const EC2 = new AWS.EC2(awsConfig);
 
 let worldMap = new Map();
 const MAX_INSTANCES = 20;
-const MAX_INSTANCES_BUFFER = 2;
+const MAX_INSTANCES_BUFFER = 1;
 const DNS_WAIT_TIME = 45000;
 
 // Finds a tag by key in random ordered array of tags.
@@ -71,7 +75,7 @@ const createNewWorld = (isBuffer) => {
         console.time(worldName)
         const instanceParams = {
             ImageId: 'ami-0cd230f950c3de5d8',
-            InstanceType: 't2.micro',
+            InstanceType: 't3.micro',
             KeyName: 'Exokit',
             MinCount: 1,
             MaxCount: 1,
@@ -106,34 +110,52 @@ const createNewWorld = (isBuffer) => {
                     await getWorldList();
                     const newInstance = worldMap.get(worldName);
                     console.log('SCP transfer started:', worldName);
-                    console.log(newInstance.PublicDnsName)
-                    exec(`scp -o StrictHostKeyChecking=no -i keys/server.pem -r worldSrc/ ubuntu@${newInstance.PublicDnsName}:~`, (error, stdout, stderr) => {
-                        if (error) {
-                            console.error(`Error with SCP transfer on: ${worldName} Error: ${error}`);
-                            reject();
-                        } else {
-                            console.log(`stdout: ${stdout}`);
-                            console.error(`stderr: ${stderr}`);
-                            console.log('SCP file transfer complete:', worldName)
-                            console.log('Installing dependencies and booting dialog server:', worldName)
-                            exec(`ssh -o StrictHostKeyChecking=no -i keys/server.pem -t ubuntu@${newInstance.PublicDnsName} 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && nvm install 14 && nvm use 14 && cd worldSrc/ && sudo apt-get update -y && sudo apt-get upgrade -y && sudo apt-get install build-essential -y && sudo apt-get install python -y && sudo apt-get install python3 -y && npm install && mkdir node_modules/dialog/certs/ && cp -r certs/ node_modules/dialog/ && cd node_modules/dialog/ && MEDIASOUP_LISTEN_IP=${newInstance.PrivateIpAddress} MEDIASOUP_ANNOUNCED_IP=${newInstance.PrivateIpAddress} DEBUG=\${DEBUG:='*mediasoup* *INFO* *WARN* *ERROR*'} INTERACTIVE=\${INTERACTIVE:='false'} node index.js'`, (error, stdout, stderr) => {
-                                if (error) {
-                                    console.error(`Error with Installing dependencies on: ${worldName} Error: ${error}`);
-                                    reject();
-                                } else {
-                                    console.log(`stdout: ${stdout}`);
-                                    console.error(`stderr: ${stderr}`);
-                                    console.log('New World successfully created:', worldName, 'IsBuffer: ' + isBuffer);
-                                    console.timeEnd(worldName)
-                                    resolve({
-                                        name: worldName,
-                                        host: newInstance.PublicDnsName,
-                                        launchTime: newInstance.LaunchTime,
-                                    });
-                                }
-                            });
-                        }
-                    })
+                    const response = await fetch('https://github.com/webaverse/world-server/releases/download/214667748/world-server.zip');
+                    if (response.ok) {
+                        await streamPipeline(response.body, fs.createWriteStream('./octocat.png'))
+                    }
+
+                    const process = spawn('./installWorld', [newInstance.PublicDnsName, newInstance.PrivateIpAddress]);
+
+                    process.stdout.on('data', (data) => {
+                        console.log(`stdout: ${data}`);
+                    });
+
+                    process.stderr.on('data', (data) => {
+                        console.error(`stderr: ${data}`);
+                    });
+
+                    process.on('close', (code) => {
+                        console.log(`child process exited with code ${code}`);
+                    });
+
+                    // exec(`scp -o StrictHostKeyChecking=no -i keys/server.pem world-server.zip ubuntu@${newInstance.PublicDnsName}:~`, (error, stdout, stderr) => {
+                    //     if (error) {
+                    //         console.error(`Error with SCP transfer on: ${worldName} Error: ${error}`);
+                    //         reject();
+                    //     } else {
+                    //         console.log(`stdout: ${stdout}`);
+                    //         console.error(`stderr: ${stderr}`);
+                    //         console.log('SCP file transfer complete:', worldName)
+                    //         console.log('Installing dependencies and booting dialog server:', worldName)
+                    //         exec(`ssh -o StrictHostKeyChecking=no -i keys/server.pem -t ubuntu@${newInstance.PublicDnsName} 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && nvm install 14 && nvm use 14 && cd worldSrc/ && sudo apt-get dist-upgrade -y && sudo apt-get update -y && sudo apt-get install build-essential -y && sudo apt-get install python -y && sudo apt-get install python3 -y && npm i && npm i forever -g && mkdir node_modules/dialog/certs/ && cp -r certs/ node_modules/dialog/ && cd node_modules/dialog/ && MEDIASOUP_LISTEN_IP=${newInstance.PrivateIpAddress} MEDIASOUP_ANNOUNCED_IP=${newInstance.PrivateIpAddress} DEBUG=\${DEBUG:='*mediasoup* *INFO* *WARN* *ERROR*'} INTERACTIVE=\${INTERACTIVE:='false'} forever start index.js'`, (error, stdout, stderr) => {
+                    //             if (error) {
+                    //                 console.error(`Error with Installing dependencies on: ${worldName} Error: ${error}`);
+                    //                 reject();
+                    //             } else {
+                    //                 console.log(`stdout: ${stdout}`);
+                    //                 console.error(`stderr: ${stderr}`);
+                    //                 console.log('New World successfully created:', worldName, 'IsBuffer: ' + isBuffer);
+                    //                 console.timeEnd(worldName)
+                    //                 resolve({
+                    //                     name: worldName,
+                    //                     host: newInstance.PublicDnsName,
+                    //                     launchTime: newInstance.LaunchTime,
+                    //                 });
+                    //             }
+                    //         });
+                    //     }
+                    // })
                 }, DNS_WAIT_TIME)
             } else {
                 console.error(error);
