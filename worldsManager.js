@@ -112,7 +112,7 @@ const createNewWorld = (isBuffer) => {
                     console.log('SCP transfer started:', worldName);
                     const response = await fetch('https://github.com/webaverse/world-server/releases/download/214667748/world-server.zip');
                     if (response.ok) {
-                        await streamPipeline(response.body, fs.createWriteStream('./octocat.png'))
+                        await streamPipeline(response.body, fs.createWriteStream('./world-server/world-server.zip'))
                     }
 
                     const process = spawn('./installWorld', [newInstance.PublicDnsName, newInstance.PrivateIpAddress]);
