@@ -15,6 +15,7 @@ const awsConfig = new AWS.Config({
     region: 'us-west-1',
 });
 const EC2 = new AWS.EC2(awsConfig);
+const ELBv2 = new AWS.ELBv2(awsConfig);
 
 let worldMap = new Map();
 const MAX_INSTANCES = 20;
@@ -67,6 +68,41 @@ const getWorldList = () => {
     })
 };
 
+// adds instance to elastic load balancer target group, this give the world a URL and routing.
+const registerWorld = (instanceId) => {
+    return new Promise((resolve, reject) => {
+        try {
+            const describeParams = {
+                TargetGroupArn: "arn:aws:elasticloadbalancing:us-west-1:907263135169:targetgroup/worlds/61962fbb4a031966",
+                Targets: [
+                    {
+                        Id: instanceId, 
+                        Port: 4443
+                    },
+                    {
+                        Id: instanceId, 
+                        Port: 80
+                    },
+                    {
+                        Id: instanceId, 
+                        Port: 443
+                    },
+                ]
+            };
+            ELBv2.registerTargets(describeParams, (error, data) => {
+                if (!error) {
+                    resolve();
+                } else {
+                    console.error(error);
+                    reject();
+                }
+            })
+        } catch (e) {
+            console.error(e)
+        }
+    })
+};
+
 // Create a new ec2 instance, pull world-server code from Github, SSH copy the code into new instance, return host and other useful metadata for user.
 const createNewWorld = (isBuffer) => {
     return new Promise((resolve, reject) => {
@@ -75,7 +111,7 @@ const createNewWorld = (isBuffer) => {
         console.time(worldName)
         const instanceParams = {
             ImageId: 'ami-0cd230f950c3de5d8',
-            InstanceType: 't3.micro',
+            InstanceType: 't3.nano',
             KeyName: 'Exokit',
             MinCount: 1,
             MaxCount: 1,
@@ -111,7 +147,7 @@ const createNewWorld = (isBuffer) => {
                     const newInstance = worldMap.get(worldName);
                     if (!fs.existsSync('world-server/world-server.zip')) {
                         console.log('Fetching world-server ZIP release:', worldName);
-                        const response = await fetch('https://github.com/webaverse/world-server/releases/download/214667748/world-server.zip');
+                        const response = await fetch('https://github.com/webaverse/world-server/releases/download/214934477/world-server.zip');
                         if (response.ok) {
                             console.log('Got the ZIP release:', worldName);
                             console.log('Writing ZIP to local file on server:', worldName);
@@ -129,11 +165,13 @@ const createNewWorld = (isBuffer) => {
                         console.error(`stderr: ${data}`);
                     });
 
-                    process.on('close', (code) => {
+                    process.on('close', async (code) => {
                         console.log(`child process exited with code ${code}`);
-                        if(code === 0) {
+                        console.log(`Debug URL: ${newInstance.PublicIpAddress}`);
+                        if (code === 0) {
                             console.log('New World successfully created:', worldName, 'IsBuffer: ' + isBuffer);
                             console.timeEnd(worldName)
+                            await registerWorld(newInstance.InstanceId)
                             resolve({
                                 name: worldName,
                                 host: newInstance.PublicDnsName,
@@ -141,9 +179,9 @@ const createNewWorld = (isBuffer) => {
                             });
                         } else {
                             reject()
-                        } 
+                        }
                     });
-                    
+
                 }, DNS_WAIT_TIME)
             } else {
                 console.error(error);
