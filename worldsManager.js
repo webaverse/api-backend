@@ -115,7 +115,7 @@ const createNewWorld = (isBuffer) => {
                         await streamPipeline(response.body, fs.createWriteStream('./world-server/world-server.zip'))
                     }
 
-                    const process = spawn('./installWorld', [newInstance.PublicDnsName, newInstance.PrivateIpAddress]);
+                    const process = spawn('./installWorld.sh', [newInstance.PublicDnsName, newInstance.PrivateIpAddress]);
 
                     process.stdout.on('data', (data) => {
                         console.log(`stdout: ${data}`);
