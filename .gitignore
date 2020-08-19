@@ -4,4 +4,4 @@ cert
 keys
 .DS_Store
 world-server
-world-certs
+certs
