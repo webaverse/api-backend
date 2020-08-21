@@ -106,7 +106,6 @@ const registerWorld = (instanceId) => {
 const pingWorld = (instanceId) => {
     return new Promise((resolve, reject) => {
         try {
-            
             const pingDNS = (instanceId) => {
                 return new Promise((resolve, reject) => {
                     const describeParams = {
@@ -209,15 +208,6 @@ const createNewWorld = (isBuffer) => {
                 let newInstance = data.Instances[0]
                 console.log('Waiting for IP and SSH to connect...')
                 newInstance = await pingWorld(newInstance.InstanceId)
-                if (!fs.existsSync('world-server/world-server.zip')) {
-                    console.log('Fetching world-server ZIP release:', worldName);
-                    const response = await fetch('https://github.com/webaverse/world-server/releases/download/214934477/world-server.zip');
-                    if (response.ok) {
-                        console.log('Got the ZIP release:', worldName);
-                        console.log('Writing ZIP to local file on server:', worldName);
-                        await streamPipeline(response.body, fs.createWriteStream('./world-server/world-server.zip'))
-                    }
-                }
                 console.log('Spawning bash script and installing world on EC2:', worldName);
                 const process = spawn('./installWorld.sh', [newInstance.PublicDnsName, newInstance.PrivateIpAddress]);
 
@@ -393,8 +383,30 @@ const worldsManager = async () => {
     }
 };
 
-worldsManager();
-const managerLoop = setInterval(worldsManager, 5000);
+const updateZipFile = () => {
+    return new Promise(async (resolve, reject) => {
+        if (!fs.existsSync('world-server/world-server.zip')) {
+            console.log('Fetching world-server ZIP release...');
+            const response = await fetch('https://github.com/webaverse/world-server/releases/download/214934477/world-server.zip');
+            if (response.ok) {
+                console.log('Writing ZIP to local file on server...');
+                await streamPipeline(response.body, fs.createWriteStream('./world-server/world-server.zip'))
+                console.log('ZIP written to server successfully!');
+                resolve()
+            } else {
+                reject()
+            }
+        }
+    })
+}
+
+const main = async () => {
+    await updateZipFile()
+    worldsManager();
+    const managerLoop = setInterval(worldsManager, 5000);
+}
+main()
+
 
 module.exports = {
     _handleWorldsRequest
