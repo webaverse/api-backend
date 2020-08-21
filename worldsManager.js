@@ -20,7 +20,6 @@ const ELBv2 = new AWS.ELBv2(awsConfig);
 let worldMap = new Map();
 const MAX_INSTANCES = 20;
 const MAX_INSTANCES_BUFFER = 1;
-const DNS_WAIT_TIME = 45000;
 
 // Finds a tag by key in random ordered array of tags.
 const findTag = (tags, key) => {
@@ -274,7 +273,6 @@ const getWorldFromBuffer = () => {
         const isBuffer = findTag(w.Tags, 'IsBuffer').Value;
         if (isBuffer === 'true') {
             world = w;
-            return w;
         }
     })
     return world;
