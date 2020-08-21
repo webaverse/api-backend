@@ -118,15 +118,13 @@ const pingWorld = (instanceId) => {
                     };
                     EC2.describeInstances(describeParams, (error, data) => {
                         const instance = data.Reservations[0].Instances[0]
+                        isSession = false;
                         if (!error && instance) {
                             if (instance.PublicDnsName) {
-                                isSession = false;
                                 resolve(instance);
                             }
-                            isSession = false;
                             resolve(null);
                         } else {
-                            isSession = false;
                             console.error(error);
                             reject();
                         }
