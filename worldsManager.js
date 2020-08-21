@@ -76,15 +76,15 @@ const registerWorld = (instanceId) => {
                 TargetGroupArn: "arn:aws:elasticloadbalancing:us-west-1:907263135169:targetgroup/worlds/61962fbb4a031966",
                 Targets: [
                     {
-                        Id: instanceId, 
+                        Id: instanceId,
                         Port: 4443
                     },
                     {
-                        Id: instanceId, 
+                        Id: instanceId,
                         Port: 80
                     },
                     {
-                        Id: instanceId, 
+                        Id: instanceId,
                         Port: 443
                     },
                 ]
@@ -102,6 +102,71 @@ const registerWorld = (instanceId) => {
         }
     })
 };
+
+const pingWorld = (instanceId) => {
+    return new Promise((resolve, reject) => {
+        try {
+            
+            const pingDNS = (instanceId) => {
+                return new Promise((resolve, reject) => {
+                    const describeParams = {
+                        InstanceIds: [
+                            instanceId
+                        ]
+                    };
+                    EC2.describeInstances(describeParams, (error, data) => {
+                        const instance = data.Reservations[0].Instances[0]
+                        if (!error && instance) {
+                            if (instance.PublicDnsName) {
+                                resolve(instance);
+                            }
+                            resolve(null);
+                        } else {
+                            console.error(error);
+                            reject();
+                        }
+                    })
+                })
+            }
+
+            const pingSSH = (ip) => {
+                return new Promise((resolve, reject) => {
+                    const process = spawn('./testSSH.sh', [ip]);
+
+                    process.stdout.on('data', (data) => {
+                        console.log(`stdout: ${data}`);
+                    });
+
+                    process.stderr.on('data', (data) => {
+                        console.error(`stderr: ${data}`);
+                    });
+
+                    process.on('close', (code) => {
+                        console.log(code)
+                        if (code === 0) {
+                            console.log(`SSH connection success.`);
+                            resolve(true)
+                        }
+                    });
+                })
+            }
+
+            const interval = setInterval(async () => {
+                const instance = await pingDNS(instanceId)
+                if (instance.PublicIpAddress) {
+                    const ssh = await pingSSH(instance.PublicIpAddress)
+                    if (ssh) {
+                        clearInterval(interval)
+                        resolve(instance)
+                    }
+                }
+            }, 5000)
+
+        } catch (e) {
+            console.error(e)
+        }
+    })
+}
 
 // Create a new ec2 instance, pull world-server code from Github, SSH copy the code into new instance, return host and other useful metadata for user.
 const createNewWorld = (isBuffer) => {
@@ -138,51 +203,48 @@ const createNewWorld = (isBuffer) => {
                 }
             ]
         };
-        EC2.runInstances(instanceParams, (error, data) => {
+        EC2.runInstances(instanceParams, async (error, data) => {
             if (!error) {
                 console.log('New world begun setup:', worldName)
-                console.log(`Waiting for public DNS to resolve for ${DNS_WAIT_TIME / 1000} seconds...`)
-                setTimeout(async () => { // to-do change this to a poll method to get publicDNS
-                    await getWorldList();
-                    const newInstance = worldMap.get(worldName);
-                    if (!fs.existsSync('world-server/world-server.zip')) {
-                        console.log('Fetching world-server ZIP release:', worldName);
-                        const response = await fetch('https://github.com/webaverse/world-server/releases/download/214934477/world-server.zip');
-                        if (response.ok) {
-                            console.log('Got the ZIP release:', worldName);
-                            console.log('Writing ZIP to local file on server:', worldName);
-                            await streamPipeline(response.body, fs.createWriteStream('./world-server/world-server.zip'))
-                        }
+                let newInstance = data.Instances[0]
+                console.log('Waiting for IP and SSH to connect...')
+                newInstance = await pingWorld(newInstance.InstanceId)
+                if (!fs.existsSync('world-server/world-server.zip')) {
+                    console.log('Fetching world-server ZIP release:', worldName);
+                    const response = await fetch('https://github.com/webaverse/world-server/releases/download/214934477/world-server.zip');
+                    if (response.ok) {
+                        console.log('Got the ZIP release:', worldName);
+                        console.log('Writing ZIP to local file on server:', worldName);
+                        await streamPipeline(response.body, fs.createWriteStream('./world-server/world-server.zip'))
                     }
-                    console.log('Spawning bash script and installing world on EC2:', worldName);
-                    const process = spawn('./installWorld.sh', [newInstance.PublicDnsName, newInstance.PrivateIpAddress]);
+                }
+                console.log('Spawning bash script and installing world on EC2:', worldName);
+                const process = spawn('./installWorld.sh', [newInstance.PublicDnsName, newInstance.PrivateIpAddress]);
 
-                    process.stdout.on('data', (data) => {
-                        console.log(`stdout: ${data}`);
-                    });
+                process.stdout.on('data', (data) => {
+                    console.log(`stdout: ${data}`);
+                });
 
-                    process.stderr.on('data', (data) => {
-                        console.error(`stderr: ${data}`);
-                    });
+                process.stderr.on('data', (data) => {
+                    console.error(`stderr: ${data}`);
+                });
 
-                    process.on('close', async (code) => {
-                        console.log(`child process exited with code ${code}`);
-                        console.log(`Debug URL: ${newInstance.PublicIpAddress}`);
-                        if (code === 0) {
-                            console.log('New World successfully created:', worldName, 'IsBuffer: ' + isBuffer);
-                            console.timeEnd(worldName)
-                            await registerWorld(newInstance.InstanceId)
-                            resolve({
-                                name: worldName,
-                                host: newInstance.PublicDnsName,
-                                launchTime: newInstance.LaunchTime,
-                            });
-                        } else {
-                            reject()
-                        }
-                    });
-
-                }, DNS_WAIT_TIME)
+                process.on('close', async (code) => {
+                    console.log(`child process exited with code ${code}`);
+                    console.log(`Debug URL: ${newInstance.PublicIpAddress}`);
+                    if (code === 0) {
+                        console.log('New World successfully created:', worldName, 'IsBuffer: ' + isBuffer);
+                        console.timeEnd(worldName)
+                        await registerWorld(newInstance.InstanceId)
+                        resolve({
+                            name: worldName,
+                            host: newInstance.PublicDnsName,
+                            launchTime: newInstance.LaunchTime,
+                        });
+                    } else {
+                        reject()
+                    }
+                });
             } else {
                 console.error(error);
                 reject(error);
