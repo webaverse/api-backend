@@ -396,6 +396,8 @@ const updateZipFile = () => {
             } else {
                 reject()
             }
+        } else {
+            resolve()
         }
     })
 }
