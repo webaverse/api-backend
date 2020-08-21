@@ -106,7 +106,10 @@ const registerWorld = (instanceId) => {
 const pingWorld = (instanceId) => {
     return new Promise((resolve, reject) => {
         try {
+            let isSession = false;
+
             const pingDNS = (instanceId) => {
+                isSession = true;
                 return new Promise((resolve, reject) => {
                     const describeParams = {
                         InstanceIds: [
@@ -117,10 +120,13 @@ const pingWorld = (instanceId) => {
                         const instance = data.Reservations[0].Instances[0]
                         if (!error && instance) {
                             if (instance.PublicDnsName) {
+                                isSession = false;
                                 resolve(instance);
                             }
+                            isSession = false;
                             resolve(null);
                         } else {
+                            isSession = false;
                             console.error(error);
                             reject();
                         }
@@ -129,6 +135,7 @@ const pingWorld = (instanceId) => {
             }
 
             const pingSSH = (ip) => {
+                isSession = true;
                 return new Promise((resolve, reject) => {
                     const process = spawn('./testSSH.sh', [ip]);
 
@@ -142,6 +149,7 @@ const pingWorld = (instanceId) => {
 
                     process.on('close', (code) => {
                         console.log(code)
+                        isSession = false;
                         if (code === 0) {
                             console.log(`SSH connection success.`);
                             resolve(true)
@@ -151,15 +159,17 @@ const pingWorld = (instanceId) => {
             }
 
             const interval = setInterval(async () => {
-                const instance = await pingDNS(instanceId)
-                if (instance.PublicIpAddress) {
-                    const ssh = await pingSSH(instance.PublicIpAddress)
-                    if (ssh) {
-                        clearInterval(interval)
-                        resolve(instance)
+                if (!isSession) {
+                    const instance = await pingDNS(instanceId)
+                    if (instance.PublicIpAddress) {
+                        const ssh = await pingSSH(instance.PublicIpAddress)
+                        if (ssh) {
+                            clearInterval(interval)
+                            resolve(instance)
+                        }
                     }
                 }
-            }, 5000)
+            }, 1000)
 
         } catch (e) {
             console.error(e)
