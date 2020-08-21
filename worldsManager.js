@@ -161,7 +161,6 @@ const pingWorld = (instanceId) => {
                     });
 
                     process.on('close', (code) => {
-                        console.log(code)
                         isSession = false;
                         if (code === 0) {
                             console.log(`SSH connection success.`);
