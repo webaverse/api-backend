@@ -228,10 +228,10 @@ const createNewWorld = (isBuffer) => {
 
                 process.on('close', async (code) => {
                     console.log(`child process exited with code ${code}`);
+                    console.timeEnd(worldName)
                     console.log(`Debug URL: ${newInstance.PublicIpAddress}`);
                     if (code === 0) {
                         console.log('New World successfully created:', worldName, 'IsBuffer: ' + isBuffer);
-                        console.timeEnd(worldName)
                         await registerWorld(newInstance.InstanceId)
                         resolve({
                             name: worldName,
