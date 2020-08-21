@@ -122,6 +122,7 @@ const pingWorld = (instanceId) => {
     return new Promise((resolve, reject) => {
         try {
             let isSession = false;
+            let isResolved = false;
 
             const pingDNS = (instanceId) => {
                 isSession = true;
@@ -177,7 +178,10 @@ const pingWorld = (instanceId) => {
                         const ssh = await pingSSH(instance.PublicIpAddress)
                         if (ssh) {
                             clearInterval(interval)
-                            resolve(instance)
+                            if (!isResolved) {
+                                isResolved = true;
+                                resolve(instance)
+                            }
                         }
                     }
                 }
