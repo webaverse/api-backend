@@ -21,6 +21,22 @@ let worldMap = new Map();
 const MAX_INSTANCES = 20;
 const MAX_INSTANCES_BUFFER = 1;
 
+// Polls the world list from AWS. Determines if buffer is OK and if we need to make more buffered instances. Useful for server reboot and monitoring.
+const worldsManager = async () => {
+    try {
+        await getWorldList();
+        const status = determineWorldBuffer();
+        if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
+            for (let i = 0; i < MAX_INSTANCES_BUFFER - status.bufferedWorlds; i++) {
+                createNewWorld(true)
+            }
+        }
+        console.log(`${status.activeWorlds} active Worlds. ${status.bufferedWorlds} buffered Worlds.`);
+    } catch (e) {
+        console.error(e);
+    }
+};
+
 // Finds a tag by key in random ordered array of tags.
 const findTag = (tags, key) => {
     let returnTag = null;
@@ -137,11 +153,11 @@ const pingWorld = (instanceId) => {
                     const process = spawn('./testSSH.sh', [ip]);
 
                     process.stdout.on('data', (data) => {
-                        console.log(`stdout: ${data}`);
+                        // console.log(`stdout: ${data}`);
                     });
 
                     process.stderr.on('data', (data) => {
-                        console.error(`stderr: ${data}`);
+                        // console.error(`stderr: ${data}`);
                     });
 
                     process.on('close', (code) => {
@@ -219,11 +235,11 @@ const createNewWorld = (isBuffer) => {
                 const process = spawn('./installWorld.sh', [newInstance.PublicDnsName, newInstance.PrivateIpAddress]);
 
                 process.stdout.on('data', (data) => {
-                    console.log(`stdout: ${data}`);
+                    // console.log(`stdout: ${data}`);
                 });
 
                 process.stderr.on('data', (data) => {
-                    console.error(`stderr: ${data}`);
+                    // console.error(`stderr: ${data}`);
                 });
 
                 process.on('close', async (code) => {
@@ -327,6 +343,7 @@ const _handleWorldsRequest = async (req, res) => {
                 res.statusCode = 500;
                 res.end();
             }
+            worldsManager()
         } else if (method === 'GET' && path) {
             const requestedWorld = worldMap.get(path);
             if (requestedWorld) {
@@ -345,6 +362,7 @@ const _handleWorldsRequest = async (req, res) => {
             await deleteWorld(path);
             res.statusCode = 200;
             res.end();
+            worldsManager()
         } else {
             res.statusCode = 404;
             res.end();
@@ -373,22 +391,6 @@ const determineWorldBuffer = () => {
     }
 }
 
-// Polls the world list from AWS. Determines if buffer is OK and if we need to make more buffered instances. Useful for server reboot and monitoring.
-const worldsManager = async () => {
-    try {
-        await getWorldList();
-        const status = determineWorldBuffer();
-        if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
-            for (let i = 0; i < MAX_INSTANCES_BUFFER - status.bufferedWorlds; i++) {
-                createNewWorld(true)
-            }
-        }
-        console.log(`${status.activeWorlds} active Worlds. ${status.bufferedWorlds} buffered Worlds.`);
-    } catch (e) {
-        console.error(e);
-    }
-};
-
 const updateZipFile = () => {
     return new Promise(async (resolve, reject) => {
         if (!fs.existsSync('world-server/world-server.zip')) {
@@ -411,10 +413,8 @@ const updateZipFile = () => {
 const main = async () => {
     await updateZipFile()
     worldsManager();
-    const managerLoop = setInterval(worldsManager, 5000);
 }
 main()
-
 
 module.exports = {
     _handleWorldsRequest
