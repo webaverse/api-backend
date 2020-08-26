@@ -80,35 +80,31 @@ const getWorldList = () => {
 // adds instance to elastic load balancer target group, this give the world a URL and routing.
 const registerWorld = (instanceId) => {
     return new Promise((resolve, reject) => {
-        try {
-            const describeParams = {
-                TargetGroupArn: "arn:aws:elasticloadbalancing:us-west-1:907263135169:targetgroup/worlds/61962fbb4a031966",
-                Targets: [
-                    {
-                        Id: instanceId,
-                        Port: 4443
-                    },
-                    {
-                        Id: instanceId,
-                        Port: 80
-                    },
-                    {
-                        Id: instanceId,
-                        Port: 443
-                    },
-                ]
-            };
-            ELBv2.registerTargets(describeParams, (error, data) => {
-                if (!error) {
-                    resolve();
-                } else {
-                    console.error(error);
-                    reject();
-                }
-            })
-        } catch (e) {
-            console.error(e)
-        }
+        const describeParams = {
+            TargetGroupArn: "arn:aws:elasticloadbalancing:us-west-1:907263135169:targetgroup/worlds/61962fbb4a031966",
+            Targets: [
+                {
+                    Id: instanceId,
+                    Port: 4443
+                },
+                {
+                    Id: instanceId,
+                    Port: 80
+                },
+                {
+                    Id: instanceId,
+                    Port: 443
+                },
+            ]
+        };
+        ELBv2.registerTargets(describeParams, (error, data) => {
+            if (!error) {
+                resolve();
+            } else {
+                console.error(error);
+                reject();
+            }
+        })
     })
 };
 
