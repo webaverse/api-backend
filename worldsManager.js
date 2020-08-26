@@ -120,76 +120,71 @@ const registerWorld = (instanceId) => {
 
 const pingWorld = (instanceId) => {
     return new Promise((resolve, reject) => {
-        try {
-            let isSession = false;
-            let isResolved = false;
+        let isSession = false;
+        let isResolved = false;
 
-            const pingDNS = (instanceId) => {
-                isSession = true;
-                return new Promise((resolve, reject) => {
-                    const describeParams = {
-                        InstanceIds: [
-                            instanceId
-                        ]
-                    };
-                    EC2.describeInstances(describeParams, (error, data) => {
-                        const instance = data.Reservations[0].Instances[0]
-                        isSession = false;
-                        if (!error && instance) {
-                            if (instance.PublicDnsName) {
-                                resolve(instance);
-                            }
-                            resolve(null);
-                        } else {
-                            console.error(error);
-                            reject();
+        const pingDNS = (instanceId) => {
+            isSession = true;
+            return new Promise((resolve, reject) => {
+                const describeParams = {
+                    InstanceIds: [
+                        instanceId
+                    ]
+                };
+                EC2.describeInstances(describeParams, (error, data) => {
+                    const instance = data.Reservations[0].Instances[0]
+                    isSession = false;
+                    if (!error && instance) {
+                        if (instance.PublicDnsName) {
+                            resolve(instance);
                         }
-                    })
+                        resolve(null);
+                    } else {
+                        console.error(error);
+                        reject();
+                    }
                 })
-            }
+            })
+        }
 
-            const pingSSH = (ip) => {
-                isSession = true;
-                return new Promise((resolve, reject) => {
-                    const process = spawn('./testSSH.sh', [ip]);
+        const pingSSH = (ip) => {
+            isSession = true;
+            return new Promise((resolve, reject) => {
+                const process = spawn('./testSSH.sh', [ip]);
 
-                    process.stdout.on('data', (data) => {
-                        // console.log(`stdout: ${data}`);
-                    });
+                process.stdout.on('data', (data) => {
+                    // console.log(`stdout: ${data}`);
+                });
 
-                    process.stderr.on('data', (data) => {
-                        // console.error(`stderr: ${data}`);
-                    });
+                process.stderr.on('data', (data) => {
+                    // console.error(`stderr: ${data}`);
+                });
 
-                    process.on('close', (code) => {
-                        isSession = false;
-                        if (code === 0) {
-                            console.log(`SSH connection success.`);
-                            resolve(true)
-                        }
-                    });
-                })
-            }
+                process.on('close', (code) => {
+                    isSession = false;
+                    if (code === 0) {
+                        console.log(`SSH connection success.`);
+                        resolve(true)
+                    }
+                });
+            })
+        }
 
-            const interval = setInterval(async () => {
-                if (!isSession) {
-                    const instance = await pingDNS(instanceId)
-                    if (instance.PublicIpAddress) {
-                        const ssh = await pingSSH(instance.PublicIpAddress)
-                        if (ssh) {
-                            clearInterval(interval)
-                            if (!isResolved) {
-                                isResolved = true;
-                                resolve(instance)
-                            }
+        const interval = setInterval(async () => {
+            if (!isSession) {
+                const instance = await pingDNS(instanceId)
+                if (instance.PublicIpAddress) {
+                    const ssh = await pingSSH(instance.PublicIpAddress)
+                    if (ssh) {
+                        clearInterval(interval)
+                        if (!isResolved) {
+                            isResolved = true;
+                            resolve(instance)
                         }
                     }
                 }
-            }, 1000)
-
-        } catch (e) {
-            console.error(e)
-        }
+            }
+        }, 1000)
     })
 }
 
