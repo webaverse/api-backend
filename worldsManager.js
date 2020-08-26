@@ -39,14 +39,12 @@ const worldsManager = async () => {
 
 // Finds a tag by key in random ordered array of tags.
 const findTag = (tags, key) => {
-    let returnTag = null;
     tags.forEach(tag => {
         if (tag.Key === key) {
-            returnTag = tag;
-            return returnTag;
+            return tag;
         }
     })
-    return returnTag;
+    return null;
 }
 
 // searchs through all of our ec2 instances and makes Map of worlds with their unique name as the key.
