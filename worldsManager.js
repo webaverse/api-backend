@@ -23,18 +23,14 @@ const MAX_INSTANCES_BUFFER = 1;
 
 // Polls the world list from AWS. Determines if buffer is OK and if we need to make more buffered instances. Useful for server reboot and monitoring.
 const worldsManager = async () => {
-    try {
-        await getWorldList();
-        const status = determineWorldBuffer();
-        if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
-            for (let i = 0; i < MAX_INSTANCES_BUFFER - status.bufferedWorlds; i++) {
-                createNewWorld(true)
-            }
+    await getWorldList();
+    const status = determineWorldBuffer();
+    if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
+        for (let i = 0; i < MAX_INSTANCES_BUFFER - status.bufferedWorlds; i++) {
+            createNewWorld(true)
         }
-        console.log(`${status.activeWorlds} active Worlds. ${status.bufferedWorlds} buffered Worlds.`);
-    } catch (e) {
-        console.error(e);
     }
+    console.log(`${status.activeWorlds} active Worlds. ${status.bufferedWorlds} buffered Worlds.`);
 };
 
 // Finds a tag by key in random ordered array of tags.
