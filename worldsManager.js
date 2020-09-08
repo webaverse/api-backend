@@ -397,7 +397,7 @@ const main = () => {
     updateZipFile()
     worldsManager();
 }
-main()
+// main()
 
 module.exports = {
     _handleWorldsRequest

@@ -8,7 +8,6 @@ const https = require('https');
 const crypto = require('crypto');
 const zlib = require('zlib');
 const child_process = require('child_process');
-
 const mkdirp = require('mkdirp');
 // const express = require('express');
 const httpProxy = require('http-proxy');
@@ -54,9 +53,11 @@ const ethUtil = require('./ethereumjs-util.js');
 const api = require('./api.js');
 
 const { _handleWorldsRequest } = require('./worldsManager.js');
+const { _handleAvatarsRequest } = require('./routes/avatars.js');
 
-const CERT = fs.readFileSync('./cert/fullchain.pem');
-const PRIVKEY = fs.readFileSync('./cert/privkey.pem');
+
+const CERT = fs.readFileSync('./certs/fullchain.pem');
+const PRIVKEY = fs.readFileSync('./certs/privkey.pem');
 
 const PORT = parseInt(process.env.PORT, 10) || 80;
 const PARCEL_SIZE = 8;
@@ -3913,6 +3914,9 @@ try {
     return;
   } else if (o.host === 'worlds.exokit.org') {
     _handleWorldsRequest(req, res)
+  }
+  else if (o.host === 'avatars.exokit.org' || o.path.split('/')[1] === 'avatars') {
+    _handleAvatarsRequest(req, res)
   }
 
   if (match = o.host.match(/^(.+)\.proxy\.exokit.org$/)) {
