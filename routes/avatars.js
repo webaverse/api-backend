@@ -1,5 +1,7 @@
-const AWS = require('aws-sdk');
 const url = require('url');
+const { getObject, putObject } = require('../aws.js');
+const crypto = require('crypto');
+const fs = require('fs');
 
 const _handleAvatarsRequest = async (req, res) => {
     const request = url.parse(req.url);
@@ -8,6 +10,10 @@ const _handleAvatarsRequest = async (req, res) => {
     try {
         const { method } = req;
         if (method === 'POST') {
+            const hash = crypto.createHash('sha256');
+            hash.update(req.body);
+            console.log(hash)
+            await putObject('avatars.exokit.org', hash, req.body)
             res.statusCode = 200;
             res.end()
         } else if (method === 'GET' && path) {
