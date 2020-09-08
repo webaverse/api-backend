@@ -53,7 +53,7 @@ const ethUtil = require('./ethereumjs-util.js');
 const api = require('./api.js');
 
 const { _handleWorldsRequest } = require('./worldsManager.js');
-const { _handleAvatarsRequest } = require('./routes/avatars.js');
+const { _handleStorageRequest } = require('./routes/storage.js');
 
 
 const CERT = fs.readFileSync('./certs/fullchain.pem');
@@ -3915,8 +3915,8 @@ try {
   } else if (o.host === 'worlds.exokit.org') {
     _handleWorldsRequest(req, res)
   }
-  else if (o.host === 'avatars.exokit.org' || o.path.split('/')[1] === 'avatars') {
-    _handleAvatarsRequest(req, res)
+  else if (o.host === 'storage.exokit.org' || o.path.split('/')[1] === 'storage') {
+    _handleStorageRequest(req, res)
   }
 
   if (match = o.host.match(/^(.+)\.proxy\.exokit.org$/)) {
