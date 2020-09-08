@@ -1,7 +1,6 @@
 const url = require('url');
 const { getObject, putObject } = require('../aws.js');
 const crypto = require('crypto');
-const fs = require('fs');
 
 const _handleAvatarsRequest = async (req, res) => {
     const request = url.parse(req.url);
@@ -17,8 +16,9 @@ const _handleAvatarsRequest = async (req, res) => {
             res.statusCode = 200;
             res.end()
         } else if (method === 'GET' && path) {
+            const avatar = await getObject('avatars.exokit.org', path);
             res.statusCode = 200;
-            res.end()
+            res.end(avatar)
         } else if (method === 'DELETE' && path) {
             res.statusCode = 200;
             res.end()
