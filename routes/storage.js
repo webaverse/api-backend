@@ -18,16 +18,15 @@ const _handleStorageRequest = async (req, res) => {
                 const buffer = new Buffer.concat(data);
                 hash.update(buffer);
                 const hashHex = hash.digest('hex');
-                await putObject('storage.exokit.org', hashHex, buffer);
+                await putObject('storage.exokit.org', hashHex + '.vrm', buffer);
                 res.statusCode = 200;
                 res.end(JSON.stringify({
                     hash: hashHex
                 }));
             })
         } else if (method === 'GET' && path) {
-            const avatar = await getObject('storage.exokit.org', path);
-            res.statusCode = 200;
-            res.end(avatar.Body)
+            res.writeHead(301, {"Location": 'https://s3-us-west-1.amazonaws.com/storage.exokit.org/' + path});
+            res.end();
         } else if (method === 'DELETE' && path) {
             res.statusCode = 200;
             res.end();
