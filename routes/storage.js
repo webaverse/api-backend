@@ -27,7 +27,6 @@ const _handleStorageRequest = async (req, res) => {
         } else if (method === 'GET' && path) {
             const avatar = await getObject('storage.exokit.org', path);
             res.statusCode = 200;
-            console.log(avatar)
             res.end(avatar.Body)
         } else if (method === 'DELETE' && path) {
             res.statusCode = 200;
