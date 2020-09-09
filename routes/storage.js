@@ -17,19 +17,20 @@ const _handleStorageRequest = async (req, res) => {
                 const hash = crypto.createHash('SHA3-256');
                 const buffer = new Buffer.concat(data);
                 hash.update(buffer);
-                await putObject('storage.exokit.org', hash.digest('hex'), buffer);
+                const hashHex = hash.digest('hex');
+                await putObject('storage.exokit.org', hashHex, buffer);
                 res.statusCode = 200;
-                res.end();
+                res.end(JSON.stringify({
+                    hash: hashHex
+                }));
             })
         } else if (method === 'GET' && path) {
             const avatar = await getObject('storage.exokit.org', path);
             res.statusCode = 200;
-            res.end()
+            console.log(avatar)
+            res.end(avatar.Body)
         } else if (method === 'DELETE' && path) {
             res.statusCode = 200;
-            res.end();
-        } else {
-            res.statusCode = 404;
             res.end();
         }
     }
