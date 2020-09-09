@@ -7,8 +7,10 @@ const _handleStorageRequest = async (req, res) => {
     const path = request.path.split('/')[2];
     console.log(request, path)
     try {
+        res.setHeader("Access-Control-Allow-Origin", "*");
         const { method } = req;
         if (method === 'POST') {
+            console.log(req.body)
             const hash = crypto.createHash('SHA3-256');
             hash.update(req.body);
             console.log(hash)

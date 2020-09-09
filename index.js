@@ -56,8 +56,8 @@ const { _handleWorldsRequest } = require('./worldsManager.js');
 const { _handleStorageRequest } = require('./routes/storage.js');
 
 
-const CERT = fs.readFileSync('./certs/fullchain.pem');
-const PRIVKEY = fs.readFileSync('./certs/privkey.pem');
+const CERT = fs.readFileSync('./localCerts/cert.pem');
+const PRIVKEY = fs.readFileSync('./localCerts/key.pem');
 
 const PORT = parseInt(process.env.PORT, 10) || 80;
 const PARCEL_SIZE = 8;
