@@ -8,7 +8,6 @@ const https = require('https');
 const crypto = require('crypto');
 const zlib = require('zlib');
 const child_process = require('child_process');
-
 const mkdirp = require('mkdirp');
 // const express = require('express');
 const httpProxy = require('http-proxy');
@@ -52,9 +51,10 @@ const bip32 = require('./bip32.js');
 const bip39 = require('./bip39.js');
 const ethUtil = require('./ethereumjs-util.js');
 const api = require('./api.js');
+const { _handleStorageRequest } = require('./routes/storage.js');
 
-const CERT = fs.readFileSync('./cert/fullchain.pem');
-const PRIVKEY = fs.readFileSync('./cert/privkey.pem');
+const CERT = fs.readFileSync('./certs/fullchain.pem');
+const PRIVKEY = fs.readFileSync('./certs/privkey.pem');
 
 const PORT = parseInt(process.env.PORT, 10) || 80;
 const PARCEL_SIZE = 8;
@@ -3909,10 +3909,10 @@ try {
   } else if (o.host === 'tokens.exokit.org') {
     _handleTokens(req, res);
     return;
-  } /* else if (o.host === 'browser.exokit.org') {
-    _handleBrowser(req, res);
+  } else if (o.host === 'storage.exokit.org') {
+    _handleStorageRequest(req, res);
     return;
-  } */
+  }
 
   if (match = o.host.match(/^(.+)\.proxy\.exokit.org$/)) {
     const raw = match[1];
