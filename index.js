@@ -3909,7 +3909,7 @@ try {
   } else if (o.host === 'tokens.exokit.org') {
     _handleTokens(req, res);
     return;
-  } else if (o.host === 'storage.exokit.org' || o.path.split('/')[1] === 'storage') {
+  } else if (o.host === 'storage.exokit.org') {
     _handleStorageRequest(req, res);
     return;
   }
