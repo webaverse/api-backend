@@ -4,7 +4,7 @@ const crypto = require('crypto');
 
 const _handleStorageRequest = async (req, res) => {
     const request = url.parse(req.url);
-    const path = request.path.split('/')[2];
+    const path = request.path.split('/')[1];
     try {
         res.setHeader("Access-Control-Allow-Origin", "*");
         const { method } = req;
