@@ -14,8 +14,7 @@ const _handleStorageRequest = async (req, res) => {
             res.setHeader('Access-Control-Allow-Methods', '*');
             res.setHeader('Access-Control-Allow-Headers', '*');
             res.end();
-        } 
-        if (method === 'POST') {
+        } else if (method === 'POST') {
             let data = [];
             req.on('data', chunk => {
                 data.push(chunk)
