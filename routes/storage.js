@@ -1,6 +1,7 @@
 const url = require('url');
-const { getObject, putObject } = require('../aws.js');
+const { putObject } = require('../aws.js');
 const crypto = require('crypto');
+const { _setCorsHeaders } = require('../utils.js');
 
 const _handleStorageRequest = async (req, res) => {
     const request = url.parse(req.url);
@@ -8,7 +9,10 @@ const _handleStorageRequest = async (req, res) => {
     try {
         res.setHeader("Access-Control-Allow-Origin", "*");
         const { method } = req;
-        if (method === 'POST') {
+        if (method === 'OPTIONS') {
+            _setCorsHeaders(res);
+            res.end();
+        } else if (method === 'POST') {
             let data = [];
             req.on('data', chunk => {
                 data.push(chunk)
@@ -18,7 +22,7 @@ const _handleStorageRequest = async (req, res) => {
                 const buffer = new Buffer.concat(data);
                 hash.update(buffer);
                 const hashHex = hash.digest('hex');
-                await putObject('storage.exokit.org', hashHex + '.vrm', buffer);
+                await putObject('storage.exokit.org', hashHex, buffer);
                 res.statusCode = 200;
                 res.end(JSON.stringify({
                     hash: hashHex
