@@ -1,6 +1,7 @@
 const url = require('url');
 const { putObject } = require('../aws.js');
 const crypto = require('crypto');
+const { _setCorsHeaders } = require('../utils.js');
 
 const _handleStorageRequest = async (req, res) => {
     const request = url.parse(req.url);
@@ -10,9 +11,7 @@ const _handleStorageRequest = async (req, res) => {
         const { method } = req;
         if (method === 'OPTIONS') {
             res.statusCode = 200;
-            res.setHeader('Access-Control-Allow-Origin', '*');
-            res.setHeader('Access-Control-Allow-Methods', '*');
-            res.setHeader('Access-Control-Allow-Headers', '*');
+            _setCorsHeaders(res);
             res.end();
         } else if (method === 'POST') {
             let data = [];
