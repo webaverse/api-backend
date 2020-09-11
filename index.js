@@ -51,9 +51,6 @@ const bip32 = require('./bip32.js');
 const bip39 = require('./bip39.js');
 const ethUtil = require('./ethereumjs-util.js');
 const api = require('./api.js');
-
-const CERT = fs.readFileSync('./cert/fullchain.pem');
-const PRIVKEY = fs.readFileSync('./cert/privkey.pem');
 const { _handleStorageRequest } = require('./routes/storage.js');
 
 const CERT = fs.readFileSync('./certs/fullchain.pem');
