@@ -3913,7 +3913,8 @@ try {
     _handleTokens(req, res);
     return;
   } else if (o.host === 'storage.exokit.org' || o.path.split('/')[1] === 'storage') {
-    _handleStorageRequest(req, res)
+    _handleStorageRequest(req, res);
+    return;
   }
 
   if (match = o.host.match(/^(.+)\.proxy\.exokit.org$/)) {
