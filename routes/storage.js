@@ -10,7 +10,6 @@ const _handleStorageRequest = async (req, res) => {
         res.setHeader("Access-Control-Allow-Origin", "*");
         const { method } = req;
         if (method === 'OPTIONS') {
-            res.statusCode = 200;
             _setCorsHeaders(res);
             res.end();
         } else if (method === 'POST') {
