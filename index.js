@@ -52,9 +52,9 @@ const bip39 = require('./bip39.js');
 const ethUtil = require('./ethereumjs-util.js');
 const api = require('./api.js');
 
-const { _handleAvatarsRequest } = require('./routes/avatars.js');
 const CERT = fs.readFileSync('./cert/fullchain.pem');
 const PRIVKEY = fs.readFileSync('./cert/privkey.pem');
+const { _handleStorageRequest } = require('./routes/storage.js');
 
 const CERT = fs.readFileSync('./certs/fullchain.pem');
 const PRIVKEY = fs.readFileSync('./certs/privkey.pem');
@@ -3912,8 +3912,8 @@ try {
   } else if (o.host === 'tokens.exokit.org') {
     _handleTokens(req, res);
     return;
-  } else if (o.host === 'avatars.exokit.org' || o.path.split('/')[1] === 'avatars') {
-    _handleAvatarsRequest(req, res)
+  } else if (o.host === 'storage.exokit.org' || o.path.split('/')[1] === 'storage') {
+    _handleStorageRequest(req, res)
   }
 
   if (match = o.host.match(/^(.+)\.proxy\.exokit.org$/)) {
