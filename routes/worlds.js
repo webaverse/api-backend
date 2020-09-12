@@ -17,14 +17,13 @@ const awsConfig = new AWS.Config({
 const EC2 = new AWS.EC2(awsConfig);
 const ELBv2 = new AWS.ELBv2(awsConfig);
 
-let worldMap = new Map();
 const MAX_INSTANCES = 20;
 const MAX_INSTANCES_BUFFER = 1;
 
 // Polls the world list from AWS. Determines if buffer is OK and if we need to make more buffered instances. Useful for server reboot and monitoring.
 const worldsManager = async () => {
-    await getWorldList();
-    const status = determineWorldBuffer();
+    const worldMap = await getWorldList();
+    const status = determineWorldBuffer(worldMap);
     if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
         for (let i = 0; i < MAX_INSTANCES_BUFFER - status.bufferedWorlds; i++) {
             createNewWorld(true)
@@ -35,12 +34,14 @@ const worldsManager = async () => {
 
 // Finds a tag by key in random ordered array of tags.
 const findTag = (tags, key) => {
-    tags.forEach(tag => {
-        if (tag.Key === key) {
-            return tag;
-        }
+    return new Promise((resolve, reject) => {
+        tags.forEach(t => {
+            if (t.Key === key) {
+                resolve(t);
+            }
+        })
+        resolve(null);
     })
-    return null;
 }
 
 // searchs through all of our ec2 instances and makes Map of worlds with their unique name as the key.
@@ -57,10 +58,10 @@ const getWorldList = () => {
             };
             EC2.describeInstances(describeParams, (error, data) => {
                 if (!error && data.Reservations) {
-                    worldMap = new Map();
-                    data.Reservations.forEach(r => {
+                    const worldMap = new Map();
+                    data.Reservations.forEach(async (r) => {
                         const instance = r.Instances[0];
-                        const worldName = findTag(instance.Tags, 'Name')
+                        const worldName = await findTag(instance.Tags, 'Name');
                         if (worldName && (instance.State.Code === 16 || instance.State.Code === 0)) { // running or pending
                             worldMap.set(worldName.Value, instance);
                         }
@@ -257,7 +258,7 @@ const createNewWorld = (isBuffer) => {
 // Finds a world in our Map with the UUID key and terminates the AWS instance
 const deleteWorld = (worldUUID) => {
     return new Promise(async (resolve, reject) => {
-        await getWorldList();
+        const worldMap = await getWorldList();
         const instanceToDelete = worldMap.get(worldUUID);
         EC2.terminateInstances({ InstanceIds: [instanceToDelete.InstanceId] }, (error, data) => {
             if (!error) {
@@ -312,7 +313,7 @@ const _handleWorldsRequest = async (req, res) => {
     const request = url.parse(req.url)
     const path = request.path.split('/')[2]
     try {
-        await getWorldList();
+        const worldMap = await getWorldList();
         const { method } = req;
         if (method === 'POST' && path === 'create') {
             const newWorld = getWorldFromBuffer();
@@ -362,7 +363,7 @@ const _handleWorldsRequest = async (req, res) => {
 };
 
 // Searches through our Map of worlds, counts the ones who have IsBuffer = true | false attached as AWS instance Tag. Useful for buffer math.
-const determineWorldBuffer = () => {
+const determineWorldBuffer = (worldMap) => {
     let activeWorlds = 0;
     let bufferedWorlds = 0;
     worldMap.forEach(world => {
