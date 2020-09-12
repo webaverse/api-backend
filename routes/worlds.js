@@ -23,7 +23,7 @@ const MAX_INSTANCES_BUFFER = 1;
 // Polls the world list from AWS. Determines if buffer is OK and if we need to make more buffered instances. Useful for server reboot and monitoring.
 const worldsManager = async () => {
     const worldMap = await getWorldList();
-    const status = determineWorldBuffer(worldMap);
+    const status = await determineWorldBuffer(worldMap);
     if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
         for (let i = 0; i < MAX_INSTANCES_BUFFER - status.bufferedWorlds; i++) {
             createNewWorld(true)
@@ -364,20 +364,30 @@ const _handleWorldsRequest = async (req, res) => {
 
 // Searches through our Map of worlds, counts the ones who have IsBuffer = true | false attached as AWS instance Tag. Useful for buffer math.
 const determineWorldBuffer = (worldMap) => {
-    let activeWorlds = 0;
-    let bufferedWorlds = 0;
-    worldMap.forEach(world => {
-        const isBuffer = findTag(world.Tags, 'IsBuffer').Value === 'true';
-        if (isBuffer) {
-            bufferedWorlds++;
-        } else {
-            activeWorlds++;
+    return new Promise((resolve, reject) => {
+        let activeWorlds = 0;
+        let bufferedWorlds = 0;
+        if (worldMap && worldMap.size > 0) {
+            Array.from(worldMap.values()).forEach(async (world, index) => {
+                const tag = await findTag(world.Tags, 'IsBuffer');
+                const isBuffer = tag.Value === 'true';
+                isBuffer ? bufferedWorlds++ : activeWorlds++;
+                if (index === worldMap.size - 1) {
+                    resolve({
+                        activeWorlds,
+                        bufferedWorlds
+                    });
+                };
+            })
+        } else if (worldMap && worldMap.size === 0) {
+            resolve({
+                activeWorlds,
+                bufferedWorlds
+            })
+        } else if (!worldMap) {
+            reject();
         }
     })
-    return {
-        activeWorlds: activeWorlds,
-        bufferedWorlds: bufferedWorlds
-    }
 }
 
 const updateZipFile = async () => {
