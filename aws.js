@@ -25,7 +25,7 @@ const getObject = (bucket, key) => {
 
 const putObject = (bucket, key, data) => {
     return new Promise(async (resolve, reject) => {
-        const params = { Body: data, Bucket: bucket, Key: key };
+        const params = { Body: data, Bucket: bucket, Key: key, ACL: 'public-read' };
         s3.putObject(params, (error, data) => {
             if (error) {
                 reject(error)
