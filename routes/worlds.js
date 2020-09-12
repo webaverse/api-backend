@@ -382,7 +382,7 @@ const determineWorldBuffer = () => {
 const updateZipFile = async () => {
     if (!fs.existsSync('world-server/world-server.zip')) {
         console.log('Fetching world-server ZIP release...');
-        const response = await fetch('https://github.com/webaverse/world-server/releases/download/214934477/world-server.zip');
+        const response = await fetch('https://github.com/webaverse/world-server/releases/download/249150046/world-server.zip');
         if (response.ok) {
             console.log('Writing ZIP to local file on server...');
             await streamPipeline(response.body, fs.createWriteStream('./world-server/world-server.zip'))
