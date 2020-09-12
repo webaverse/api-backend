@@ -52,7 +52,7 @@ const bip39 = require('./bip39.js');
 const ethUtil = require('./ethereumjs-util.js');
 const api = require('./api.js');
 const { _handleStorageRequest } = require('./routes/storage.js');
-const { _handleWorldsRequest } = require('./worldsManager.js');
+const { _handleWorldsRequest } = require('./routes/worlds.js');
 
 const CERT = fs.readFileSync('./certs/fullchain.pem');
 const PRIVKEY = fs.readFileSync('./certs/privkey.pem');

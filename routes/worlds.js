@@ -6,7 +6,7 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const fetch = require('node-fetch');
 const streamPipeline = util.promisify(require('stream').pipeline);
-const { accessKeyId, secretAccessKey } = require('./config.json');
+const { accessKeyId, secretAccessKey } = require('../config.json');
 const awsConfig = new AWS.Config({
     credentials: new AWS.Credentials({
         accessKeyId,
