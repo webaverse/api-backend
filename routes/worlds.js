@@ -15,9 +15,8 @@ const awsConfig = new AWS.Config({
     region: 'us-west-1',
 });
 const EC2 = new AWS.EC2(awsConfig);
-const ELBv2 = new AWS.ELBv2(awsConfig);
 
-const MAX_INSTANCES = 20;
+const MAX_INSTANCES = 10;
 const MAX_INSTANCES_BUFFER = 1;
 
 // Polls the world list from AWS. Determines if buffer is OK and if we need to make more buffered instances. Useful for server reboot and monitoring.
@@ -78,45 +77,14 @@ const getWorldList = () => {
     })
 };
 
-// adds instance to elastic load balancer target group, this give the world a URL and routing.
-const registerWorld = (instanceId) => {
-    return new Promise((resolve, reject) => {
-        const describeParams = {
-            TargetGroupArn: "arn:aws:elasticloadbalancing:us-west-1:907263135169:targetgroup/worlds/61962fbb4a031966",
-            Targets: [
-                {
-                    Id: instanceId,
-                    Port: 4443
-                },
-                {
-                    Id: instanceId,
-                    Port: 80
-                },
-                {
-                    Id: instanceId,
-                    Port: 443
-                },
-            ]
-        };
-        ELBv2.registerTargets(describeParams, (error, data) => {
-            if (!error) {
-                resolve();
-            } else {
-                console.error(error);
-                reject();
-            }
-        })
-    })
-};
-
 const pingWorld = (instanceId) => {
     return new Promise((resolve, reject) => {
         let isSession = false;
         let isResolved = false;
 
         const pingDNS = (instanceId) => {
-            isSession = true;
             return new Promise((resolve, reject) => {
+                isSession = true;
                 const describeParams = {
                     InstanceIds: [
                         instanceId
@@ -124,23 +92,19 @@ const pingWorld = (instanceId) => {
                 };
                 EC2.describeInstances(describeParams, (error, data) => {
                     const instance = data.Reservations[0].Instances[0]
-                    isSession = false;
-                    if (!error && instance) {
-                        if (instance.PublicDnsName) {
-                            resolve(instance);
-                        }
-                        resolve(null);
+                    if (instance && instance.PublicIpAddress) {
+                        resolve(instance);
                     } else {
-                        console.error(error);
-                        reject();
+                        resolve(null);
                     }
+                    isSession = false;
                 })
             })
         }
 
         const pingSSH = (ip) => {
-            isSession = true;
             return new Promise((resolve, reject) => {
+                isSession = true;
                 const process = spawn('./testSSH.sh', [ip]);
 
                 process.stdout.on('data', (data) => {
@@ -152,11 +116,13 @@ const pingWorld = (instanceId) => {
                 });
 
                 process.on('close', (code) => {
-                    isSession = false;
                     if (code === 0) {
                         console.log(`SSH connection success.`);
-                        resolve(true)
+                        resolve(true);
+                    } else {
+                        resolve(false);
                     }
+                    isSession = false;
                 });
             })
         }
@@ -167,10 +133,10 @@ const pingWorld = (instanceId) => {
                 if (instance.PublicIpAddress) {
                     const ssh = await pingSSH(instance.PublicIpAddress)
                     if (ssh) {
-                        clearInterval(interval)
                         if (!isResolved) {
                             isResolved = true;
-                            resolve(instance)
+                            resolve(instance);
+                            clearInterval(interval);
                         }
                     }
                 }
@@ -221,7 +187,7 @@ const createNewWorld = (isBuffer) => {
                 console.log('Waiting for IP and SSH to connect...')
                 newInstance = await pingWorld(newInstance.InstanceId)
                 console.log('Spawning bash script and installing world on EC2:', worldName);
-                const process = spawn('./installWorld.sh', [newInstance.PublicDnsName, newInstance.PrivateIpAddress]);
+                const process = spawn('./installWorld.sh', [newInstance.PublicDnsName, newInstance.PublicIpAddress]);
 
                 process.stdout.on('data', (data) => {
                     // console.log(`stdout: ${data}`);
@@ -237,10 +203,9 @@ const createNewWorld = (isBuffer) => {
                     console.log(`Debug URL: ${newInstance.PublicIpAddress}`);
                     if (code === 0) {
                         console.log('New World successfully created:', worldName, 'IsBuffer: ' + isBuffer);
-                        await registerWorld(newInstance.InstanceId)
                         resolve({
                             name: worldName,
-                            host: newInstance.PublicDnsName,
+                            host: newInstance.PublicIpAddress,
                             launchTime: newInstance.LaunchTime,
                         });
                     } else {
@@ -262,7 +227,6 @@ const deleteWorld = (worldUUID) => {
         const instanceToDelete = worldMap.get(worldUUID);
         EC2.terminateInstances({ InstanceIds: [instanceToDelete.InstanceId] }, (error, data) => {
             if (!error) {
-                console.log(data);
                 resolve(data);
             } else {
                 console.error(error);
@@ -272,15 +236,17 @@ const deleteWorld = (worldUUID) => {
     })
 }
 
-const getWorldFromBuffer = () => {
-    let world = null;
-    worldMap.forEach(w => {
-        const isBuffer = findTag(w.Tags, 'IsBuffer').Value;
-        if (isBuffer === 'true') {
-            world = w;
-        }
+const getWorldFromBuffer = (worldMap) => {
+    return new Promise((resolve, reject) => {
+        let world = null;
+        worldMap.forEach(async (w) => {
+            const isBuffer = await findTag(w.Tags, 'IsBuffer').Value;
+            if (isBuffer === 'true') {
+                world = w;
+                resolve(world);
+            }
+        })
     })
-    return world;
 }
 
 // changes a Tag value in AWS.
@@ -316,15 +282,15 @@ const _handleWorldsRequest = async (req, res) => {
         const worldMap = await getWorldList();
         const { method } = req;
         if (method === 'POST' && path === 'create') {
-            const newWorld = getWorldFromBuffer();
+            const newWorld = await getWorldFromBuffer(worldMap);
             if (newWorld) {
-                const worldName = findTag(newWorld.Tags, 'Name').Value;
+                const worldName = await findTag(newWorld.Tags, 'Name').Value;
                 console.log('World taken from buffer:', worldName)
                 await toggleTag(newWorld.InstanceId, 'IsBuffer', 'false')
                 res.statusCode = 200;
                 res.end(JSON.stringify({
                     name: worldName,
-                    host: newWorld.PublicDnsName,
+                    host: newWorld.PublicIpAddress,
                     launchTime: newWorld.LaunchTime,
                 }));
             } else {
@@ -338,8 +304,8 @@ const _handleWorldsRequest = async (req, res) => {
             if (requestedWorld) {
                 res.statusCode = 200;
                 res.end(JSON.stringify({
-                    name: findTag(requestedWorld.Tags, 'Name').Value,
-                    host: requestedWorld.PublicDnsName,
+                    name: await findTag(requestedWorld.Tags, 'Name').Value,
+                    host: requestedWorld.PublicIpAddress,
                     launchTime: requestedWorld.LaunchTime,
                 }));
             } else {

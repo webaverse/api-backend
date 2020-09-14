@@ -1,8 +1,8 @@
 #!/bin/bash
 
-PRIVATE_IP=$1
+PUBLIC_IP=$1
 
-ssh -o StrictHostKeyChecking=no -i keys/server.pem ubuntu@$PRIVATE_IP << EOF
+ssh -o StrictHostKeyChecking=no -i /tmp/keys/server.pem ubuntu@$PUBLIC_IP << EOF
     echo all good
     exit
 EOF

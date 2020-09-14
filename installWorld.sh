@@ -1,13 +1,12 @@
 #!/bin/bash
 
-PUBLIC_DNS=$1
-PRIVATE_IP=$2
+PUBLIC_IP=$1
 
 zip -ur ./world-server/world-server.zip ./certs/
 
-scp -o StrictHostKeyChecking=no -i keys/server.pem world-server/world-server.zip ubuntu@$PUBLIC_DNS:~
+scp -o StrictHostKeyChecking=no -i /tmp/keys/server.pem world-server/world-server.zip ubuntu@$PUBLIC_IP:~
 
-ssh -o StrictHostKeyChecking=no -i keys/server.pem ubuntu@$PUBLIC_DNS << EOF
+ssh -o StrictHostKeyChecking=no -i /tmp/keys/server.pem ubuntu@$PUBLIC_IP << EOF
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash 
     export NVM_DIR="\$HOME/.nvm"
     [ -s "\$NVM_DIR/nvm.sh" ]
@@ -28,6 +27,6 @@ ssh -o StrictHostKeyChecking=no -i keys/server.pem ubuntu@$PUBLIC_DNS << EOF
     mkdir node_modules/dialog/certs/ 
     cp -r certs/ node_modules/dialog/
     cd node_modules/dialog/ 
-    MEDIASOUP_LISTEN_IP=${PRIVATE_IP} MEDIASOUP_ANNOUNCED_IP=${PRIVATE_IP} DEBUG=\${DEBUG:='*mediasoup* *INFO* *WARN* *ERROR*'} INTERACTIVE=\${INTERACTIVE:='false'} forever start index.js
+    MEDIASOUP_LISTEN_IP=${PUBLIC_IP} MEDIASOUP_ANNOUNCED_IP=${PUBLIC_IP} DEBUG=\${DEBUG:='*mediasoup* *INFO* *WARN* *ERROR*'} INTERACTIVE=\${INTERACTIVE:='false'} forever start index.js
     exit
 EOF
