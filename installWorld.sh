@@ -2,8 +2,6 @@
 
 PUBLIC_IP=$1
 
-zip -ur ./world-server/world-server.zip
-
 scp -o StrictHostKeyChecking=no -i /tmp/keys/server.pem world-server/world-server.zip ubuntu@$PUBLIC_IP:~
 
 ssh -o StrictHostKeyChecking=no -i /tmp/keys/server.pem ubuntu@$PUBLIC_IP << EOF
