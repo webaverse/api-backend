@@ -15,7 +15,7 @@ const awsConfig = new AWS.Config({
     region: 'us-west-1',
 });
 const EC2 = new AWS.EC2(awsConfig);
-const route53 = new AWS.Route53();
+const route53 = new AWS.Route53(awsConfig);
 
 const MAX_INSTANCES = 10;
 const MAX_INSTANCES_BUFFER = 1;
@@ -52,7 +52,7 @@ const assignRoute = (worldName, publicIp) => {
                 {
                Action: "UPSERT", 
                ResourceRecordSet: {
-                Name: worldName, 
+                Name: `${worldName}.worlds.webaverse.com`,
                 ResourceRecords: [
                    {
                   Value: publicIp
@@ -235,6 +235,7 @@ const createNewWorld = (isBuffer) => {
                     console.timeEnd(worldName)
                     console.log(`Debug URL: ${newInstance.PublicIpAddress}`);
                     if (code === 0) {
+                        await assignRoute(worldName, newInstance.PublicIpAddress);
                         console.log('New World successfully created:', worldName, 'IsBuffer: ' + isBuffer);
                         resolve({
                             name: worldName,
