@@ -1,5 +1,5 @@
 const AWS = require('aws-sdk');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 const url = require('url');
 const util = require('util');
 const fs = require('fs');
@@ -15,6 +15,7 @@ const awsConfig = new AWS.Config({
     region: 'us-west-1',
 });
 const EC2 = new AWS.EC2(awsConfig);
+const route53 = new AWS.Route53();
 
 const MAX_INSTANCES = 10;
 const MAX_INSTANCES_BUFFER = 1;
@@ -40,6 +41,39 @@ const findTag = (tags, key) => {
             }
         })
         resolve(null);
+    })
+}
+
+const assignRoute = (worldName, publicIp) => {
+    return new Promise((resolve, reject) => {
+        const params = {
+            ChangeBatch: {
+             Changes: [
+                {
+               Action: "UPSERT", 
+               ResourceRecordSet: {
+                Name: worldName, 
+                ResourceRecords: [
+                   {
+                  Value: publicIp
+                 }
+                ], 
+                TTL: 60, 
+                Type: "A"
+               }
+              }
+             ], 
+            }, 
+            HostedZoneId: "Z01849492NCNCK33I1QM7"
+           };
+           route53.changeResourceRecordSets(params, (error, data) => {
+             if (error) {
+                console.log(error, error.stack);
+                reject();
+             } else {
+                resolve(data);
+             }
+           });
     })
 }
 
@@ -148,8 +182,7 @@ const pingWorld = (instanceId) => {
 // Create a new ec2 instance, pull world-server code from Github, SSH copy the code into new instance, return host and other useful metadata for user.
 const createNewWorld = (isBuffer) => {
     return new Promise((resolve, reject) => {
-        const uuid = uuidv4();
-        const worldName = 'world-' + uuid;
+        const worldName = crypto.randomBytes(8).toString('base64').toLowerCase().replace(/[^a-z0-9]+/g, '');
         console.time(worldName)
         const instanceParams = {
             ImageId: 'ami-0cd230f950c3de5d8',
@@ -221,10 +254,10 @@ const createNewWorld = (isBuffer) => {
 };
 
 // Finds a world in our Map with the UUID key and terminates the AWS instance
-const deleteWorld = (worldUUID) => {
+const deleteWorld = (worldName) => {
     return new Promise(async (resolve, reject) => {
         const worldMap = await getWorldList();
-        const instanceToDelete = worldMap.get(worldUUID);
+        const instanceToDelete = worldMap.get(worldName);
         EC2.terminateInstances({ InstanceIds: [instanceToDelete.InstanceId] }, (error, data) => {
             if (!error) {
                 resolve(data);
@@ -359,7 +392,7 @@ const determineWorldBuffer = (worldMap) => {
 const updateZipFile = async () => {
     if (!fs.existsSync('world-server/world-server.zip')) {
         console.log('Fetching world-server ZIP release...');
-        const response = await fetch('https://github.com/webaverse/world-server/releases/download/249150046/world-server.zip');
+        const response = await fetch('https://github.com/webaverse/world-server/releases/download/254383237/world-server.zip');
         if (response.ok) {
             console.log('Writing ZIP to local file on server...');
             await streamPipeline(response.body, fs.createWriteStream('./world-server/world-server.zip'))
