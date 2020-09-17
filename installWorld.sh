@@ -27,6 +27,6 @@ ssh -o StrictHostKeyChecking=no -i /tmp/keys/server.pem ubuntu@$PUBLIC_IP << EOF
     mkdir node_modules/dialog/certs/ 
     cp -r certs/ node_modules/dialog/
     cd node_modules/dialog/ 
-    sudo MEDIASOUP_LISTEN_IP=${PUBLIC_IP} MEDIASOUP_ANNOUNCED_IP=${PUBLIC_IP} DEBUG=\${DEBUG:='*mediasoup* *INFO* *WARN* *ERROR*'} INTERACTIVE=\${INTERACTIVE:='false'} $(which node) $(which forever) start index.js
+    sudo MEDIASOUP_LISTEN_IP=${PUBLIC_IP} MEDIASOUP_ANNOUNCED_IP=${PUBLIC_IP} 'DEBUG=${DEBUG:=*mediasoup* *INFO* *WARN* *ERROR*}' 'INTERACTIVE=${INTERACTIVE:='false'}' $(which node) $(which forever) start index.js
     exit
 EOF
