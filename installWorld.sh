@@ -16,9 +16,13 @@ ssh -o StrictHostKeyChecking=no -i /tmp/keys/server.pem ubuntu@$PUBLIC_IP << EOF
     mkdir node_modules/dialog/certs/
     cd ~/node_modules/dialog/
     sudo snap install --classic certbot
-    sudo certbot certonly --standalone --non-interactive --agree-tos -m hello@webmr.io -d ${DOMAIN_NAME}
+    sudo certbot certonly --standalone --non-interactive --agree-tos -m hello@webmr.io -d n1qxqgwbspw.worlds.webaverse.com
+    sudo chmod +r /etc/letsencrypt/live/${DOMAIN_NAME}/fullchain.pem
+    sudo chmod +r /etc/letsencrypt/live/${DOMAIN_NAME}/privkey.pem
     sudo cp /etc/letsencrypt/live/${DOMAIN_NAME}/fullchain.pem /home/ubuntu/node_modules/dialog/certs/
     sudo cp /etc/letsencrypt/live/${DOMAIN_NAME}/privkey.pem /home/ubuntu/node_modules/dialog/certs/
-    MEDIASOUP_LISTEN_IP=${PUBLIC_IP} MEDIASOUP_ANNOUNCED_IP=${PUBLIC_IP} DEBUG=\${DEBUG:='*mediasoup* *INFO* *WARN* *ERROR*'} INTERACTIVE=\${INTERACTIVE:='false'} forever start index.js
+    sudo chmod +r certs/privkey.pem
+    sudo chmod +r certs/fullchain.pem
+    MEDIASOUP_LISTEN_IP=54.193.38.54 MEDIASOUP_ANNOUNCED_IP=54.193.38.54 DEBUG=\${DEBUG:='*mediasoup* *INFO* *WARN* *ERROR*'} INTERACTIVE=\${INTERACTIVE:='false'} forever start index.js
     exit
 EOF
