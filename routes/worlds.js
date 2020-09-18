@@ -324,7 +324,7 @@ const _handleWorldsRequest = async (req, res) => {
                 await toggleTag(newWorld.InstanceId, 'IsBuffer', 'false')
                 res.statusCode = 200;
                 res.end(JSON.stringify({
-                    name: worldName,
+                    name: worldName + '.worlds.webaverse.com',
                     host: newWorld.PublicIpAddress,
                     launchTime: newWorld.LaunchTime,
                 }));
@@ -339,7 +339,7 @@ const _handleWorldsRequest = async (req, res) => {
             if (requestedWorld) {
                 res.statusCode = 200;
                 res.end(JSON.stringify({
-                    name: await findTag(requestedWorld.Tags, 'Name').Value,
+                    name: await findTag(requestedWorld.Tags, 'Name').Value + '.worlds.webaverse.com',
                     host: requestedWorld.PublicIpAddress,
                     launchTime: requestedWorld.LaunchTime,
                 }));
@@ -395,7 +395,7 @@ const updateZipFile = () => {
     return new Promise(async (resolve, reject) => {
         if (!fs.existsSync('./world-server.zip')) {
             console.log('Fetching world-server ZIP release...');
-            const response = await fetch('https://github.com/webaverse/world-server/releases/download/260259140/world-server.zip');
+            const response = await fetch('https://github.com/webaverse/world-server/releases/download/260524318/world-server.zip');
             if (response.ok) {
                 console.log('Writing ZIP to local file on server...');
                 await streamPipeline(response.body, fs.createWriteStream('./world-server.zip'));
