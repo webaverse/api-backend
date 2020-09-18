@@ -219,15 +219,17 @@ const createNewWorld = (isBuffer) => {
                 let newInstance = data.Instances[0]
                 console.log('Waiting for IP and SSH to connect...')
                 newInstance = await pingWorld(newInstance.InstanceId)
+                console.log('Assining route to ec2...', worldName + '.worlds.webaverse.com');
+                await assignRoute(worldName, newInstance.PublicIpAddress);
                 console.log('Spawning bash script and installing world on EC2:', worldName);
                 const process = spawn('./installWorld.sh', [newInstance.PublicIpAddress, `${worldName}.worlds.webaverse.com`]);
 
                 process.stdout.on('data', (data) => {
-                    // console.log(`stdout: ${data}`);
+                    console.log(`stdout: ${data}`);
                 });
 
                 process.stderr.on('data', (data) => {
-                    // console.error(`stderr: ${data}`);
+                    console.error(`stderr: ${data}`);
                 });
 
                 process.on('close', async (code) => {
@@ -235,7 +237,6 @@ const createNewWorld = (isBuffer) => {
                     console.timeEnd(worldName)
                     console.log(`Debug URL: ${newInstance.PublicIpAddress}`);
                     if (code === 0) {
-                        await assignRoute(worldName, newInstance.PublicIpAddress);
                         console.log('New World successfully created:', worldName, 'IsBuffer: ' + isBuffer);
                         resolve({
                             name: worldName,
