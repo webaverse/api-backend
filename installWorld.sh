@@ -23,6 +23,6 @@ ssh -o StrictHostKeyChecking=no -i /tmp/keys/server.pem ubuntu@$PUBLIC_IP << EOF
     sudo cp /etc/letsencrypt/live/${DOMAIN_NAME}/privkey.pem /home/ubuntu/node_modules/dialog/certs/
     sudo chmod +r certs/privkey.pem
     sudo chmod +r certs/fullchain.pem
-    MEDIASOUP_LISTEN_IP=${DOMAIN_NAME} MEDIASOUP_ANNOUNCED_IP=${DOMAIN_NAME} DEBUG=\${DEBUG:='*mediasoup* *INFO* *WARN* *ERROR*'} INTERACTIVE=\${INTERACTIVE:='false'} forever start index.js
+    MEDIASOUP_LISTEN_IP=${PUBLIC_IP} MEDIASOUP_ANNOUNCED_IP=${PUBLIC_IP} DEBUG=\${DEBUG:='*mediasoup* *INFO* *WARN* *ERROR*'} INTERACTIVE=\${INTERACTIVE:='false'} forever start index.js
     exit
 EOF
