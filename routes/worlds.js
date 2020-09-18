@@ -222,7 +222,7 @@ const createNewWorld = (isBuffer) => {
                 console.log('Assining route to ec2...', worldName + '.worlds.webaverse.com');
                 await assignRoute(worldName, newInstance.PublicIpAddress);
                 console.log('Spawning bash script and installing world on EC2:', worldName);
-                const process = spawn('./installWorld.sh', [newInstance.PublicIpAddress, `${worldName}.worlds.webaverse.com`]);
+                const process = spawn('./installWorld.sh', [newInstance.PublicIpAddress, newInstance.PrivateIpAddress, `${worldName}.worlds.webaverse.com`]);
 
                 process.stdout.on('data', (data) => {
                     console.log(`stdout: ${data}`);

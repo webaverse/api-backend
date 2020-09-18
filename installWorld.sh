@@ -1,7 +1,8 @@
 #!/bin/bash
 
 PUBLIC_IP=$1
-DOMAIN_NAME=$2
+PRIVATE_IP=$2
+DOMAIN_NAME=$3
 
 scp -o StrictHostKeyChecking=no -i /tmp/keys/server.pem ./world-server.zip ubuntu@$PUBLIC_IP:~
 
@@ -23,6 +24,7 @@ ssh -o StrictHostKeyChecking=no -i /tmp/keys/server.pem ubuntu@$PUBLIC_IP << EOF
     sudo cp /etc/letsencrypt/live/${DOMAIN_NAME}/privkey.pem /home/ubuntu/node_modules/dialog/certs/
     sudo chmod +r certs/privkey.pem
     sudo chmod +r certs/fullchain.pem
-    MEDIASOUP_LISTEN_IP=${PUBLIC_IP} MEDIASOUP_ANNOUNCED_IP=${PUBLIC_IP} DEBUG=\${DEBUG:='*mediasoup* *INFO* *WARN* *ERROR*'} INTERACTIVE=\${INTERACTIVE:='false'} forever start index.js
+    openssl rsa -in certs/privkey.pem -pubout > certs/perms.pub.pem
+    MEDIASOUP_LISTEN_IP=${PRIVATE_IP} MEDIASOUP_ANNOUNCED_IP=${PRIVATE_IP} DEBUG=\${DEBUG:='*mediasoup* *INFO* *WARN* *ERROR*'} INTERACTIVE=\${INTERACTIVE:='false'} forever start index.js
     exit
 EOF
