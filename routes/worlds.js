@@ -333,7 +333,7 @@ const _handleWorldsRequest = async (req, res) => {
                 res.statusCode = 500;
                 res.end();
             }
-            worldsManager()
+            createNewWorld(true);
         } else if (method === 'GET' && path) {
             const requestedWorld = worldMap.get(path);
             if (requestedWorld) {
