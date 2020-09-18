@@ -220,7 +220,7 @@ const createNewWorld = (isBuffer) => {
                 console.log('Waiting for IP and SSH to connect...')
                 newInstance = await pingWorld(newInstance.InstanceId)
                 console.log('Spawning bash script and installing world on EC2:', worldName);
-                const process = spawn('./installWorld.sh', [newInstance.PublicDnsName, newInstance.PublicIpAddress]);
+                const process = spawn('./installWorld.sh', [newInstance.PublicIpAddress, `${worldName}.worlds.webaverse.com`]);
 
                 process.stdout.on('data', (data) => {
                     // console.log(`stdout: ${data}`);

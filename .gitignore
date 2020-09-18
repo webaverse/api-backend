@@ -3,5 +3,5 @@ config.json
 cert
 keys
 .DS_Store
-world-server
+world-server.zip
 certs
