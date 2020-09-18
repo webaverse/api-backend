@@ -20,10 +20,11 @@ const route53 = new AWS.Route53(awsConfig);
 const MAX_INSTANCES = 10;
 const MAX_INSTANCES_BUFFER = 1;
 
+const worldMap = new Map();
+
 // Polls the world list from AWS. Determines if buffer is OK and if we need to make more buffered instances. Useful for server reboot and monitoring.
 const worldsManager = async () => {
-    const worldMap = await getWorldList();
-    const status = await determineWorldBuffer(worldMap);
+    const status = await determineWorldBuffer();
     if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
         for (let i = 0; i < MAX_INSTANCES_BUFFER - status.bufferedWorlds; i++) {
             createNewWorld(true)
@@ -91,7 +92,6 @@ const getWorldList = () => {
             };
             EC2.describeInstances(describeParams, (error, data) => {
                 if (!error && data.Reservations) {
-                    const worldMap = new Map();
                     data.Reservations.forEach(async (r) => {
                         const instance = r.Instances[0];
                         const worldName = await findTag(instance.Tags, 'Name');
@@ -238,6 +238,7 @@ const createNewWorld = (isBuffer) => {
                     console.log(`Debug URL: ${newInstance.PublicIpAddress}`);
                     if (code === 0) {
                         console.log('New World successfully created:', worldName, 'IsBuffer: ' + isBuffer);
+                        worldMap.set(worldName, newInstance);
                         resolve({
                             name: worldName,
                             host: newInstance.PublicIpAddress,
@@ -258,10 +259,10 @@ const createNewWorld = (isBuffer) => {
 // Finds a world in our Map with the UUID key and terminates the AWS instance
 const deleteWorld = (worldName) => {
     return new Promise(async (resolve, reject) => {
-        const worldMap = await getWorldList();
         const instanceToDelete = worldMap.get(worldName);
         EC2.terminateInstances({ InstanceIds: [instanceToDelete.InstanceId] }, (error, data) => {
             if (!error) {
+                worldMap.delete(worldName);
                 resolve(data);
             } else {
                 console.error(error);
@@ -271,7 +272,7 @@ const deleteWorld = (worldName) => {
     })
 }
 
-const getWorldFromBuffer = (worldMap) => {
+const getWorldFromBuffer = () => {
     return new Promise((resolve, reject) => {
         let world = null;
         worldMap.forEach(async (w) => {
@@ -300,6 +301,7 @@ const toggleTag = (instanceId, key, value) => {
         };
         EC2.createTags(params, (error, data) => {
             if (!error) {
+                console.log(data)
                 resolve(data)
             } else {
                 console.error(error)
@@ -314,10 +316,9 @@ const _handleWorldsRequest = async (req, res) => {
     const request = url.parse(req.url)
     const path = request.path.split('/')[2]
     try {
-        const worldMap = await getWorldList();
         const { method } = req;
         if (method === 'POST' && path === 'create') {
-            const newWorld = await getWorldFromBuffer(worldMap);
+            const newWorld = await getWorldFromBuffer();
             if (newWorld) {
                 const worldName = await findTag(newWorld.Tags, 'Name').Value;
                 console.log('World taken from buffer:', worldName)
@@ -333,7 +334,7 @@ const _handleWorldsRequest = async (req, res) => {
                 res.statusCode = 500;
                 res.end();
             }
-            createNewWorld(true);
+            worldsManager();
         } else if (method === 'GET' && path) {
             const requestedWorld = worldMap.get(path);
             if (requestedWorld) {
@@ -352,7 +353,7 @@ const _handleWorldsRequest = async (req, res) => {
             await deleteWorld(path);
             res.statusCode = 200;
             res.end();
-            worldsManager()
+            worldsManager();
         } else {
             res.statusCode = 404;
             res.end();
@@ -364,7 +365,7 @@ const _handleWorldsRequest = async (req, res) => {
 };
 
 // Searches through our Map of worlds, counts the ones who have IsBuffer = true | false attached as AWS instance Tag. Useful for buffer math.
-const determineWorldBuffer = (worldMap) => {
+const determineWorldBuffer = () => {
     return new Promise((resolve, reject) => {
         let activeWorlds = 0;
         let bufferedWorlds = 0;
@@ -413,6 +414,7 @@ const updateZipFile = () => {
 
 const main = async () => {
     await updateZipFile();
+    await getWorldList();
     worldsManager();
 }
 main()
