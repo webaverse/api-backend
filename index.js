@@ -23,7 +23,6 @@ const Base64Encoder = require('./encoder.js').Encoder;
 // const {JSONServer, CustomEvent} = require('./dist/sync-server.js');
 const {SHA3} = require('sha3');
 const bip39 = require('bip39');
-// const flow = require('./flow.js');
 const flowJs = require('./flow.js');
 const flow = {
   sdk: require('@onflow/sdk'),
