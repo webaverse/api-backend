@@ -162,31 +162,29 @@ const pingWorld = (instanceId) => {
             })
         }
 
-        let timeoutTime = 0;
-
-        const interval = () => {
-            console.log('hi')
-            setTimeout(async () => {
-                try {
-                    timeoutTime = 1000;
-                    if (!isSession) {
-                        const instance = await pingDNS(instanceId);
-                        if (instance && instance.PublicIpAddress) {
-                            const ssh = await pingSSH(instance.PublicIpAddress);
-                            ssh ? resolve(instance) : interval();
-                        } else {
-                            interval();
-                        }
+        const intervalFn = async () => {
+            try {
+                if (!isSession) {
+                    const instance = await pingDNS(instanceId);
+                    if (instance && instance.PublicIpAddress) {
+                        const ssh = await pingSSH(instance.PublicIpAddress);
+                        ssh ? resolve(instance) : interval();
                     } else {
                         interval();
                     }
-                }  catch(e) {
-                    console.log(e)
-                    reject()
+                } else {
+                    interval();
                 }
-            }, timeoutTime)
+            }  catch(e) {
+                console.log(e)
+                reject()
+            }
+        };
+        const interval = () => {
+            console.log('hi');
+            setTimeout(intervalFn, 1000);
         }
-        interval();
+        intervalFn();
 
     })
 }
