@@ -17,8 +17,8 @@ const awsConfig = new AWS.Config({
 const EC2 = new AWS.EC2(awsConfig);
 const route53 = new AWS.Route53(awsConfig);
 
-const MAX_INSTANCES = 10;
-const MAX_INSTANCES_BUFFER = 1;
+const MAX_INSTANCES = 20;
+const MAX_INSTANCES_BUFFER = 2;
 
 const worldMap = new Map();
 
