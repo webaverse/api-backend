@@ -31,6 +31,7 @@ const flow = {
   sdk: require('@onflow/sdk'),
   types: require('@onflow/types'),
   crypto: flowJs.crypto,
+  signingFunction: flowJs.signingFunction,
 };
 const flowConstants = require('./flow-constants.js');
 const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, stripeClientId, stripeClientSecret} = require('./config.json');
