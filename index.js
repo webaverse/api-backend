@@ -127,6 +127,7 @@ const _genKeys = async mnemonic => {
     entropyEnc: 'hex',
   });
 };
+const _isSealed = tx => tx.status >= 4;
 const _waitForTx = async txid => {
   for (;;) {
     const response2 = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
@@ -137,7 +138,7 @@ const _waitForTx = async txid => {
       ]),
     ]), { node: flowConstants.host });
     // console.log('got response 2', response2);
-    if (isSealed(response2.transaction)) {
+    if (_isSealed(response2.transaction)) {
       return response2;
     } else {
       await new Promise((accept, reject) => {
