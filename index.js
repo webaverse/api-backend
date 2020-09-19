@@ -26,7 +26,7 @@ const {Crypto} = require('node-webcrypto-ossl');
 const bip39 = require('bip39');
 crypto.subtle = new Crypto().subtle;
 // const flow = require('./flow.js');
-const flowJS = require('./flow.js');
+const flowJs = require('./flow.js');
 const flow = {
   sdk: require('@onflow/sdk'),
   types: require('@onflow/types'),
