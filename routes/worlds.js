@@ -407,13 +407,9 @@ const updateZipFile = () => {
 }
 
 const _startWorldsRoute = async () => {
-    try {
-        await updateZipFile();
-        await getWorldList();
-        worldsManager();
-    } catch (e) {
-        console.log(e)
-    }
+    await updateZipFile();
+    await getWorldList();
+    worldsManager();
 }
 
 module.exports = {
