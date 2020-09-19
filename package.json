@@ -22,7 +22,10 @@
   },
   "homepage": "https://github.com/modulesio/webaverse-server#readme",
   "dependencies": {
+    "@onflow/sdk": "0.0.31",
+    "@onflow/types": "0.0.4",
     "aws-sdk": "^2.750.0",
+    "bip39": "^3.0.2",
     "discord.js": "^12.2.0",
     "http-proxy": "^1.18.1",
     "lru": "^3.1.0",
