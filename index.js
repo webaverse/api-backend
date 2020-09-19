@@ -31,7 +31,8 @@ const flow = {
   signingFunction: flowJs.signingFunction,
 };
 const flowConstants = require('./flow-constants.js');
-const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, stripeClientId, stripeClientSecret} = require('./config.json');
+const config = require('./config.json');
+const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, stripeClientId, stripeClientSecret} = config;
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
     accessKeyId,
@@ -149,7 +150,7 @@ const _createAccount = async mnemonic => {
   const userKeys = await _genKeys(mnemonic);
 
   const acctResponse = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
-    flow.sdk.getAccount(flowConstants.address),
+    flow.sdk.getAccount(config.address),
   ]), [
     flow.sdk.resolve([
       flow.sdk.resolveParams,
@@ -157,12 +158,12 @@ const _createAccount = async mnemonic => {
   ]), { node: flowConstants.host });
   const seqNum = acctResponse.account.keys[0].sequenceNumber;
 
-  const signingFunction = flow.signingFunction.signingFunction(flowConstants.privateKey);
+  const signingFunction = flow.signingFunction.signingFunction(config.privateKey);
 
   const response = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
-    flow.sdk.authorizations([flow.sdk.authorization(flowConstants.address, signingFunction, 0)]),
-    flow.sdk.payer(flow.sdk.authorization(flowConstants.address, signingFunction, 0)),
-    flow.sdk.proposer(flow.sdk.authorization(flowConstants.address, signingFunction, 0, seqNum)),
+    flow.sdk.authorizations([flow.sdk.authorization(config.address, signingFunction, 0)]),
+    flow.sdk.payer(flow.sdk.authorization(config.address, signingFunction, 0)),
+    flow.sdk.proposer(flow.sdk.authorization(config.address, signingFunction, 0, seqNum)),
     flow.sdk.limit(100),
     flow.sdk.transaction`
       transaction(publicKeys: [String]) {
