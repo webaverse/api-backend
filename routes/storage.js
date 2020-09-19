@@ -3,6 +3,8 @@ const { putObject } = require('../aws.js');
 const crypto = require('crypto');
 const { _setCorsHeaders } = require('../utils.js');
 
+const hashAlgorithm = 'sha256';
+
 const _handleStorageRequest = async (req, res) => {
     const request = url.parse(req.url);
     const path = request.path.split('/')[1];
@@ -17,7 +19,7 @@ const _handleStorageRequest = async (req, res) => {
                 data.push(chunk)
             })
             req.on('end', async () => {
-                const hash = crypto.createHash('SHA3-256');
+                const hash = crypto.createHash(hashAlgorithm);
                 const buffer = new Buffer.concat(data);
                 hash.update(buffer);
                 const hashHex = hash.digest('hex');
