@@ -358,7 +358,9 @@ const _handleWorldsRequest = async (req, res) => {
         }
     }
     catch (e) {
-        console.log(e);
+        console.error(e)
+        res.statusCode = 500;
+        res.end(JSON.stringify(e));
     }
 };
 
