@@ -22,6 +22,17 @@ const namegen = require('./namegen.js');
 const Base64Encoder = require('./encoder.js').Encoder;
 const {JSONServer, CustomEvent} = require('./dist/sync-server.js');
 const {SHA3} = require('sha3');
+const {Crypto} = require('node-webcrypto-ossl');
+const bip39 = require('bip39');
+crypto.subtle = new Crypto().subtle;
+// const flow = require('./flow.js');
+const flowJS = require('./flow.js');
+const flow = {
+  sdk: require('@onflow/sdk'),
+  types: require('@onflow/types'),
+  crypto: flowJs.crypto,
+};
+const flowConstants = require('./flow-constants.js');
 const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, stripeClientId, stripeClientSecret} = require('./config.json');
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
@@ -47,9 +58,9 @@ const stripe = Stripe(stripeClientSecret);
 
 const Discord = require('discord.js');
 
-const bip32 = require('./bip32.js');
-const bip39 = require('./bip39.js');
-const ethUtil = require('./ethereumjs-util.js');
+// const bip32 = require('./bip32.js');
+// const bip39 = require('./bip39.js');
+// const ethUtil = require('./ethereumjs-util.js');
 const api = require('./api.js');
 const { _handleStorageRequest } = require('./routes/storage.js');
 const { _handleWorldsRequest, _startWorldsRoute } = require('./routes/worlds.js');
@@ -109,6 +120,81 @@ function _getKeyFromBindingUrl(u) {
     return [];
   }
 }
+const _genKeys = async mnemonic => {
+  const seed = await bip39.mnemonicToSeed(mnemonic);
+  return flow.crypto.genKeys({
+    entropy: seed.toString('hex'),
+    entropyEnc: 'hex',
+  });
+};
+const _waitForTx = async txid => {
+  for (;;) {
+    const response2 = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
+      flow.sdk.getTransactionStatus(txid),
+    ]), [
+      flow.sdk.resolve([
+        flow.sdk.resolveParams,
+      ]),
+    ]), { node: flowConstants.host });
+    // console.log('got response 2', response2);
+    if (isSealed(response2.transaction)) {
+      return response2;
+    } else {
+      await new Promise((accept, reject) => {
+        setTimeout(accept, 500);
+      });
+    }
+  }
+};
+const _createAccount = async mnemonic => {
+  const userKeys = await _genKeys(mnemonic);
+
+  const acctResponse = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
+    flow.sdk.getAccount(flowConstants.address),
+  ]), [
+    flow.sdk.resolve([
+      flow.sdk.resolveParams,
+    ]),
+  ]), { node: flowConstants.host });
+  const seqNum = acctResponse.account.keys[0].sequenceNumber;
+
+  const signingFunction = flow.signingFunction.signingFunction(flowConstants.privateKey);
+
+  const response = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
+    flow.sdk.authorizations([flow.sdk.authorization(flowConstants.address, signingFunction, 0)]),
+    flow.sdk.payer(flow.sdk.authorization(flowConstants.address, signingFunction, 0)),
+    flow.sdk.proposer(flow.sdk.authorization(flowConstants.address, signingFunction, 0, seqNum)),
+    flow.sdk.limit(100),
+    flow.sdk.transaction`
+      transaction(publicKeys: [String]) {
+        prepare(signer: AuthAccount) {
+          let acct = AuthAccount(payer: signer)
+          for key in publicKeys {
+            acct.addPublicKey(key.decodeHex())
+          }
+        }
+      }
+    `,
+    flow.sdk.args([
+      // flow.sdk.arg(2, t.Uint8),
+      flow.sdk.arg([userKeys.flowKey], flow.types.Array(flow.types.String)),
+    ]),
+  ]), [
+    flow.sdk.resolve([
+      flow.sdk.resolveArguments,
+      flow.sdk.resolveParams,
+      flow.sdk.resolveAccounts,
+      flow.sdk.resolveRefBlockId({ node: flowConstants.host }),
+      flow.sdk.resolveSignatures,
+    ]),
+  ]), { node: flowConstants.host });
+  // console.log('got response 4', response);
+  const response2 = await _waitForTx(response.transactionId);
+  // console.log('got response 5', response2);
+  const address = response2.transaction.events[0].payload.value.fields[0].value.value.slice(2);
+  // console.log('got response 6', userKeys.address);
+  return address;
+};
 const _makePromise = () => {
   let accept, reject;
   const p = new Promise((a, r) => {
@@ -156,8 +242,8 @@ try {
               email,
               token,
               name: tokenItem.Item.name.S,
-              // mnemonic: tokenItem.Item.mnemonic.S,
-              // addr: tokenItem.Item.addr.S,
+              mnemonic: tokenItem.Item.mnemonic.S,
+              addr: tokenItem.Item.addr.S,
               state: tokenItem.Item.state.S,
               stripeState: (tokenItem.Item.stripeState && tokenItem.Item.stripeState.S) ? !!JSON.parse(tokenItem.Item.stripeState.S) : false,
               stripeConnectState: (tokenItem.Item.stripeConnectState && tokenItem.Item.stripeConnectState.S) ? !!JSON.parse(tokenItem.Item.stripeConnectState.S) : false,
@@ -195,8 +281,8 @@ try {
               }).promise();
               const tokens = (tokenItem.Item && tokenItem.Item.tokens) ? JSON.parse(tokenItem.Item.tokens.S) : [];
               let name = (tokenItem.Item && tokenItem.Item.name) ? tokenItem.Item.name.S : null;
-              // let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
-              // let addr = (tokenItem.Item && tokenItem.Item.addr) ? tokenItem.Item.addr.S : null;
+              let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
+              let addr = (tokenItem.Item && tokenItem.Item.addr) ? tokenItem.Item.addr.S : null;
               let state = (tokenItem.Item && tokenItem.Item.state) ? tokenItem.Item.state.S : null;
               let stripeState = (tokenItem.Item && tokenItem.Item.stripeState) ? JSON.parse(tokenItem.Item.stripeState.S) : null;
               let stripeConnectState = (tokenItem.Item && tokenItem.Item.stripeConnectState) ? JSON.parse(tokenItem.Item.stripeConnectState.S) : null;
@@ -212,17 +298,12 @@ try {
               if (!name) {
                 name = namegen(2).join('-');
               }
-              /* if (!mnemonic) {
+              if (!mnemonic) {
                 mnemonic = bip39.entropyToMnemonic(crypto.randomBytes(32));
               }
               if (!addr) {
-                const start = Date.now();
-                const seed = bip39.mnemonicToSeedSync(mnemonic, '');
-                const privateKey = '0x' + bip32.fromSeed(seed).derivePath("m/44'/60'/0'/0").derive(0).privateKey.toString('hex');
-                addr = '0x' + ethUtil.privateToAddress(privateKey).toString('hex');
-                const end = Date.now();
-                console.log('get address time', end - start, addr);
-              } */
+                addr = await _createAccount(mnemonic);
+              }
               if (!state) {
                 state = _randomString();
               }
@@ -244,8 +325,8 @@ try {
                   email: {S: email + '.token'},
                   name: {S: name},
                   tokens: {S: JSON.stringify(tokens)},
-                  // mnemonic: {S: mnemonic},
-                  // addr: {S: addr},
+                  mnemonic: {S: mnemonic},
+                  addr: {S: addr},
                   state: {S: state},
                   stripeState: {S: JSON.stringify(stripeState)},
                   stripeConnectState: {S: JSON.stringify(stripeConnectState)},
@@ -258,8 +339,8 @@ try {
                 email,
                 token,
                 name,
-                // mnemonic,
-                // addr,
+                mnemonic,
+                addr,
                 state,
                 stripeState: !!stripeState,
                 stripeConnectState: !!stripeConnectState,
