@@ -19,21 +19,17 @@ const route53 = new AWS.Route53(awsConfig);
 
 const MAX_INSTANCES = 20;
 const MAX_INSTANCES_BUFFER = 2;
-
 const worldMap = new Map();
 
 // Polls the world list from AWS. Determines if buffer is OK and if we need to make more buffered instances. Useful for server reboot and monitoring.
 const worldsManager = () => {
-    return new Promise((resolve, reject) => {
-        const status = determineWorldBuffer();
-        if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
-            for (let i = 0; i < MAX_INSTANCES_BUFFER - status.bufferedWorlds; i++) {
-                createNewWorld();
-            }
+    const status = determineWorldBuffer();
+    if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
+        for (let i = 0; i < MAX_INSTANCES_BUFFER - status.bufferedWorlds; i++) {
+            createNewWorld();
         }
-        console.log(`${status.activeWorlds} active Worlds. ${status.bufferedWorlds} buffered Worlds.`);
-        resolve();
-    })
+    }
+    console.log(`${status.activeWorlds} active Worlds. ${status.bufferedWorlds} buffered Worlds.`);
 };
 
 // Finds a tag by key in random ordered array of tags.
@@ -175,13 +171,12 @@ const pingWorld = (instanceId) => {
                 } else {
                     interval();
                 }
-            }  catch(e) {
+            } catch (e) {
                 console.log(e)
                 reject()
             }
         };
         const interval = () => {
-            console.log('hi');
             setTimeout(intervalFn, 1000);
         }
         intervalFn();
@@ -235,11 +230,11 @@ const createNewWorld = () => {
                 const process = spawn('./installWorld.sh', [newInstance.PublicIpAddress, newInstance.PrivateIpAddress, `${worldName}.worlds.webaverse.com`]);
 
                 process.stdout.on('data', (data) => {
-                    console.log(`stdout: ${data}`);
+                    // console.log(`stdout: ${data}`);
                 });
 
                 process.stderr.on('data', (data) => {
-                    console.error(`stderr: ${data}`);
+                    // console.error(`stderr: ${data}`);
                 });
 
                 process.on('close', async (code) => {
@@ -411,13 +406,16 @@ const updateZipFile = () => {
     })
 }
 
-const main = async () => {
-    await updateZipFile();
-    await getWorldList();
-    await worldsManager();
+const _startWorldsRoute = () => {
+    return new Promise(async (resolve, reject) => {
+        await updateZipFile();
+        await getWorldList();
+        worldsManager();
+        resolve();
+    })
 }
-main()
 
 module.exports = {
-    _handleWorldsRequest
+    _handleWorldsRequest,
+    _startWorldsRoute
 };

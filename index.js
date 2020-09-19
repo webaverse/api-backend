@@ -52,7 +52,7 @@ const bip39 = require('./bip39.js');
 const ethUtil = require('./ethereumjs-util.js');
 const api = require('./api.js');
 const { _handleStorageRequest } = require('./routes/storage.js');
-const { _handleWorldsRequest } = require('./routes/worlds.js');
+const { _handleWorldsRequest, _startWorldsRoute } = require('./routes/worlds.js');
 
 const CERT = fs.readFileSync('./certs/fullchain.pem');
 const PRIVKEY = fs.readFileSync('./certs/privkey.pem');
@@ -3976,6 +3976,8 @@ const _ws = (req, socket, head) => {
     proxy.ws(req, socket, head);
   }
 };
+
+await _startWorldsRoute();
 
 const server = http.createServer(_req('http:'));
 server.on('upgrade', _ws);
