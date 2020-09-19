@@ -78,33 +78,29 @@ const assignRoute = (worldName, publicIp) => {
 // Searches through all of our ec2 instances and makes Map of worlds with their unique name as the key.
 const getWorldList = () => {
     return new Promise((resolve, reject) => {
-        try {
-            const describeParams = {
-                Filters: [
-                    {
-                        Name: "tag:Purpose",
-                        Values: ["world"]
-                    }
-                ]
-            };
-            EC2.describeInstances(describeParams, (error, data) => {
-                if (!error && data.Reservations) {
-                    data.Reservations.forEach(r => {
-                        const instance = r.Instances[0];
-                        const worldName = findTag(instance.Tags, 'Name');
-                        if (worldName && (instance.State.Code === 16 || instance.State.Code === 0)) { // running or pending
-                            worldMap.set(worldName.Value, instance);
-                        }
-                    })
-                    resolve();
-                } else {
-                    console.error(error);
-                    reject();
+        const describeParams = {
+            Filters: [
+                {
+                    Name: "tag:Purpose",
+                    Values: ["world"]
                 }
-            })
-        } catch (e) {
-            console.error(e)
-        }
+            ]
+        };
+        EC2.describeInstances(describeParams, (error, data) => {
+            if (!error && data.Reservations) {
+                data.Reservations.forEach(r => {
+                    const instance = r.Instances[0];
+                    const worldName = findTag(instance.Tags, 'Name');
+                    if (worldName && (instance.State.Code === 16 || instance.State.Code === 0)) { // running or pending
+                        worldMap.set(worldName.Value, instance);
+                    }
+                })
+                resolve();
+            } else {
+                console.error(error);
+                reject();
+            }
+        })
     })
 };
 
@@ -386,24 +382,20 @@ const determineWorldBuffer = () => {
     return status;
 }
 
-const updateZipFile = () => {
-    return new Promise(async (resolve, reject) => {
-        if (!fs.existsSync('./world-server.zip')) {
-            console.log('Fetching world-server ZIP release...');
-            const response = await fetch('https://github.com/webaverse/world-server/releases/download/260524318/world-server.zip');
-            if (response.ok) {
-                console.log('Writing ZIP to local file on server...');
-                await streamPipeline(response.body, fs.createWriteStream('./world-server.zip'));
-                console.log('ZIP written to server successfully!');
-                resolve();
-            } else {
-                console.error('couldnt pull ZIP for some reason:', response);
-                reject();
-            }
-        } else {
+const updateZipFile = async () => {
+    if (!fs.existsSync('./world-server.zip')) {
+        console.log('Fetching world-server ZIP release...');
+        const response = await fetch('https://github.com/webaverse/world-server/releases/download/260524318/world-server.zip');
+        if (response.ok) {
+            console.log('Writing ZIP to local file on server...');
+            await streamPipeline(response.body, fs.createWriteStream('./world-server.zip'));
+            console.log('ZIP written to server successfully!');
             resolve();
+        } else {
+            console.error('couldnt pull ZIP for some reason:', response);
+            reject();
         }
-    })
+    } 
 }
 
 const _startWorldsRoute = async () => {
