@@ -4,9 +4,7 @@ module.exports = {
   FlowToken: '0x7e60df042a9c0868',
   NonFungibleToken: '0x631e88ae7f1d7c20',
 
-  // host: 'http://127.0.0.1:8080',
-
-  address: '',
+  address: '', 
   publicKey: '',
   privateKey: '',
   flowKey: '',
