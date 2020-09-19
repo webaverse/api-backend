@@ -406,13 +406,14 @@ const updateZipFile = () => {
     })
 }
 
-const _startWorldsRoute = () => {
-    return new Promise(async (resolve, reject) => {
+const _startWorldsRoute = async () => {
+    try {
         await updateZipFile();
         await getWorldList();
         worldsManager();
-        resolve();
-    })
+    } catch (e) {
+        console.log(e)
+    }
 }
 
 module.exports = {
