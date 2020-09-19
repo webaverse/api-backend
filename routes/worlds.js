@@ -27,7 +27,7 @@ const worldsManager = () => {
     const status = determineWorldBuffer();
     if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
         for (let i = 0; i < MAX_INSTANCES_BUFFER - status.bufferedWorlds; i++) {
-            createNewWorld()
+            createNewWorld();
         }
     }
     console.log(`${status.activeWorlds} active Worlds. ${status.bufferedWorlds} buffered Worlds.`);
@@ -181,7 +181,7 @@ const pingWorld = (instanceId) => {
 const createNewWorld = () => {
     return new Promise((resolve, reject) => {
         const worldName = crypto.randomBytes(8).toString('base64').toLowerCase().replace(/[^a-z0-9]+/g, '');
-        console.time(worldName)
+        console.time(worldName);
         const instanceParams = {
             ImageId: 'ami-0cd230f950c3de5d8',
             InstanceType: 't3.nano',
@@ -271,10 +271,10 @@ const deleteWorld = (worldName) => {
 }
 
 const getWorldFromBuffer = () => {
-    if (worldMap.size > 0) {
+    if (worldMap && worldMap.size > 0) {
         for (let [key, value] of worldMap) {
-            const isBuffer = findTag(value.Tags, 'IsBuffer');
-            if (isBuffer === 'true') {
+            const tag = findTag(value.Tags, 'IsBuffer');
+            if (tag.Value === 'true') {
                 return value;
             }
         }
@@ -299,7 +299,6 @@ const toggleTag = (worldName, key, value) => {
         };
         EC2.createTags(params, (error, data) => {
             if (!error) {
-                console.log(data)
                 resolve(data)
             } else {
                 console.error(error)
@@ -311,16 +310,16 @@ const toggleTag = (worldName, key, value) => {
 
 // Routes API requests for interfacing with worlds.
 const _handleWorldsRequest = async (req, res) => {
-    const request = url.parse(req.url)
-    const path = request.path.split('/')[2]
+    const request = url.parse(req.url);
+    const path = request.path.split('/')[2];
     try {
         const { method } = req;
         if (method === 'POST' && path === 'create') {
             const newWorld = getWorldFromBuffer();
             if (newWorld) {
                 const worldName = findTag(newWorld.Tags, 'Name').Value;
-                console.log('World taken from buffer:', worldName)
-                await toggleTag(newWorld.InstanceId, 'IsBuffer', 'false')
+                console.log('World taken from buffer:', worldName);
+                await toggleTag(worldName, 'IsBuffer', 'false');
                 res.statusCode = 200;
                 res.end(JSON.stringify({
                     name: worldName + '.worlds.webaverse.com',
@@ -329,7 +328,7 @@ const _handleWorldsRequest = async (req, res) => {
                 }));
                 createNewWorld();
             } else {
-                console.error('No more worlds in buffer :(')
+                console.error('No more worlds in buffer :(');
                 res.statusCode = 500;
                 res.end();
             }
@@ -375,11 +374,9 @@ const determineWorldBuffer = () => {
             const tag = findTag(value.Tags, 'IsBuffer');
             const isBuffer = tag.Value === 'true';
             isBuffer ? status.bufferedWorlds++ : status.activeWorlds++;
-            return status;
         }
-    } else {
-        return status;
     }
+    return status;
 }
 
 const updateZipFile = () => {
