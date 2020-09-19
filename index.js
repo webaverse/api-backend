@@ -3916,6 +3916,9 @@ try {
   } else if (o.host === 'storage.exokit.org') {
     _handleStorageRequest(req, res);
     return;
+  } else if (o.host === 'accounts.exokit.org') {
+    _handleAccountsRequest(req, res);
+    return;
   }
 
   if (match = o.host.match(/^(.+)\.proxy\.exokit.org$/)) {
