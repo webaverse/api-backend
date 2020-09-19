@@ -3911,7 +3911,8 @@ try {
     _handleTokens(req, res);
     return;
   } else if (o.host === 'worlds.exokit.org') {
-    _handleWorldsRequest(req, res)
+    _handleWorldsRequest(req, res);
+    return;
   } else if (o.host === 'storage.exokit.org') {
     _handleStorageRequest(req, res);
     return;
@@ -3985,7 +3986,7 @@ const server2 = https.createServer({
 server2.on('upgrade', _ws);
 
 const _warn = err => {
-  console.warn('uncaught: ' + err);
+  console.warn('uncaught: ' + err.stack);
 };
 process.on('uncaughtException', _warn);
 process.on('unhandledRejection', _warn);
@@ -3994,6 +3995,6 @@ server.listen(PORT);
 server2.listen(443);
 
 console.log(`http://127.0.0.1:${PORT}`);
-console.log(`http://127.0.0.1:443`);
+console.log(`https://127.0.0.1:443`);
 
 })();
