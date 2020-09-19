@@ -79,7 +79,7 @@ const assignRoute = (worldName, publicIp) => {
     })
 }
 
-// searchs through all of our ec2 instances and makes Map of worlds with their unique name as the key.
+// Searchs through all of our ec2 instances and makes Map of worlds with their unique name as the key.
 const getWorldList = () => {
     return new Promise((resolve, reject) => {
         try {
@@ -162,21 +162,28 @@ const pingWorld = (instanceId) => {
             })
         }
 
-        const interval = setInterval(async () => {
-            if (!isSession) {
-                const instance = await pingDNS(instanceId)
-                if (instance.PublicIpAddress) {
-                    const ssh = await pingSSH(instance.PublicIpAddress)
-                    if (ssh) {
-                        if (!isResolved) {
-                            isResolved = true;
-                            resolve(instance);
-                            clearInterval(interval);
+        const interval = () => {
+            try {
+                setTimeout(async () => {
+                    if (!isSession) {
+                        const instance = await pingDNS(instanceId);
+                        if (instance.PublicIpAddress) {
+                            const ssh = await pingSSH(instance.PublicIpAddress);
+                            ssh ? resolve(instance) : interval();
+                        } else {
+                            interval();
                         }
+                    } else {
+                        interval();
                     }
-                }
+                }, 1000)
+            }  catch(e) {
+                console.log(e)
+                reject()
             }
-        }, 1000)
+        }
+        interval();
+        
     })
 }
 
