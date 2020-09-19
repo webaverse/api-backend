@@ -23,8 +23,8 @@ const MAX_INSTANCES_BUFFER = 1;
 const worldMap = new Map();
 
 // Polls the world list from AWS. Determines if buffer is OK and if we need to make more buffered instances. Useful for server reboot and monitoring.
-const worldsManager = async () => {
-    const status = await determineWorldBuffer();
+const worldsManager = () => {
+    const status = determineWorldBuffer();
     if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
         for (let i = 0; i < MAX_INSTANCES_BUFFER - status.bufferedWorlds; i++) {
             createNewWorld(true)
@@ -35,46 +35,44 @@ const worldsManager = async () => {
 
 // Finds a tag by key in random ordered array of tags.
 const findTag = (tags, key) => {
-    return new Promise((resolve, reject) => {
-        tags.forEach(t => {
-            if (t.Key === key) {
-                resolve(t);
-            }
-        })
-        resolve(null);
-    })
+    for (tag of tags) {
+        if (tag.Key === key) {
+            return tag;
+        }
+    }
+    return null;
 }
 
 const assignRoute = (worldName, publicIp) => {
     return new Promise((resolve, reject) => {
         const params = {
             ChangeBatch: {
-             Changes: [
-                {
-               Action: "UPSERT", 
-               ResourceRecordSet: {
-                Name: `${worldName}.worlds.webaverse.com`,
-                ResourceRecords: [
-                   {
-                  Value: publicIp
-                 }
-                ], 
-                TTL: 60, 
-                Type: "A"
-               }
-              }
-             ], 
-            }, 
+                Changes: [
+                    {
+                        Action: "CREATE",
+                        ResourceRecordSet: {
+                            Name: `${worldName}.worlds.webaverse.com`,
+                            ResourceRecords: [
+                                {
+                                    Value: publicIp
+                                }
+                            ],
+                            TTL: 60,
+                            Type: "A"
+                        }
+                    }
+                ],
+            },
             HostedZoneId: "Z01849492NCNCK33I1QM7"
-           };
-           route53.changeResourceRecordSets(params, (error, data) => {
-             if (error) {
+        };
+        route53.changeResourceRecordSets(params, (error, data) => {
+            if (error) {
                 console.log(error, error.stack);
                 reject();
-             } else {
+            } else {
                 resolve(data);
-             }
-           });
+            }
+        });
     })
 }
 
@@ -92,14 +90,14 @@ const getWorldList = () => {
             };
             EC2.describeInstances(describeParams, (error, data) => {
                 if (!error && data.Reservations) {
-                    data.Reservations.forEach(async (r) => {
+                    data.Reservations.forEach(r => {
                         const instance = r.Instances[0];
-                        const worldName = await findTag(instance.Tags, 'Name');
+                        const worldName = findTag(instance.Tags, 'Name');
                         if (worldName && (instance.State.Code === 16 || instance.State.Code === 0)) { // running or pending
                             worldMap.set(worldName.Value, instance);
                         }
                     })
-                    resolve(worldMap);
+                    resolve();
                 } else {
                     console.error(error);
                     reject();
@@ -180,7 +178,7 @@ const pingWorld = (instanceId) => {
 }
 
 // Create a new ec2 instance, pull world-server code from Github, SSH copy the code into new instance, return host and other useful metadata for user.
-const createNewWorld = (isBuffer) => {
+const createNewWorld = () => {
     return new Promise((resolve, reject) => {
         const worldName = crypto.randomBytes(8).toString('base64').toLowerCase().replace(/[^a-z0-9]+/g, '');
         console.time(worldName)
@@ -207,7 +205,7 @@ const createNewWorld = (isBuffer) => {
                         },
                         {
                             Key: "IsBuffer",
-                            Value: isBuffer.toString()
+                            Value: 'true'
                         }
                     ]
                 }
@@ -215,10 +213,10 @@ const createNewWorld = (isBuffer) => {
         };
         EC2.runInstances(instanceParams, async (error, data) => {
             if (!error) {
-                console.log('New world begun setup:', worldName)
-                let newInstance = data.Instances[0]
-                console.log('Waiting for IP and SSH to connect...')
-                newInstance = await pingWorld(newInstance.InstanceId)
+                console.log('New world begun setup:', worldName);
+                let newInstance = data.Instances[0];
+                console.log('Waiting for IP and SSH to connect...');
+                newInstance = await pingWorld(newInstance.InstanceId);
                 console.log('Assining route to ec2...', worldName + '.worlds.webaverse.com');
                 await assignRoute(worldName, newInstance.PublicIpAddress);
                 console.log('Spawning bash script and installing world on EC2:', worldName);
@@ -233,11 +231,11 @@ const createNewWorld = (isBuffer) => {
                 });
 
                 process.on('close', async (code) => {
-                    console.log(`child process exited with code ${code}`);
                     console.timeEnd(worldName)
+                    console.log(`child process exited with code ${code}`);
                     console.log(`Debug URL: ${newInstance.PublicIpAddress}`);
                     if (code === 0) {
-                        console.log('New World successfully created:', worldName, 'IsBuffer: ' + isBuffer);
+                        console.log('New World successfully created:', worldName);
                         worldMap.set(worldName, newInstance);
                         resolve({
                             name: worldName,
@@ -245,7 +243,7 @@ const createNewWorld = (isBuffer) => {
                             launchTime: newInstance.LaunchTime,
                         });
                     } else {
-                        reject()
+                        reject();
                     }
                 });
             } else {
@@ -273,24 +271,24 @@ const deleteWorld = (worldName) => {
 }
 
 const getWorldFromBuffer = () => {
-    return new Promise((resolve, reject) => {
-        let world = null;
-        worldMap.forEach(async (w) => {
-            const isBuffer = await findTag(w.Tags, 'IsBuffer').Value;
+    if (worldMap.size > 0) {
+        for (let [key, value] of worldMap) {
+            const isBuffer = findTag(value.Tags, 'IsBuffer');
             if (isBuffer === 'true') {
-                world = w;
-                resolve(world);
+                return value;
             }
-        })
-    })
+        }
+    }
+    return null;
 }
 
 // changes a Tag value in AWS.
-const toggleTag = (instanceId, key, value) => {
+const toggleTag = (worldName, key, value) => {
     return new Promise((resolve, reject) => {
+        const instance = worldMap.get(worldName);
         const params = {
             Resources: [
-                instanceId
+                instance.InstanceId
             ],
             Tags: [
                 {
@@ -318,9 +316,9 @@ const _handleWorldsRequest = async (req, res) => {
     try {
         const { method } = req;
         if (method === 'POST' && path === 'create') {
-            const newWorld = await getWorldFromBuffer();
+            const newWorld = getWorldFromBuffer();
             if (newWorld) {
-                const worldName = await findTag(newWorld.Tags, 'Name').Value;
+                const worldName = findTag(newWorld.Tags, 'Name').Value;
                 console.log('World taken from buffer:', worldName)
                 await toggleTag(newWorld.InstanceId, 'IsBuffer', 'false')
                 res.statusCode = 200;
@@ -340,7 +338,7 @@ const _handleWorldsRequest = async (req, res) => {
             if (requestedWorld) {
                 res.statusCode = 200;
                 res.end(JSON.stringify({
-                    name: await findTag(requestedWorld.Tags, 'Name').Value + '.worlds.webaverse.com',
+                    name: findTag(requestedWorld.Tags, 'Name').Value + '.worlds.webaverse.com',
                     host: requestedWorld.PublicIpAddress,
                     launchTime: requestedWorld.LaunchTime,
                 }));
@@ -366,30 +364,20 @@ const _handleWorldsRequest = async (req, res) => {
 
 // Searches through our Map of worlds, counts the ones who have IsBuffer = true | false attached as AWS instance Tag. Useful for buffer math.
 const determineWorldBuffer = () => {
-    return new Promise((resolve, reject) => {
-        let activeWorlds = 0;
-        let bufferedWorlds = 0;
-        if (worldMap && worldMap.size > 0) {
-            Array.from(worldMap.values()).forEach(async (world, index) => {
-                const tag = await findTag(world.Tags, 'IsBuffer');
-                const isBuffer = tag.Value === 'true';
-                isBuffer ? bufferedWorlds++ : activeWorlds++;
-                if (index === worldMap.size - 1) {
-                    resolve({
-                        activeWorlds,
-                        bufferedWorlds
-                    });
-                };
-            })
-        } else if (worldMap && worldMap.size === 0) {
-            resolve({
-                activeWorlds,
-                bufferedWorlds
-            })
-        } else if (!worldMap) {
-            reject();
+    let status = {
+        activeWorlds: 0,
+        bufferedWorlds: 0
+    };
+    if (worldMap) {
+        for (let [key, value] of worldMap) {
+            const tag = findTag(value.Tags, 'IsBuffer');
+            const isBuffer = tag.Value === 'true';
+            isBuffer ? status.bufferedWorlds++ : status.activeWorlds++;
+            return status;
         }
-    })
+    } else {
+        return status;
+    }
 }
 
 const updateZipFile = () => {
