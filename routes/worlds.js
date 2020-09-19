@@ -162,12 +162,16 @@ const pingWorld = (instanceId) => {
             })
         }
 
+        let timeoutTime = 0;
+
         const interval = () => {
+            console.log('hi')
             setTimeout(async () => {
                 try {
+                    timeoutTime = 1000;
                     if (!isSession) {
                         const instance = await pingDNS(instanceId);
-                        if (instance.PublicIpAddress) {
+                        if (instance && instance.PublicIpAddress) {
                             const ssh = await pingSSH(instance.PublicIpAddress);
                             ssh ? resolve(instance) : interval();
                         } else {
@@ -180,7 +184,7 @@ const pingWorld = (instanceId) => {
                     console.log(e)
                     reject()
                 }
-            }, 1000)
+            }, timeoutTime)
         }
         interval();
 
