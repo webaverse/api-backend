@@ -28,7 +28,6 @@ const _handleStorageRequest = async (req, res) => {
                 }));
             })
         } else if (method === 'GET' && path) {
-            res.setHeader('Access-Control-Allow-Origin', '*');
             res.writeHead(301, {"Location": 'https://s3-us-west-1.amazonaws.com/storage.exokit.org/' + path});
             res.end();
         } else if (method === 'DELETE' && path) {
