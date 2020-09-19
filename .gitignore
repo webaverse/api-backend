@@ -1,3 +1,7 @@
 node_modules
 config.json
 cert
+keys
+.DS_Store
+world-server.zip
+certs

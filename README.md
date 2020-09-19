@@ -20,3 +20,20 @@ You can get these credentials from Avaer.
 3. Create a `cert/` folder. Create 2 new files inside: `fullchain.pem` and `privkey.pem`. Ask Avaer for the certificates.
 
 4. `npm run start` (forever) or `npm run dev` (nodemon).
+
+## API Docs
+
+### worlds.exokit.org
+
+`GET` worlds.exokit.org/{worldId}
+
+*Returns an object with: Host, World Name and Uptime of server.*
+
+`POST` worlds.exokit.org/create
+
+*Returns an object with: Host, World Name and Uptime of server.*
+
+`DELETE` worlds.exokit.org/{worldId}
+
+*Terminates the ec2 associated with world.*
+

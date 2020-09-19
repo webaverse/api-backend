@@ -7,10 +7,9 @@ const _handleStorageRequest = async (req, res) => {
     const request = url.parse(req.url);
     const path = request.path.split('/')[1];
     try {
-        res.setHeader("Access-Control-Allow-Origin", "*");
+        res = _setCorsHeaders(res);
         const { method } = req;
         if (method === 'OPTIONS') {
-            _setCorsHeaders(res);
             res.end();
         } else if (method === 'POST') {
             let data = [];

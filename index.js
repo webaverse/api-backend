@@ -52,6 +52,7 @@ const bip39 = require('./bip39.js');
 const ethUtil = require('./ethereumjs-util.js');
 const api = require('./api.js');
 const { _handleStorageRequest } = require('./routes/storage.js');
+const { _handleWorldsRequest, _startWorldsRoute } = require('./routes/worlds.js');
 
 const CERT = fs.readFileSync('./certs/fullchain.pem');
 const PRIVKEY = fs.readFileSync('./certs/privkey.pem');
@@ -3909,6 +3910,9 @@ try {
   } else if (o.host === 'tokens.exokit.org') {
     _handleTokens(req, res);
     return;
+  } else if (o.host === 'worlds.exokit.org') {
+    _handleWorldsRequest(req, res);
+    return;
   } else if (o.host === 'storage.exokit.org') {
     _handleStorageRequest(req, res);
     return;
@@ -3973,6 +3977,8 @@ const _ws = (req, socket, head) => {
   }
 };
 
+await _startWorldsRoute();
+
 const server = http.createServer(_req('http:'));
 server.on('upgrade', _ws);
 const server2 = https.createServer({
@@ -3991,6 +3997,6 @@ server.listen(PORT);
 server2.listen(443);
 
 console.log(`http://127.0.0.1:${PORT}`);
-console.log(`http://127.0.0.1:443`);
+console.log(`https://127.0.0.1:443`);
 
 })();
