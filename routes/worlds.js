@@ -368,7 +368,7 @@ const determineWorldBuffer = () => {
         activeWorlds: 0,
         bufferedWorlds: 0
     };
-    if (worldMap) {
+    if (worldMap && worldMap.size > 0) {
         for (let [key, value] of worldMap) {
             const tag = findTag(value.Tags, 'IsBuffer');
             const isBuffer = tag.Value === 'true';
