@@ -24,13 +24,16 @@ const worldMap = new Map();
 
 // Polls the world list from AWS. Determines if buffer is OK and if we need to make more buffered instances. Useful for server reboot and monitoring.
 const worldsManager = () => {
-    const status = determineWorldBuffer();
-    if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
-        for (let i = 0; i < MAX_INSTANCES_BUFFER - status.bufferedWorlds; i++) {
-            createNewWorld();
+    return new Promise((resolve, reject) => {
+        const status = determineWorldBuffer();
+        if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
+            for (let i = 0; i < MAX_INSTANCES_BUFFER - status.bufferedWorlds; i++) {
+                createNewWorld();
+            }
         }
-    }
-    console.log(`${status.activeWorlds} active Worlds. ${status.bufferedWorlds} buffered Worlds.`);
+        console.log(`${status.activeWorlds} active Worlds. ${status.bufferedWorlds} buffered Worlds.`);
+        resolve();
+    })
 };
 
 // Finds a tag by key in random ordered array of tags.
@@ -402,7 +405,7 @@ const updateZipFile = () => {
 const main = async () => {
     await updateZipFile();
     await getWorldList();
-    worldsManager();
+    await worldsManager();
 }
 main()
 
