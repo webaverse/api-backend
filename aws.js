@@ -23,9 +23,12 @@ const getObject = (bucket, key) => {
     })
 }
 
-const putObject = (bucket, key, data) => {
+const putObject = (bucket, key, data, type) => {
     return new Promise(async (resolve, reject) => {
         const params = { Body: data, Bucket: bucket, Key: key, ACL: 'public-read' };
+        if (type) {
+          params['ContentType'] = type;
+        }
         s3.putObject(params, (error, data) => {
             if (error) {
                 reject(error)
