@@ -23,7 +23,8 @@ const _handleStorageRequest = async (req, res) => {
                 const buffer = new Buffer.concat(data);
                 hash.update(buffer);
                 const hashHex = hash.digest('hex');
-                await putObject('storage.exokit.org', hashHex, buffer);
+                const type = req.getHeader('Content-Type');
+                await putObject('storage.exokit.org', hashHex, buffer, type);
                 res.statusCode = 200;
                 res.end(JSON.stringify({
                     hash: hashHex
