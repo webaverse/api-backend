@@ -27,7 +27,7 @@ const worldsManager = () => {
     const status = determineWorldBuffer();
     if (status.activeWorlds < MAX_INSTANCES && status.bufferedWorlds < MAX_INSTANCES_BUFFER) {
         for (let i = 0; i < MAX_INSTANCES_BUFFER - status.bufferedWorlds; i++) {
-            createNewWorld(true)
+            createNewWorld()
         }
     }
     console.log(`${status.activeWorlds} active Worlds. ${status.bufferedWorlds} buffered Worlds.`);
@@ -327,12 +327,12 @@ const _handleWorldsRequest = async (req, res) => {
                     host: newWorld.PublicIpAddress,
                     launchTime: newWorld.LaunchTime,
                 }));
+                createNewWorld();
             } else {
                 console.error('No more worlds in buffer :(')
                 res.statusCode = 500;
                 res.end();
             }
-            worldsManager();
         } else if (method === 'GET' && path) {
             const requestedWorld = worldMap.get(path);
             if (requestedWorld) {
@@ -351,7 +351,7 @@ const _handleWorldsRequest = async (req, res) => {
             await deleteWorld(path);
             res.statusCode = 200;
             res.end();
-            worldsManager();
+            createNewWorld()
         } else {
             res.statusCode = 404;
             res.end();
