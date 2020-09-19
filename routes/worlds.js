@@ -391,7 +391,7 @@ const updateZipFile = async () => {
             await streamPipeline(response.body, fs.createWriteStream('./world-server.zip'));
             console.log('ZIP written to server successfully!');
         } else {
-            console.error('couldnt pull ZIP for some reason:', response);
+            throw new Error('couldnt pull ZIP for some reason: ' + response.status);
         }
     } 
 }
