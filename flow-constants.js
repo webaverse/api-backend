@@ -4,7 +4,7 @@ module.exports = {
   FlowToken: '0x7e60df042a9c0868',
   NonFungibleToken: '0x631e88ae7f1d7c20',
 
-  address: '', 
+  address: '', // XXX needs to be filled in
   publicKey: '',
   privateKey: '',
   flowKey: '',
