@@ -325,9 +325,10 @@ const _handleWorldsRequest = async (req, res) => {
                 await toggleTag(worldName, 'IsBuffer', 'false');
                 res.statusCode = 200;
                 res.end(JSON.stringify({
-                    name: worldName + '.worlds.webaverse.com',
-                    host: newWorld.PublicIpAddress,
-                    launchTime: newWorld.LaunchTime,
+                    id: worldName,
+                    url: `${worldName}.worlds.webaverse.com`,
+                    publicIp: requestedWorld.PublicIpAddress,
+                    launchTime: requestedWorld.LaunchTime,
                 }));
                 createNewWorld();
             } else {
@@ -338,10 +339,12 @@ const _handleWorldsRequest = async (req, res) => {
         } else if (method === 'GET' && path) {
             const requestedWorld = worldMap.get(path);
             if (requestedWorld) {
+                const worldName = findTag(requestedWorld.Tags, 'Name').Value;
                 res.statusCode = 200;
                 res.end(JSON.stringify({
-                    name: findTag(requestedWorld.Tags, 'Name').Value + '.worlds.webaverse.com',
-                    host: requestedWorld.PublicIpAddress,
+                    id: worldName,
+                    url: `${worldName}.worlds.webaverse.com`,
+                    publicIp: requestedWorld.PublicIpAddress,
                     launchTime: requestedWorld.LaunchTime,
                 }));
             } else {
