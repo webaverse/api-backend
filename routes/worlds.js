@@ -7,6 +7,7 @@ const { spawn } = require('child_process');
 const fetch = require('node-fetch');
 const streamPipeline = util.promisify(require('stream').pipeline);
 const { accessKeyId, secretAccessKey } = require('../config.json');
+const { _setCorsHeaders } = require('../utils.js');
 const awsConfig = new AWS.Config({
     credentials: new AWS.Credentials({
         accessKeyId,
@@ -315,6 +316,7 @@ const toggleTag = (worldName, key, value) => {
 const _handleWorldsRequest = async (req, res) => {
     const request = url.parse(req.url);
     const path = request.path.split('/')[1];
+    res = _setCorsHeaders(res);
     try {
         const { method } = req;
         if (method === 'POST' && path === 'create') {
