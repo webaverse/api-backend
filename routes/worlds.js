@@ -327,8 +327,8 @@ const _handleWorldsRequest = async (req, res) => {
                 res.end(JSON.stringify({
                     id: worldName,
                     url: `${worldName}.worlds.webaverse.com`,
-                    publicIp: requestedWorld.PublicIpAddress,
-                    launchTime: requestedWorld.LaunchTime,
+                    publicIp: newWorld.PublicIpAddress,
+                    launchTime: newWorld.LaunchTime,
                 }));
                 createNewWorld();
             } else {
