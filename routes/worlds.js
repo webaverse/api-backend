@@ -315,7 +315,7 @@ const toggleTag = (worldName, key, value) => {
 // Routes API requests for interfacing with worlds.
 const _handleWorldsRequest = async (req, res) => {
     const request = url.parse(req.url);
-    const path = request.path.split('/')[2];
+    const path = request.path.split('/')[1];
     res = _setCorsHeaders(res);
     try {
         const { method } = req;
