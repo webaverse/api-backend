@@ -10,7 +10,7 @@ const _handleStorageRequest = async (req, res) => {
     const path = request.path.split('/')[1];
     try {
         res = _setCorsHeaders(res);
-        const { method } = req;
+        const {method, headers} = req;
         if (method === 'OPTIONS') {
             res.end();
         } else if (method === 'POST') {
@@ -23,7 +23,7 @@ const _handleStorageRequest = async (req, res) => {
                 const buffer = new Buffer.concat(data);
                 hash.update(buffer);
                 const hashHex = hash.digest('hex');
-                const type = req.getHeader('Content-Type');
+                const type = req.headers['content-type'];
                 await putObject('storage.exokit.org', hashHex, buffer, type);
                 res.statusCode = 200;
                 res.end(JSON.stringify({
