@@ -39,51 +39,58 @@ const _waitForTx = async txid => {
   }
 };
 const createAccount = async userKeys => {
-  const acctResponse = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
-    flow.sdk.getAccount(config.address),
-  ]), [
-    flow.sdk.resolve([
-      flow.sdk.resolveParams,
-    ]),
-  ]), { node: flowConstants.host });
-  const seqNum = acctResponse.account.keys[0].sequenceNumber;
+  for (;;) {
+    const acctResponse = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
+      flow.sdk.getAccount(config.address),
+    ]), [
+      flow.sdk.resolve([
+        flow.sdk.resolveParams,
+      ]),
+    ]), { node: flowConstants.host });
+    const seqNum = acctResponse.account.keys[0].sequenceNumber;
 
-  const signingFunction = flow.signingFunction.signingFunction(config.privateKey);
-
-  const response = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
-    flow.sdk.authorizations([flow.sdk.authorization(config.address, signingFunction, 0)]),
-    flow.sdk.payer(flow.sdk.authorization(config.address, signingFunction, 0)),
-    flow.sdk.proposer(flow.sdk.authorization(config.address, signingFunction, 0, seqNum)),
-    flow.sdk.limit(100),
-    flow.sdk.transaction`
-      transaction(publicKeys: [String]) {
-        prepare(signer: AuthAccount) {
-          let acct = AuthAccount(payer: signer)
-          for key in publicKeys {
-            acct.addPublicKey(key.decodeHex())
+    const signingFunction = flow.signingFunction.signingFunction(config.privateKey);
+    
+    const response = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
+      flow.sdk.authorizations([flow.sdk.authorization(config.address, signingFunction, 0)]),
+      flow.sdk.payer(flow.sdk.authorization(config.address, signingFunction, 0)),
+      flow.sdk.proposer(flow.sdk.authorization(config.address, signingFunction, 0, seqNum)),
+      flow.sdk.limit(100),
+      flow.sdk.transaction`
+        transaction(publicKeys: [String]) {
+          prepare(signer: AuthAccount) {
+            let acct = AuthAccount(payer: signer)
+            for key in publicKeys {
+              acct.addPublicKey(key.decodeHex())
+            }
           }
         }
-      }
-    `,
-    flow.sdk.args([
-      // flow.sdk.arg(2, t.Uint8),
-      flow.sdk.arg([userKeys.flowKey], flow.types.Array(flow.types.String)),
-    ]),
-  ]), [
-    flow.sdk.resolve([
-      flow.sdk.resolveArguments,
-      flow.sdk.resolveParams,
-      flow.sdk.resolveAccounts,
-      flow.sdk.resolveRefBlockId({ node: flowConstants.host }),
-      flow.sdk.resolveSignatures,
-    ]),
-  ]), { node: flowConstants.host });
-  // console.log('got response 4', response);
-  const response2 = await _waitForTx(response.transactionId);
-  // console.log('got response 5', response2);
-  const address = response2.transaction.events[0].payload.value.fields[0].value.value.slice(2);
-  // console.log('got response 6', userKeys.address);
-  return address;
+      `,
+      flow.sdk.args([
+        // flow.sdk.arg(2, t.Uint8),
+        flow.sdk.arg([userKeys.flowKey], flow.types.Array(flow.types.String)),
+      ]),
+    ]), [
+      flow.sdk.resolve([
+        flow.sdk.resolveArguments,
+        flow.sdk.resolveParams,
+        flow.sdk.resolveAccounts,
+        flow.sdk.resolveRefBlockId({ node: flowConstants.host }),
+        flow.sdk.resolveSignatures,
+      ]),
+    ]), { node: flowConstants.host });
+    // console.log('got response 4', response);
+    const response2 = await _waitForTx(response.transactionId);
+    console.log('got create account response', response2);
+    if (response2.transaction.statusCode === 0) {
+      const address = response2.transaction.events[0].payload.value.fields[0].value.value.slice(2);
+      // console.log('got response 6', userKeys.address);
+      return address;
+    } else {
+      console.log('retrying account creation');
+      continue;
+    }
+  }
 };
 
 module.exports = {
