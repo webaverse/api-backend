@@ -3852,9 +3852,6 @@ try {
   } else if (o.host === 'grid.exokit.org') {
     _handleGrid(req, res);
     return;
-  } else if (o.host === 'worlds.exokit.org') {
-    _handleWorlds(req, res);
-    return;
   } else if (o.host === 'packages.exokit.org') {
     _handlePackages(req, res);
     return;
