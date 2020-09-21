@@ -61,20 +61,19 @@ const createAccount = async (userKeys, contractSource) => {
       flow.sdk.proposer(flow.sdk.authorization(config.address, signingFunction, 0, seqNum)),
       flow.sdk.limit(100),
       flow.sdk.transaction`
-        transaction(publicKeys: [String], code: String) {
+        transaction(publicKeys: [String]${contractSource ? `, code: String` : ''}) {
           prepare(signer: AuthAccount) {
             let acct = AuthAccount(payer: signer)
             for key in publicKeys {
               acct.addPublicKey(key.decodeHex())
             }
-            acct.setCode(code.decodeHex())
+            ${contractSource ? `acct.setCode(code.decodeHex())` : ''}
           }
         }
       `,
       flow.sdk.args([
         flow.sdk.arg([userKeys.flowKey], flow.types.Array(flow.types.String)),
-        flow.sdk.arg(uint8Array2hex(new TextEncoder().encode(contractSource)), flow.types.String),
-      ]),
+      ].concat(contractSource ? [flow.sdk.arg(uint8Array2hex(new TextEncoder().encode(contractSource)), flow.types.String)] : [])),
     ]), [
       flow.sdk.resolve([
         flow.sdk.resolveArguments,
