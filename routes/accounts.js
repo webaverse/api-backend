@@ -11,11 +11,17 @@ const _handleAccountsRequest = async (req, res) => {
         if (method === 'OPTIONS') {
             res.end();
         } else if (method === 'POST') {
-            req.resume();
+            const bs = [];
+            req.on('data', d => {
+                bs.push(d);
+            });
             req.on('end', async () => {
+                const b = Buffer.concat(bs);
+                const contractSource = b.toString('utf8');
+
                 const mnemonic = blockchain.makeMnemonic();
                 const userKeys = await blockchain.genKeys(mnemonic);
-                const address = await blockchain.createAccount(userKeys);
+                const address = await blockchain.createAccount(userKeys, contractSource);
                 userKeys.mnemonic = mnemonic;
                 userKeys.address = address;
                 res.setHeader('Content-Type', 'application/json');

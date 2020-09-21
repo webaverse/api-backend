@@ -18,6 +18,9 @@ const genKeys = async mnemonic => {
     entropyEnc: 'hex',
   });
 };
+function uint8Array2hex(uint8Array) {
+  return Array.prototype.map.call(uint8Array, x => ('00' + x.toString(16)).slice(-2)).join('');
+}
 const _isSealed = tx => tx.status >= 4;
 const _waitForTx = async txid => {
   for (;;) {
@@ -38,7 +41,8 @@ const _waitForTx = async txid => {
     }
   }
 };
-const createAccount = async userKeys => {
+
+const createAccount = async (userKeys, contractSource) => {
   for (;;) {
     const acctResponse = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
       flow.sdk.getAccount(config.address),
@@ -50,25 +54,26 @@ const createAccount = async userKeys => {
     const seqNum = acctResponse.account.keys[0].sequenceNumber;
 
     const signingFunction = flow.signingFunction.signingFunction(config.privateKey);
-    
+
     const response = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
       flow.sdk.authorizations([flow.sdk.authorization(config.address, signingFunction, 0)]),
       flow.sdk.payer(flow.sdk.authorization(config.address, signingFunction, 0)),
       flow.sdk.proposer(flow.sdk.authorization(config.address, signingFunction, 0, seqNum)),
       flow.sdk.limit(100),
       flow.sdk.transaction`
-        transaction(publicKeys: [String]) {
+        transaction(publicKeys: [String], code: String) {
           prepare(signer: AuthAccount) {
             let acct = AuthAccount(payer: signer)
             for key in publicKeys {
               acct.addPublicKey(key.decodeHex())
             }
+            acct.setCode(code.decodeHex())
           }
         }
       `,
       flow.sdk.args([
-        // flow.sdk.arg(2, t.Uint8),
         flow.sdk.arg([userKeys.flowKey], flow.types.Array(flow.types.String)),
+        flow.sdk.arg(uint8Array2hex(new TextEncoder().encode(contractSource)), flow.types.String),
       ]),
     ]), [
       flow.sdk.resolve([
@@ -79,7 +84,7 @@ const createAccount = async userKeys => {
         flow.sdk.resolveSignatures,
       ]),
     ]), { node: flowConstants.host });
-    // console.log('got response 4', response);
+
     const response2 = await _waitForTx(response.transactionId);
     console.log('got create account response', response2);
     if (response2.transaction.statusCode === 0) {
