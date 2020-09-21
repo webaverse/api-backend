@@ -6,9 +6,12 @@ const { _setCorsHeaders } = require('../utils.js');
 const hashAlgorithm = 'sha256';
 
 const _handleStorageRequest = async (req, res) => {
-    const request = url.parse(req.url);
-    const path = request.path.split('/')[1];
     try {
+        const request = url.parse(req.url);
+        const match = request.path.match(/^\/(.+?)(?:\.(.*))?$/);
+        const path = match && match[1];
+        const ext = match && match[2];
+
         res = _setCorsHeaders(res);
         const {method, headers} = req;
         if (method === 'OPTIONS') {
@@ -35,6 +38,9 @@ const _handleStorageRequest = async (req, res) => {
             res.end();
         } else if (method === 'DELETE' && path) {
             res.statusCode = 200;
+            res.end();
+        } else {
+            res.statusCode = 404;
             res.end();
         }
     }
