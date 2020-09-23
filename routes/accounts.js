@@ -16,29 +16,36 @@ const _handleAccountsRequest = async (req, res) => {
                 bs.push(d);
             });
             req.on('end', async () => {
-                const b = Buffer.concat(bs);
-                const s = b.toString('utf8');
+                try {
+                  const b = Buffer.concat(bs);
+                  const s = b.toString('utf8');
 
-                if (path === 'sendTransaction') {
-                  // console.log('got s', JSON.stringify(s));
-                  const spec = JSON.parse(s);
-                  const transaction = await blockchain.runTransaction(spec);
-                  res.setHeader('Content-Type', 'application/json');
-                  res.end(JSON.stringify(transaction, null, 2));
-                } else {
-                  const mnemonic = blockchain.makeMnemonic();
-                  const userKeys = await blockchain.genKeys(mnemonic);
-                  const address = await blockchain.createAccount(userKeys, s);
-                  userKeys.mnemonic = mnemonic;
-                  userKeys.address = address;
-                  res.setHeader('Content-Type', 'application/json');
-                  res.end(JSON.stringify(userKeys, null, 2));
+                  if (path === 'sendTransaction') {
+                    // console.log('got s', JSON.stringify(s));
+                    const spec = JSON.parse(s);
+                    const transaction = await blockchain.runTransaction(spec);
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify(transaction, null, 2));
+                  } else {
+                    const mnemonic = blockchain.makeMnemonic();
+                    const userKeys = await blockchain.genKeys(mnemonic);
+                    const address = await blockchain.createAccount(userKeys, s);
+                    userKeys.mnemonic = mnemonic;
+                    userKeys.address = address;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify(userKeys, null, 2));
+                  }
+                } catch (err) {
+                  console.log(err);
+                  res.statusCode = 500;
+                  res.end(err.stack);
                 }
             });
         }
-    }
-    catch (e) {
-        console.log(e);
+    } catch (err) {
+        console.log(err);
+        res.statusCode = 500;
+        res.end(err.stack);
     }
 }
 

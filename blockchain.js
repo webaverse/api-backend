@@ -116,40 +116,43 @@ const runTransaction = async spec => {
     transaction,
     script,
     args = [],
+    wait = false,
   } = spec;
   args = args.map(({value, type}) => {
     return flow.sdk.arg(value, _getType(type));
   });
+  
+  const chain = [];
+  if (address) {
+    const acctResponse = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
+      flow.sdk.getAccount(address),
+    ]), [
+      flow.sdk.resolve([
+        flow.sdk.resolveParams,
+      ]),
+    ]), { node: flowConstants.host });
+    const seqNum = acctResponse.account.keys[0].sequenceNumber;
 
-  const acctResponse = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
-    flow.sdk.getAccount(address),
-  ]), [
-    flow.sdk.resolve([
-      flow.sdk.resolveParams,
-    ]),
-  ]), { node: flowConstants.host });
-  const seqNum = acctResponse.account.keys[0].sequenceNumber;
+    const signingFunction = flow.signingFunction.signingFunction(privateKey);
 
-  const signingFunction = flow.signingFunction.signingFunction(privateKey);
-
-  const chain = address ? [
-    flow.sdk.authorizations([flow.sdk.authorization(address, signingFunction, 0)]),
-    flow.sdk.payer(flow.sdk.authorization(config.address, signingFunction2, 0)),
-    flow.sdk.proposer(flow.sdk.authorization(address, signingFunction, 0, seqNum)),
-  ] : [];
+    chain.push(
+      flow.sdk.authorizations([flow.sdk.authorization(address, signingFunction, 0)]),
+      flow.sdk.payer(flow.sdk.authorization(config.address, signingFunction2, 0)),
+      flow.sdk.proposer(flow.sdk.authorization(address, signingFunction, 0, seqNum)),
+    );
+  }
   if (limit) {
     chain.push(flow.sdk.limit(limit));
   }
   if (transaction) {
     chain.push(flow.sdk.transaction(transaction));
-  }
-  if (script) {
+  } else if (script) {
     chain.push(flow.sdk.script(script));
   }
   if (args) {
     chain.push(flow.sdk.args(args));
   }
-  const response = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build(chain), [
+  let response = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build(chain), [
     flow.sdk.resolve([
       flow.sdk.resolveArguments,
       flow.sdk.resolveParams,
@@ -158,6 +161,14 @@ const runTransaction = async spec => {
       flow.sdk.resolveSignatures,
     ]),
   ]), { node: flowConstants.host });
+  
+  if (transaction) {
+    if (wait) {
+      response = await _waitForTx(response.transactionId);
+    }
+  } /* else if (script) {
+    response = response.encodedData.value;
+  } */
   
   return response;
 };
