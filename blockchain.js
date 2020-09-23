@@ -98,6 +98,7 @@ const createAccount = async (userKeys, contractSource) => {
   }
 };
 
+const signingFunction2 = flow.signingFunction.signingFunction(config.privateKey);
 const _getType = type => {
   if (Array.isArray(type)) {
     return [_getType(type[0])];
@@ -130,7 +131,6 @@ const runTransaction = async spec => {
   const seqNum = acctResponse.account.keys[0].sequenceNumber;
 
   const signingFunction = flow.signingFunction.signingFunction(privateKey);
-  const signingFunction2 = flow.signingFunction.signingFunction(config.privateKey);
 
   const chain = [
     flow.sdk.authorizations([flow.sdk.authorization(address, signingFunction, 0)]),
