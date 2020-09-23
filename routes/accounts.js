@@ -17,15 +17,23 @@ const _handleAccountsRequest = async (req, res) => {
             });
             req.on('end', async () => {
                 const b = Buffer.concat(bs);
-                const contractSource = b.toString('utf8');
+                const s = b.toString('utf8');
 
-                const mnemonic = blockchain.makeMnemonic();
-                const userKeys = await blockchain.genKeys(mnemonic);
-                const address = await blockchain.createAccount(userKeys, contractSource);
-                userKeys.mnemonic = mnemonic;
-                userKeys.address = address;
-                res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify(userKeys, null, 2));
+                if (path === 'sendTransaction') {
+                  // console.log('got s', JSON.stringify(s));
+                  const spec = JSON.parse(s);
+                  const transaction = await blockchain.runTransaction(spec);
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify(transaction, null, 2));
+                } else {
+                  const mnemonic = blockchain.makeMnemonic();
+                  const userKeys = await blockchain.genKeys(mnemonic);
+                  const address = await blockchain.createAccount(userKeys, s);
+                  userKeys.mnemonic = mnemonic;
+                  userKeys.address = address;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify(userKeys, null, 2));
+                }
             });
         }
     }

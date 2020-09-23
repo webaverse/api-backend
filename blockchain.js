@@ -97,8 +97,71 @@ const createAccount = async (userKeys, contractSource) => {
   }
 };
 
+const _getType = type => {
+  if (Array.isArray(type)) {
+    return [_getType(type[0])];
+  } else {
+    return flow.types[type];
+  }
+};
+const runTransaction = async spec => {
+  let {
+    address,
+    privateKey,
+    publicKey,
+    
+    limit,
+    transaction,
+    script,
+    args = [],
+  } = spec;
+  args = args.map(({value, type}) => {
+    return flow.sdk.arg(value, _getType(type));
+  });
+
+  const acctResponse = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
+    flow.sdk.getAccount(address),
+  ]), [
+    flow.sdk.resolve([
+      flow.sdk.resolveParams,
+    ]),
+  ]), { node: flowConstants.host });
+  const seqNum = acctResponse.account.keys[0].sequenceNumber;
+
+  const signingFunction = flow.signingFunction.signingFunction(privateKey);
+  const signingFunction2 = flow.signingFunction.signingFunction(config.privateKey);
+
+  const chain = [
+    flow.sdk.authorizations([flow.sdk.authorization(address, signingFunction, 0)]),
+    flow.sdk.payer(flow.sdk.authorization(config.address, signingFunction2, 0)),
+    flow.sdk.proposer(flow.sdk.authorization(address, signingFunction, 0, seqNum)),
+    flow.sdk.limit(limit),
+  ];
+  if (transaction) {
+    chain.push(flow.sdk.transaction(transaction));
+  }
+  if (script) {
+    chain.push(flow.sdk.script(script));
+  }
+  if (args) {
+    chain.push(flow.sdk.args(args));
+  }
+  const response = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build(chain), [
+    flow.sdk.resolve([
+      flow.sdk.resolveArguments,
+      flow.sdk.resolveParams,
+      flow.sdk.resolveAccounts,
+      flow.sdk.resolveRefBlockId({ node: flowConstants.host }),
+      flow.sdk.resolveSignatures,
+    ]),
+  ]), { node: flowConstants.host });
+  
+  return response;
+};
+
 module.exports = {
   makeMnemonic,
   genKeys,
   createAccount,
+  runTransaction,
 };
