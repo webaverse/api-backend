@@ -111,7 +111,8 @@ const runTransaction = async spec => {
     address,
     privateKey,
     publicKey,
-    
+    mnemonic,
+
     limit,
     transaction,
     script,
@@ -121,6 +122,12 @@ const runTransaction = async spec => {
   args = args.map(({value, type}) => {
     return flow.sdk.arg(value, _getType(type));
   });
+  
+  if (mnemonic) {
+    const userKeys = await genKeys(mnemonic);
+    privateKey = userKeys.privateKey;
+    publicKey = userKeys.publicKey;
+  }
   
   const chain = [];
   if (address) {
