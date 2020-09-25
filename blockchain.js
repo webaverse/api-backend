@@ -138,7 +138,10 @@ const runTransaction = async spec => {
         flow.sdk.resolveParams,
       ]),
     ]), { node: flowConstants.host });
-    const keyIndex = acctResponse.account.keys.findIndex(key => key.publicKey === publicKey);
+    let keyIndex = acctResponse.account.keys.findIndex(key => key.publicKey === publicKey);
+    if (keyIndex === -1) {
+      keyIndex = 0;
+    }
     const seqNum = acctResponse.account.keys[keyIndex].sequenceNumber;
 
     const signingFunction = flow.signingFunction.signingFunction(privateKey);
