@@ -116,7 +116,6 @@ const runTransaction = async spec => {
     limit,
     transaction,
     script,
-    keyId = 0,
     args = [],
     wait = false,
   } = spec;
@@ -144,9 +143,9 @@ const runTransaction = async spec => {
     const signingFunction = flow.signingFunction.signingFunction(privateKey);
 
     chain.push(
-      flow.sdk.authorizations([flow.sdk.authorization(address, signingFunction, keyId)]),
+      flow.sdk.authorizations([flow.sdk.authorization(address, signingFunction, 0)]),
       flow.sdk.payer(flow.sdk.authorization(config.address, signingFunction2, 0)),
-      flow.sdk.proposer(flow.sdk.authorization(address, signingFunction, keyId, seqNum)),
+      flow.sdk.proposer(flow.sdk.authorization(address, signingFunction, 0, seqNum)),
     );
   }
   if (limit) {
