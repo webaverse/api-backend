@@ -148,10 +148,10 @@ const runTransaction = async spec => {
 
     chain.push(
       flow.sdk.authorizations([flow.sdk.authorization(address, signingFunction, keyIndex)]),
-      flow.sdk.payer(flow.sdk.authorization(config.address, signingFunction2, 0)),
       flow.sdk.proposer(flow.sdk.authorization(address, signingFunction, keyIndex, seqNum)),
     );
   }
+  chain.push(flow.sdk.payer(flow.sdk.authorization(config.address, signingFunction2, 0)));
   if (limit) {
     chain.push(flow.sdk.limit(limit));
   }
