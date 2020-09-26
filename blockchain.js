@@ -148,7 +148,7 @@ const runTransaction = async spec => {
 
     chain.push(flow.sdk.authorizations([flow.sdk.authorization(address, signingFunction, keyIndex)]))
     chain.push(flow.sdk.proposer(flow.sdk.authorization(address, signingFunction, keyIndex, seqNum)));
-  } else {
+  } /* else {
     const acctResponse = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
       flow.sdk.getAccount(config.address),
     ]), [
@@ -157,10 +157,10 @@ const runTransaction = async spec => {
       ]),
     ]), { node: flowConstants.host });
     const keyIndex = 0;
-    const seqNum = acctResponse.account.keys[0].sequenceNumber;
+    const seqNum = acctResponse.account.keys[keyIndex].sequenceNumber;
 
     chain.push(flow.sdk.proposer(flow.sdk.authorization(config.address, signingFunction2, keyIndex, seqNum)));
-  }
+  } */
   chain.push(flow.sdk.payer(flow.sdk.authorization(config.address, signingFunction2, 0)));
   if (limit) {
     chain.push(flow.sdk.limit(limit));
