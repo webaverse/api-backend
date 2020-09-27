@@ -36,6 +36,7 @@ const cbs = {};
 (async () => {
 browser = await puppeteer.launch({
   args: [
+    '--no-sandbox',
     // '--no-zygote',
     // '--disable-dev-shm-usage',
   ],
