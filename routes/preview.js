@@ -82,7 +82,7 @@ const _handlePreviewRequest = async (req, res) => {
   await serverPromise;
 
   const u = url.parse(req.url, true);
-  console.log('preview 1');
+  console.log('preview 1', u);
   const {query} = u;
   const {hash, ext, type} = query;
   console.log('preview 2', {hash, ext, type});
@@ -109,31 +109,19 @@ const _handlePreviewRequest = async (req, res) => {
     console.log('load 2');
 
     const {req: proxyReq, res: proxyRes} = await p;
+
     console.log('load 3');
-
-    const b = await new Promise((accept, reject) => {
-      const bs = [];
-      proxyReq.on('data', d => {
-        bs.push(d);
-      });
-      proxyReq.on('end', () => {
-        const b = Buffer.concat(bs);
-        accept(b);
-        proxyRes.end();
-      });
-    });
-
-    console.log('load 4', b.length);
-
-    page.close();
-
-    console.log('load 5', b.length);
 
     res.setHeader('Content-Type', proxyReq.headers['content-type'] || 'application/octet-stream');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
-    res.end(b);
+
+    proxyReq.on('end', () => {
+      proxyRes.end();
+      page.close();
+    });
+    proxyReq.pipe(res);
   } else {
     res.statusCode = 404;
     res.end();
