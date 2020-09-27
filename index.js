@@ -55,6 +55,7 @@ const Discord = require('discord.js');
 const api = require('./api.js');
 const { _handleStorageRequest } = require('./routes/storage.js');
 const { _handleAccountsRequest } = require('./routes/accounts.js');
+const { _handlePreviewRequest } = require('./routes/preview.js')
 const { _handleWorldsRequest, _startWorldsRoute } = require('./routes/worlds.js');
 
 const CERT = fs.readFileSync('./certs/fullchain.pem');
@@ -1035,7 +1036,7 @@ try {
 }
 };
 
-const _handlePreview = async (req, res, userName, channelName) => {
+/* const _handlePreview = async (req, res, userName, channelName) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -1141,7 +1142,7 @@ try {
     error: err.stack,
   }));
 }
-};
+}; */
 
 const parcels = {};
 const _handleGrid = async (req, res, userName, channelName) => {
@@ -3847,7 +3848,7 @@ try {
     _handleHashes(req, res);
     return;
   } else if (o.host === 'preview.exokit.org') {
-    _handlePreview(req, res);
+    _handlePreviewRequest(req, res);
     return;
   } else if (o.host === 'grid.exokit.org') {
     _handleGrid(req, res);
