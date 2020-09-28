@@ -14,7 +14,7 @@ const getObject = (bucket, key) => {
         const params = { Bucket: bucket, Key: key };
         s3.getObject(params, (error, data) => {
             if (error) {
-                resolve(error)
+                reject(error)
             }
             else {
                 resolve(data)
