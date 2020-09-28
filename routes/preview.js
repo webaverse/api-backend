@@ -11,6 +11,7 @@ const child_process = require('child_process');
 
 const puppeteer = require('puppeteer');
 
+const PREVIEW_HOST = '127.0.0.1';
 const PREVIEW_PORT = 8999;
 
 const _makePromise = () => {
@@ -77,7 +78,7 @@ const server = http.createServer((req, res) => {
   }
 });
 server.on('error', serverPromise.reject.bind(serverPromise));
-server.listen(PREVIEW_PORT, serverPromise.accept.bind(serverPromise));
+server.listen(PREVIEW_PORT, PREVIEW_HOST, serverPromise.accept.bind(serverPromise));
 })();
 
 const _handlePreviewRequest = async (req, res) => {
@@ -106,7 +107,7 @@ const _handlePreviewRequest = async (req, res) => {
       console.log(err);
     });
     console.log('load 1', hash, ext, type);
-    await page.goto(`https://app.webaverse.com/screenshot.html?hash=${hash}&ext=${ext}&type=${type}&dst=http://127.0.0.1:${PREVIEW_PORT}/` + index);
+    await page.goto(`https://app.webaverse.com/screenshot.html?hash=${hash}&ext=${ext}&type=${type}&dst=http://${PREVIEW_HOST}:${PREVIEW_PORT}/` + index);
     // const result = await page.title();
     console.log('load 2');
 
