@@ -21,6 +21,9 @@ const genKeys = async mnemonic => {
 function uint8Array2hex(uint8Array) {
   return Array.prototype.map.call(uint8Array, x => ('00' + x.toString(16)).slice(-2)).join('');
 }
+const _isPending = tx => tx.status >= 1;
+const _isFinalized = tx => tx.status >= 2;
+const _isExecuted = tx => tx.status >= 3;
 const _isSealed = tx => tx.status >= 4;
 const _waitForTx = async txid => {
   for (;;) {
@@ -31,8 +34,8 @@ const _waitForTx = async txid => {
         flow.sdk.resolveParams,
       ]),
     ]), { node: flowConstants.host });
-    // console.log('got response 2', response2);
-    if (_isSealed(response2.transaction)) {
+    // console.log('got tx response', response2);
+    if (_isExecuted(response2.transaction)) {
       return response2;
     } else {
       await new Promise((accept, reject) => {
