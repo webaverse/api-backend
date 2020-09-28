@@ -7,7 +7,9 @@ const flow = {
   crypto: flowJs.crypto,
   signingFunction: flowJs.signingFunction,
 };
-const flowConstants = require('./flow-constants.js');
+const flowConstants = {
+  host: 'https://access-testnet.onflow.org',
+};
 const config = require('./config.json');
 
 const makeMnemonic = () => bip39.entropyToMnemonic(crypto.randomBytes(32));
