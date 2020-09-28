@@ -93,15 +93,17 @@ const _handlePreviewRequest = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', '*');
   res.setHeader('Access-Control-Allow-Methods', '*');
 
-  const u = url.parse(req.url);
+  const u = url.parse(req.url, true);
   const match = u.pathname.match(/^\/([a-z0-9]+)\.([a-z0-9]+)\/([a-z0-9]+)\.([a-z0-9]+)$/);
   if (match) {
     const hash = match[1];
     const ext = match[2];
     const type = match[4];
+    const {query = {}} = u;
+    const cache = !query['nocache'];
     console.log('preview request', {hash, ext, type});
     const key = `${hash}/${ext}/${type}`;
-    const o = await (async () => {
+    const o = cache ? await (async () => {
       try {
         return await getObject(
           bucketNames.preview,
@@ -111,7 +113,7 @@ const _handlePreviewRequest = async (req, res) => {
         // console.warn(err);
         return null;
       }
-    })();
+    })() : null;
     if (o) {
       res.setHeader('Content-Type', o.ContentType || 'application/octet-stream');
       res.end(o.Body);
@@ -154,14 +156,16 @@ const _handlePreviewRequest = async (req, res) => {
       proxyRes.end();
       page.close();
 
-      const b = Buffer.concat(bs);
-      bs.length = 0;
-      await putObject(
-        bucketNames.preview,
-        key,
-        b,
-        contentType,
-      );
+      if (cache) {
+        const b = Buffer.concat(bs);
+        bs.length = 0;
+        await putObject(
+          bucketNames.preview,
+          key,
+          b,
+          contentType,
+        );
+      }
     }
   } else {
     res.statusCode = 404;
