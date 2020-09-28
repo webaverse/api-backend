@@ -99,7 +99,7 @@ const _handlePreviewRequest = async (req, res) => {
     const hash = match[1];
     const ext = match[2];
     const type = match[4];
-    console.log('got', {hash, ext, type});
+    console.log('preview request', {hash, ext, type});
     const key = `${hash}/${ext}/${type}`;
     const o = await (async () => {
       try {
