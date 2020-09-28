@@ -93,13 +93,14 @@ const _handlePreviewRequest = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', '*');
   res.setHeader('Access-Control-Allow-Methods', '*');
 
-  const u = url.parse(req.url, true);
-  // console.log('preview 1', u);
-  const {query} = u;
-  const {hash, type, ext} = query;
-  // console.log('preview 2', {hash, ext, type});
-  if (hash && type && ext) {
-    const key = `${hash}/${type}/${ext}`;
+  const u = url.parse(req.url);
+  const match = u.pathname.match(/^\/([a-z0-9]+)\.([a-z0-9]+)\/([a-z0-9]+)\.([a-z0-9]+)$/);
+  if (match) {
+    const hash = match[1];
+    const ext = match[2];
+    const type = match[4];
+    console.log('got', {hash, ext, type});
+    const key = `${hash}/${ext}/${type}`;
     const o = await (async () => {
       try {
         return await getObject(
