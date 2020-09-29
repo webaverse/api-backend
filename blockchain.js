@@ -68,8 +68,7 @@ const _waitForTx = async txid => {
         flow.sdk.resolveParams,
       ]),
     ]), { node: host });
-    // console.log('got tx response', response2);
-    if (_isExecuted(response2.transaction)) {
+    if (_isSealed(response2.transaction)) {
       return response2;
     } else {
       await new Promise((accept, reject) => {
