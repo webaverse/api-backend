@@ -88,6 +88,8 @@ const createAccount = async (userKeys, {bake = false} = {}) => {
   const endPrepareIndex = ls.findIndex(l => /end prepare/.test(l));
   const prepareBody = ls.slice(beginPrepareIndex + 1, endPrepareIndex).join('\n');
 
+  console.log('create account', {bake});
+
   for (;;) {
     const acctResponse = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
       flow.sdk.getAccount(config.address),
@@ -96,7 +98,7 @@ const createAccount = async (userKeys, {bake = false} = {}) => {
         flow.sdk.resolveParams,
       ]),
     ]), { node: host });
-    console.log('create account', JSON.stringify(acctResponse, null, 2));
+    console.log('try create account', JSON.stringify(acctResponse, null, 2));
     const seqNum = acctResponse.account.keys[0].sequenceNumber;
 
     const signingFunction = flow.signingFunction.signingFunction(config.privateKey);
