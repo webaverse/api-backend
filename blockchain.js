@@ -78,7 +78,7 @@ const _waitForTx = async txid => {
   }
 };
 
-const createAccount = async (userKeys, {bake} = {}) => {
+const createAccount = async (userKeys, {bake = false} = {}) => {
   const contractSource = await getContractSource('bakeUserAccount.cdc');
   const match = contractSource.match(/([\s\S]*)(transaction[\s\S]*)$/);
   const header = match[1];
