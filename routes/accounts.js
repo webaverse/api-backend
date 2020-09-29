@@ -2,6 +2,14 @@ const url = require('url');
 const { _setCorsHeaders } = require('../utils.js');
 const blockchain = require('../blockchain.js');
 
+const _jsonParse = s => {
+   try {
+       return JSON.parse(s);
+   } catch(err) {
+       return null;
+   }
+};
+
 const _handleAccountsRequest = async (req, res) => {
     const request = url.parse(req.url);
     const path = request.path.split('/')[1];
@@ -19,9 +27,10 @@ const _handleAccountsRequest = async (req, res) => {
                 try {
                   const b = Buffer.concat(bs);
                   const s = b.toString('utf8');
+                  const j = _jsonParse(s);
+                  const bake = j ? !!j.bake : false;
 
                   if (path === 'sendTransaction') {
-                    // console.log('got s', JSON.stringify(s));
                     const spec = JSON.parse(s);
                     const transaction = await blockchain.runTransaction(spec);
                     res.setHeader('Content-Type', 'application/json');
@@ -29,7 +38,7 @@ const _handleAccountsRequest = async (req, res) => {
                   } else {
                     const mnemonic = blockchain.makeMnemonic();
                     const userKeys = await blockchain.genKeys(mnemonic);
-                    const address = await blockchain.createAccount(userKeys, s);
+                    const address = await blockchain.createAccount(userKeys, {bake});
                     userKeys.mnemonic = mnemonic;
                     userKeys.address = address;
                     res.setHeader('Content-Type', 'application/json');

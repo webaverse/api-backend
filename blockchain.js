@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const bip39 = require('bip39');
+const fetch = require('node-fetch');
 const flowJs = require('./flow.js');
 const flow = {
   sdk: require('@onflow/sdk'),
@@ -7,10 +8,41 @@ const flow = {
   crypto: flowJs.crypto,
   signingFunction: flowJs.signingFunction,
 };
-const flowConstants = {
-  host: 'https://access-testnet.onflow.org',
-};
+const flowConstants = require('./flow-constants.js')
 const config = require('./config.json');
+
+let FungibleToken, NonFungibleToken, ExampleToken, ExampleNFT, ExampleAccount, host;
+flowConstants.load()
+  .then(o => {
+    FungibleToken = o.FungibleToken;
+    NonFungibleToken = o.NonFungibleToken;
+    ExampleToken = o.ExampleToken;
+    ExampleNFT = o.ExampleNFT;
+    ExampleAccount = o.ExampleAccount;
+    host = o.host;
+  });
+
+const contractSourceCache = {};
+async function getContractSource(p) {
+  let contractSource = contractSourceCache[p];
+  if (!contractSource) {
+    const res = await fetch('https://contracts.webaverse.com/flow/' + p);
+    contractSource = await res.text();
+    contractSource = await resolveContractSource(contractSource);
+    contractSourceCache[p] = contractSource;
+  }
+  return contractSource;
+}
+
+async function resolveContractSource(contractSource) {
+  const {FungibleToken, NonFungibleToken, ExampleToken, ExampleNFT, ExampleAccount} = await flowConstants.load();
+  return contractSource
+    .replace(/NONFUNGIBLETOKENADDRESS/g, NonFungibleToken)
+    .replace(/FUNGIBLETOKENADDRESS/g, FungibleToken)
+    .replace(/EXAMPLETOKENADDRESS/g, ExampleToken)
+    .replace(/EXAMPLENFTADDRESS/g, ExampleNFT)
+    .replace(/EXAMPLEACCOUNTADDRESS/g, ExampleAccount);
+}
 
 const makeMnemonic = () => bip39.entropyToMnemonic(crypto.randomBytes(32));
 const genKeys = async mnemonic => {
@@ -35,7 +67,7 @@ const _waitForTx = async txid => {
       flow.sdk.resolve([
         flow.sdk.resolveParams,
       ]),
-    ]), { node: flowConstants.host });
+    ]), { node: host });
     // console.log('got tx response', response2);
     if (_isExecuted(response2.transaction)) {
       return response2;
@@ -47,7 +79,16 @@ const _waitForTx = async txid => {
   }
 };
 
-const createAccount = async (userKeys, contractSource) => {
+const createAccount = async (userKeys, {bake} = {}) => {
+  const contractSource = await getContractSource('bakeUserAccount.cdc');
+  const match = contractSource.match(/([\s\S]*)(transaction[\s\S]*)$/);
+  const header = match[1];
+  const body = match[2];
+  const ls = body.split('\n');
+  const beginPrepareIndex = ls.findIndex(l => /begin prepare/.test(l));
+  const endPrepareIndex = ls.findIndex(l => /end prepare/.test(l));
+  const prepareBody = ls.slice(beginPrepareIndex + 1, endPrepareIndex).join('\n');
+
   for (;;) {
     const acctResponse = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
       flow.sdk.getAccount(config.address),
@@ -55,7 +96,7 @@ const createAccount = async (userKeys, contractSource) => {
       flow.sdk.resolve([
         flow.sdk.resolveParams,
       ]),
-    ]), { node: flowConstants.host });
+    ]), { node: host });
     console.log('create account', JSON.stringify(acctResponse, null, 2));
     const seqNum = acctResponse.account.keys[0].sequenceNumber;
 
@@ -67,28 +108,29 @@ const createAccount = async (userKeys, contractSource) => {
       flow.sdk.proposer(flow.sdk.authorization(config.address, signingFunction, 0, seqNum)),
       flow.sdk.limit(100),
       flow.sdk.transaction`
-        transaction(publicKeys: [String]${contractSource ? `, code: String` : ''}) {
+        ${bake ? header : ''}
+        transaction(publicKeys: [String]) {
           prepare(signer: AuthAccount) {
-            let acct = AuthAccount(payer: signer)
+            let account = AuthAccount(payer: signer)
             for key in publicKeys {
-              acct.addPublicKey(key.decodeHex())
+              account.addPublicKey(key.decodeHex())
             }
-            ${contractSource ? `acct.setCode(code.decodeHex())` : ''}
+            ${bake ? prepareBody : ''}
           }
         }
       `,
       flow.sdk.args([
         flow.sdk.arg([userKeys.flowKey], flow.types.Array(flow.types.String)),
-      ].concat(contractSource ? [flow.sdk.arg(uint8Array2hex(new TextEncoder().encode(contractSource)), flow.types.String)] : [])),
+      ]),
     ]), [
       flow.sdk.resolve([
         flow.sdk.resolveArguments,
         flow.sdk.resolveParams,
         flow.sdk.resolveAccounts,
-        flow.sdk.resolveRefBlockId({ node: flowConstants.host }),
+        flow.sdk.resolveRefBlockId({ node: host }),
         flow.sdk.resolveSignatures,
       ]),
-    ]), { node: flowConstants.host });
+    ]), { node: host });
 
     const response2 = await _waitForTx(response.transactionId);
     console.log('got create account response', response2);
@@ -142,7 +184,7 @@ const runTransaction = async spec => {
       flow.sdk.resolve([
         flow.sdk.resolveParams,
       ]),
-    ]), { node: flowConstants.host });
+    ]), { node: host });
     let keyIndex = acctResponse.account.keys.findIndex(key => key.publicKey === publicKey);
     if (keyIndex === -1) {
       keyIndex = 0;
@@ -160,7 +202,7 @@ const runTransaction = async spec => {
       flow.sdk.resolve([
         flow.sdk.resolveParams,
       ]),
-    ]), { node: flowConstants.host });
+    ]), { node: host });
     const keyIndex = 0;
     const seqNum = acctResponse.account.keys[keyIndex].sequenceNumber;
 
@@ -183,10 +225,10 @@ const runTransaction = async spec => {
       flow.sdk.resolveArguments,
       flow.sdk.resolveParams,
       flow.sdk.resolveAccounts,
-      flow.sdk.resolveRefBlockId({ node: flowConstants.host }),
+      flow.sdk.resolveRefBlockId({ node: host }),
       flow.sdk.resolveSignatures,
     ]),
-  ]), { node: flowConstants.host });
+  ]), { node: host });
   
   if (transaction) {
     if (wait) {
