@@ -242,9 +242,24 @@ const runTransaction = async spec => {
   return response;
 };
 
+const getLatestBlock = async () => {
+  const response = await flow.sdk.send(await flow.sdk.build([
+    flow.sdk.getLatestBlock(),
+  ]), { node: host });
+  return response.block.height;
+};
+const getEvents = async (eventType, startBlock, endBlock) => {
+  const response = await flow.sdk.send(await flow.sdk.build([
+    flow.sdk.getEvents(eventType, startBlock, endBlock),
+  ]), { node: host });
+  return response.events
+};
+
 module.exports = {
   makeMnemonic,
   genKeys,
   createAccount,
   runTransaction,
+  getLatestBlock,
+  getEvents,
 };
