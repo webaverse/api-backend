@@ -306,12 +306,12 @@ try {
                 Message: {
                     Body: {
                         Html: {
-                            Data: `<h1>${code}</h1><h2><a href="https://xrpackage.org/login.html?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}">Log in</a></h2>`
+                            Data: `<h1>${code}</h1><h2><a href="https://app.webeverse.com/login.html?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}">Log in</a></h2>`
                         }
                     },
                     
                     Subject: {
-                        Data: `Verification code for Exokit`
+                        Data: `Verification code for Webaverse`
                     }
                 },
                 Source: "noreply@exokit.org"
