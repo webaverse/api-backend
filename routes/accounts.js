@@ -25,12 +25,18 @@ const _handleAccountsRequest = async (req, res) => {
                 res.setHeader('Content-Type', 'application/json');
                 res.end(JSON.stringify(latestBlock, null, 2));
             } else if (match = request.path.match(/^\/getEvents\/([^\/]+)\/([0-9]+)\/([0-9]+)$/)) {
-                const eventType = match[1];
+                const eventTypes = match[1].split(',');
                 const startBlock = parseInt(match[2], 10);
                 const endBlock = parseInt(match[3], 10);
-                const events = await blockchain.getEvents(eventType, startBlock, endBlock);
+                let result = [];
+                await Promise.all(eventTypes.map(eventType =>
+                    blockchain.getEvents(eventType, startBlock, endBlock)
+                        .then(events => {
+                            result.push.apply(result, events);
+                        })
+                ));
                 res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify(events, null, 2));
+                res.end(JSON.stringify(result, null, 2));
             } else {
                 res.statusCode = 404;
                 res.end();
