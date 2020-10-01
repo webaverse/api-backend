@@ -98,7 +98,7 @@ const createAccount = async (userKeys, {bake = false} = {}) => {
         flow.sdk.resolveParams,
       ]),
     ]), { node: host });
-    console.log('try create account', JSON.stringify(acctResponse, null, 2));
+    console.log('try create account', acctResponse);
     const seqNum = acctResponse.account.keys[0].sequenceNumber;
 
     const signingFunction = flow.signingFunction.signingFunction(config.privateKey);
