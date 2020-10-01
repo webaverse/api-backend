@@ -222,7 +222,9 @@ try {
               }
               if (!addr) {
                 const userKeys = await blockchain.genKeys(mnemonic);
-                addr = await blockchain.createAccount(userKeys);
+                addr = await blockchain.createAccount(userKeys, {
+                  bake: true,
+                });
               }
               if (!state) {
                 state = _randomString();
