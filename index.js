@@ -46,6 +46,7 @@ const apiKeyCache = new LRU({
   maxAge: 60 * 1000,
 });
 const stripe = Stripe(stripeClientSecret);
+const accountManager = require('./account-manager.js');
 
 const Discord = require('discord.js');
 
@@ -217,14 +218,10 @@ try {
               if (!name) {
                 name = namegen(2).join('-');
               }
-              if (!mnemonic) {
-                mnemonic = blockchain.makeMnemonic();
-              }
-              if (!addr) {
-                const userKeys = await blockchain.genKeys(mnemonic);
-                addr = await blockchain.createAccount(userKeys, {
-                  bake: true,
-                });
+              if (!mnemonic || !addr) {
+                const spec = await accountManager.getAccount();
+                mnemonic = spec.mnemonic;
+                addr = spec.address;
               }
               if (!state) {
                 state = _randomString();

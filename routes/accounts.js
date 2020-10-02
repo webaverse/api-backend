@@ -1,6 +1,7 @@
 const url = require('url');
 const { _setCorsHeaders } = require('../utils.js');
 const blockchain = require('../blockchain.js');
+const accountManager = require('../account-manager.js');
 
 const _jsonParse = s => {
    try {
@@ -59,11 +60,7 @@ const _handleAccountsRequest = async (req, res) => {
                     res.setHeader('Content-Type', 'application/json');
                     res.end(JSON.stringify(transaction, null, 2));
                   } else {
-                    const mnemonic = blockchain.makeMnemonic();
-                    const userKeys = await blockchain.genKeys(mnemonic);
-                    const address = await blockchain.createAccount(userKeys, {bake});
-                    userKeys.mnemonic = mnemonic;
-                    userKeys.address = address;
+                    const userKeys = await accountManager.getAccount();
                     res.setHeader('Content-Type', 'application/json');
                     res.end(JSON.stringify(userKeys, null, 2));
                   }
