@@ -47,6 +47,7 @@ const apiKeyCache = new LRU({
 });
 const stripe = Stripe(stripeClientSecret);
 const accountManager = require('./account-manager.js');
+const eventsManager = require('./events-manager.js');
 
 const Discord = require('discord.js');
 
@@ -3625,9 +3626,16 @@ const _getDiscordClient = token => {
 const presenceWss = new ws.Server({
   noServer: true,
 });
-presenceWss.on('connection', async (s, req, channels, saveHtml) => {
-  const o = url.parse(req.url, true);
-  const {c} = o.query;
+presenceWss.on('connection', async (s, req/*, channels, saveHtml*/) => {
+  console.log('got ws');
+  const _transaction = tx => {
+    s.send(JSON.stringify(tx));
+  };
+  eventsManager.on('transaction', _transaction);
+  s.on('close', () => {
+    eventsManager.removeListener('transaction', _transaction);
+  });
+  /* const {c} = o.query;
   if (c) {
     const {remoteAddress} = req.connection;
     console.log('got connection', remoteAddress, c);
@@ -3820,7 +3828,7 @@ presenceWss.on('connection', async (s, req, channels, saveHtml) => {
     queue.length = 0;
   } else {
     s.close();
-  }
+  } */
 });
 
 const _req = protocol => (req, res) => {
@@ -3964,14 +3972,18 @@ try {
 };
 const _ws = (req, socket, head) => {
   const host = req.headers['host'];
-  if (host === 'presence.exokit.org') {
+  if (host === 'events.exokit.org') {
+    presenceWss.handleUpgrade(req, socket, head, s => {
+      presenceWss.emit('connection', s, req);
+    });
+  /* if (host === 'presence.exokit.org') {
     presenceWss.handleUpgrade(req, socket, head, s => {
       presenceWss.emit('connection', s, req, webaverseChannels, true);
     });
   } else if (host === 'presence-tmp.exokit.org') {
     presenceWss.handleUpgrade(req, socket, head, s => {
       presenceWss.emit('connection', s, req, webaverseTmpChannels, false);
-    });
+    }); */
   } else {
     proxy.ws(req, socket, head);
   }
