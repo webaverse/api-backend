@@ -51,8 +51,6 @@ const _handleAccountsRequest = async (req, res) => {
                 try {
                   const b = Buffer.concat(bs);
                   const s = b.toString('utf8');
-                  const j = _jsonParse(s);
-                  const bake = j ? !!j.bake : false;
 
                   if (path === 'sendTransaction') {
                     const spec = JSON.parse(s);
