@@ -3627,7 +3627,6 @@ const presenceWss = new ws.Server({
   noServer: true,
 });
 presenceWss.on('connection', async (s, req/*, channels, saveHtml*/) => {
-  console.log('got ws');
   const _transaction = tx => {
     s.send(JSON.stringify(tx));
   };
