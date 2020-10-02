@@ -12,6 +12,7 @@ const flowConstants = require('./flow-constants.js')
 const config = require('./config.json');
 
 let FungibleToken, NonFungibleToken, ExampleToken, ExampleNFT, ExampleAccount, host;
+let isLoaded = false;
 flowConstants.load()
   .then(o => {
     FungibleToken = o.FungibleToken;
@@ -20,7 +21,10 @@ flowConstants.load()
     ExampleNFT = o.ExampleNFT;
     ExampleAccount = o.ExampleAccount;
     host = o.host;
+    isLoaded = true;
   });
+
+const getIsLoaded = () => isLoaded;
 
 const contractSourceCache = {};
 async function getContractSource(p) {
@@ -252,10 +256,11 @@ const getEvents = async (eventType, startBlock, endBlock) => {
   const response = await flow.sdk.send(await flow.sdk.build([
     flow.sdk.getEvents(eventType, startBlock, endBlock),
   ]), { node: host });
-  return response.events
+  return response.events;
 };
 
 module.exports = {
+  getIsLoaded,
   makeMnemonic,
   genKeys,
   createAccount,
