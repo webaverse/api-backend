@@ -94,7 +94,7 @@ const _handlePreviewRequest = async (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', '*');
 
   const u = url.parse(req.url, true);
-  const match = u.pathname.match(/^\/([a-z0-9]+)\.([a-z0-9]+)\/([a-z0-9]+)\.([a-z0-9]+)$/);
+  const match = u.pathname.match(/^\/([a-z0-9]+)\.([a-z0-9]+)\/([^\.]+)\.([a-z0-9]+)$/);
   if (match) {
     const hash = match[1];
     const ext = match[2];
