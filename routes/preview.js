@@ -45,7 +45,7 @@ const cbs = {};
 browser = await puppeteer.launch({
   args: [
     '--no-sandbox',
-    // '--no-zygote',
+    '--no-zygote',
     // '--disable-dev-shm-usage',
   ],
   // defaultViewport: chromium.defaultViewport,
