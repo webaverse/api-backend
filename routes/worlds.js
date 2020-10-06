@@ -18,13 +18,18 @@ const awsConfig = new AWS.Config({
 const EC2 = new AWS.EC2(awsConfig);
 const route53 = new AWS.Route53(awsConfig);
 
+const roomNumberStartIndex = '0'.charCodeAt(0);
+const roomNumberEndIndex = '9'.charCodeAt(0)+1;
 const roomAlphabetStartIndex = 'A'.charCodeAt(0);
 const roomAlphabetEndIndex = 'Z'.charCodeAt(0)+1;
 const roomIdLength = 4;
 function makeId() {
   let result = '';
   for (let i = 0; i < roomIdLength; i++) {
-    result += String.fromCharCode(roomAlphabetStartIndex + Math.floor(Math.random() * (roomAlphabetEndIndex - roomAlphabetStartIndex)));
+    result += Math.random() < 0.5 ?
+      String.fromCharCode(roomNumberStartIndex + Math.floor(Math.random() * (roomNumberEndIndex - roomNumberStartIndex)))
+    :
+      String.fromCharCode(roomAlphabetStartIndex + Math.floor(Math.random() * (roomAlphabetEndIndex - roomAlphabetStartIndex)));
   }
   return result;
 }
