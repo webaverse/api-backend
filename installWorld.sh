@@ -25,6 +25,6 @@ ssh -o StrictHostKeyChecking=no -i /tmp/keys/server.pem ubuntu@$PUBLIC_IP << EOF
     sudo chmod +r certs/privkey.pem
     sudo chmod +r certs/fullchain.pem
     openssl rsa -in certs/privkey.pem -pubout > certs/perms.pub.pem
-    MEDIASOUP_LISTEN_IP=${PRIVATE_IP} MEDIASOUP_ANNOUNCED_IP=${PRIVATE_IP} DEBUG=\${DEBUG:='*mediasoup* *INFO* *WARN* *ERROR*'} INTERACTIVE=\${INTERACTIVE:='false'} forever start index.js
+    MEDIASOUP_LISTEN_IP=${PRIVATE_IP} MEDIASOUP_ANNOUNCED_IP=${PUBLIC_IP} DEBUG=\${DEBUG:='*mediasoup* *INFO* *WARN* *ERROR*'} INTERACTIVE=\${INTERACTIVE:='false'} forever start index.js
     exit
 EOF
