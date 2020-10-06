@@ -23,7 +23,8 @@ const roomNumberEndIndex = '9'.charCodeAt(0)+1;
 const roomAlphabetStartIndex = 'A'.charCodeAt(0);
 const roomAlphabetEndIndex = 'Z'.charCodeAt(0)+1;
 const roomIdLength = 4;
-function makeId() {
+
+const makeId = () => {
   let result = '';
   for (let i = 0; i < roomIdLength; i++) {
     result += Math.random() < 0.5 ?
@@ -31,7 +32,7 @@ function makeId() {
     :
       String.fromCharCode(roomAlphabetStartIndex + Math.floor(Math.random() * (roomAlphabetEndIndex - roomAlphabetStartIndex)));
   }
-  return result;
+  return result.toLowerCase();
 }
 
 const MAX_INSTANCES = 20;
