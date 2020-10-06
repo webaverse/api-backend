@@ -18,6 +18,17 @@ const awsConfig = new AWS.Config({
 const EC2 = new AWS.EC2(awsConfig);
 const route53 = new AWS.Route53(awsConfig);
 
+const roomAlphabetStartIndex = 'A'.charCodeAt(0);
+const roomAlphabetEndIndex = 'Z'.charCodeAt(0)+1;
+const roomIdLength = 4;
+function makeId() {
+  let result = '';
+  for (let i = 0; i < roomIdLength; i++) {
+    result += String.fromCharCode(roomAlphabetStartIndex + Math.floor(Math.random() * (roomAlphabetEndIndex - roomAlphabetStartIndex)));
+  }
+  return result;
+}
+
 const MAX_INSTANCES = 20;
 const MAX_INSTANCES_BUFFER = 2;
 const worldMap = new Map();
@@ -184,7 +195,7 @@ const pingWorld = (instanceId) => {
 // Create a new ec2 instance, pull world-server code from Github, SSH copy the code into new instance, return host and other useful metadata for user.
 const createNewWorld = () => {
     return new Promise((resolve, reject) => {
-        const worldName = crypto.randomBytes(8).toString('base64').toLowerCase().replace(/[^a-z0-9]+/g, '');
+        const worldName = makeId();
         console.time(worldName);
         const instanceParams = {
             ImageId: 'ami-0cd230f950c3de5d8',
