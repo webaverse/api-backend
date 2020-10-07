@@ -97,8 +97,8 @@ const _handlePreviewRequest = async (req, res) => {
   const match = u.pathname.match(/^\/([^\.]+)\.([^\/]+)\/([^\.]+)\.(.+)$/);
   if (match) {
     const hash = match[1];
-    const ext = match[2];
-    const type = match[4];
+    const ext = match[2].toLowerCase();
+    const type = match[4].toLowerCase();
     const {query = {}} = u;
     const cache = !query['nocache'];
     console.log('preview request', {hash, ext, type});
