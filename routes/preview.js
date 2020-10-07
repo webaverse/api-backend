@@ -101,7 +101,7 @@ const _handlePreviewRequest = async (req, res) => {
     const type = match[4].toLowerCase();
     const {query = {}} = u;
     const cache = !query['nocache'];
-    console.log('preview request', {hash, ext, type});
+    console.log('preview request', {hash, ext, type, cache});
     const key = `${hash}/${ext}/${type}`;
     const o = cache ? await (async () => {
       try {
