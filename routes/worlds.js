@@ -19,20 +19,20 @@ const EC2 = new AWS.EC2(awsConfig);
 const route53 = new AWS.Route53(awsConfig);
 
 const roomNumberStartIndex = '0'.charCodeAt(0);
-const roomNumberEndIndex = '9'.charCodeAt(0)+1;
+const roomNumberEndIndex = '9'.charCodeAt(0) + 1;
 const roomAlphabetStartIndex = 'A'.charCodeAt(0);
-const roomAlphabetEndIndex = 'Z'.charCodeAt(0)+1;
+const roomAlphabetEndIndex = 'Z'.charCodeAt(0) + 1;
 const roomIdLength = 4;
 
 const makeId = () => {
-  let result = '';
-  for (let i = 0; i < roomIdLength; i++) {
-    result += Math.random() < 0.5 ?
-      String.fromCharCode(roomNumberStartIndex + Math.floor(Math.random() * (roomNumberEndIndex - roomNumberStartIndex)))
-    :
-      String.fromCharCode(roomAlphabetStartIndex + Math.floor(Math.random() * (roomAlphabetEndIndex - roomAlphabetStartIndex)));
-  }
-  return result.toLowerCase();
+    let result = '';
+    for (let i = 0; i < roomIdLength; i++) {
+        result += Math.random() < 0.5 ?
+            String.fromCharCode(roomNumberStartIndex + Math.floor(Math.random() * (roomNumberEndIndex - roomNumberStartIndex)))
+            :
+            String.fromCharCode(roomAlphabetStartIndex + Math.floor(Math.random() * (roomAlphabetEndIndex - roomAlphabetStartIndex)));
+    }
+    return result.toLowerCase();
 }
 
 const MAX_INSTANCES = 20;
@@ -355,6 +355,36 @@ const _handleWorldsRequest = async (req, res) => {
                 res.statusCode = 500;
                 res.end();
             }
+        } else if (method === 'GET' && path === 'list') {
+            let worldsList = [];
+            const describeParams = {
+                Filters: [
+                    {
+                        Name: "tag:Purpose",
+                        Values: ["world"]
+                    }
+                ]
+            };
+            EC2.describeInstances(describeParams, (error, data) => {
+                if (!error && data.Reservations) {
+                    data.Reservations.forEach(r => {
+                        const instance = r.Instances[0];
+                        const worldName = findTag(instance.Tags, 'Name');
+                        const isBuffer = findTag(instance.Tags, 'IsBuffer');
+                        if (worldName && (instance.State.Code === 16 || instance.State.Code === 0) && isBuffer.Value === 'false') { // running or pending
+                            worldsList.push(`${worldName.Value}.worlds.webaverse.com`);
+                        }
+                    })
+                    res.statusCode = 200;
+                    res.end(JSON.stringify({
+                        worlds: worldsList
+                    }));
+                } else {
+                    console.error(error);
+                    res.statusCode = 500;
+                    res.end();
+                }
+            })
         } else if (method === 'GET' && path) {
             const requestedWorld = worldMap.get(path);
             if (requestedWorld) {
@@ -415,7 +445,7 @@ const updateZipFile = async () => {
         } else {
             throw new Error('couldnt pull ZIP for some reason: ' + response.status);
         }
-    } 
+    }
 }
 
 const _startWorldsRoute = async () => {
