@@ -3,13 +3,13 @@ const { _setCorsHeaders } = require('../utils.js');
 const blockchain = require('../blockchain.js');
 const accountManager = require('../account-manager.js');
 
-const _jsonParse = s => {
+/* const _jsonParse = s => {
    try {
        return JSON.parse(s);
    } catch(err) {
        return null;
    }
-};
+}; */
 
 const _handleAccountsRequest = async (req, res) => {
     const request = url.parse(req.url);
