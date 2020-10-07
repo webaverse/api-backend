@@ -39,7 +39,7 @@ class AccountManager {
       }
     }).promise();
     this.users = tokenItem.Item ? JSON.parse(tokenItem.Item.users.S) : [];
-    console.log('got old', this.users);
+    // console.log('got old', this.users);
 
     const _save = async () => {
       await ddb.putItem({
