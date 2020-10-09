@@ -19,15 +19,15 @@ class EventsManager extends EventEmitter {
         }
         if (latestBlock !== lastCheckedBlock) {
           // console.log('check 3');
-          const {ExampleToken, ExampleNFT, ExampleAccount} = await flowConstants.load();
+          const {WebaverseToken, WebaverseNFT, WebaverseAccount} = await flowConstants.load();
           const txs = {};
           const eventTypes = [
-            `A.${ExampleToken.slice(2)}.ExampleToken.TokensWithdrawn`,
-            `A.${ExampleToken.slice(2)}.ExampleToken.TokensDeposited`,
-            `A.${ExampleNFT.slice(2)}.ExampleNFT.Withdraw`,
-            `A.${ExampleNFT.slice(2)}.ExampleNFT.Deposit`,
-            `A.${ExampleNFT.slice(2)}.ExampleNFT.MetadataChanged`,
-            `A.${ExampleAccount.slice(2)}.ExampleAccount.MetadataChanged`,
+            `A.${WebaverseToken.slice(2)}.WebaverseToken.TokensWithdrawn`,
+            `A.${WebaverseToken.slice(2)}.WebaverseToken.TokensDeposited`,
+            `A.${WebaverseNFT.slice(2)}.WebaverseNFT.Withdraw`,
+            `A.${WebaverseNFT.slice(2)}.WebaverseNFT.Deposit`,
+            `A.${WebaverseNFT.slice(2)}.WebaverseNFT.MetadataChanged`,
+            `A.${WebaverseAccount.slice(2)}.WebaverseAccount.MetadataChanged`,
           ];
           for (const eventType of eventTypes) {
             const events = await blockchain.getEvents(eventType, lastCheckedBlock, latestBlock);
