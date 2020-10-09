@@ -3945,6 +3945,7 @@ try {
 
         console.log(oldUrl, '->', req.url);
 
+        delete req.headers['origin'];
         delete req.headers['referer'];
 
         proxy.web(req, res, {
