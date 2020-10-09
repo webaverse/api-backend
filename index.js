@@ -3945,7 +3945,7 @@ try {
 
         console.log(oldUrl, '->', req.url);
 
-        req.headers['user-agent'] = 'curl';
+        req.headers['user-agent'] = 'curl/1';
         delete req.headers['origin'];
         delete req.headers['referer'];
 
