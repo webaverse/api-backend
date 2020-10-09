@@ -107,23 +107,24 @@ const createAccount = async (userKeys, {bake = false} = {}) => {
 
     const signingFunction = flow.signingFunction.signingFunction(config.privateKey);
 
+    const transactionSrc = `
+      ${bake ? header : ''}
+      transaction(publicKeys: [String]) {
+        prepare(signer: AuthAccount) {
+          let account = AuthAccount(payer: signer)
+          for key in publicKeys {
+            account.addPublicKey(key.decodeHex())
+          }
+          ${bake ? prepareBody : ''}
+        }
+      }
+    `;
     const response = await flow.sdk.send(await flow.sdk.pipe(await flow.sdk.build([
       flow.sdk.authorizations([flow.sdk.authorization(config.address, signingFunction, 0)]),
       flow.sdk.payer(flow.sdk.authorization(config.address, signingFunction, 0)),
       flow.sdk.proposer(flow.sdk.authorization(config.address, signingFunction, 0, seqNum)),
       flow.sdk.limit(100),
-      flow.sdk.transaction`
-        ${bake ? header : ''}
-        transaction(publicKeys: [String]) {
-          prepare(signer: AuthAccount) {
-            let account = AuthAccount(payer: signer)
-            for key in publicKeys {
-              account.addPublicKey(key.decodeHex())
-            }
-            ${bake ? prepareBody : ''}
-          }
-        }
-      `,
+      flow.sdk.transaction(transactionSrc),
       flow.sdk.args([
         flow.sdk.arg([userKeys.flowKey], flow.types.Array(flow.types.String)),
       ]),
@@ -138,7 +139,7 @@ const createAccount = async (userKeys, {bake = false} = {}) => {
     ]), { node: host });
 
     const response2 = await _waitForTx(response.transactionId);
-    console.log('got create account response', response2);
+    console.log('got create account response', response2, transactionSrc);
     if (response2.transaction.statusCode === 0) {
       const address = response2.transaction.events[0].payload.value.fields[0].value.value.slice(2);
       // console.log('got response 6', userKeys.address);
