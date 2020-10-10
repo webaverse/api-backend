@@ -4,9 +4,9 @@ PUBLIC_IP=$1
 PRIVATE_IP=$2
 DOMAIN_NAME=$3
 
-scp -o StrictHostKeyChecking=no -i ./server.pem ./world-server.zip ubuntu@$PUBLIC_IP:~
+scp -o StrictHostKeyChecking=no -i ./keys/server.pem ./world-server.zip ubuntu@$PUBLIC_IP:~
 
-ssh -o StrictHostKeyChecking=no -i ./server.pem ubuntu@$PUBLIC_IP << EOF
+ssh -o StrictHostKeyChecking=no -i ./keys/server.pem ubuntu@$PUBLIC_IP << EOF
     curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
     sudo apt-get install -y nodejs
     sudo setcap 'cap_net_bind_service=+ep' /usr/bin/node
