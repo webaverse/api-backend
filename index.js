@@ -3509,6 +3509,9 @@ proxy.on('proxyRes', (proxyRes, req) => {
   }
   proxyRes.headers['access-control-allow-origin'] = '*';
 });
+proxy.on('error', err => {
+  console.warn(err.stack);
+});
 
 /* const _getChannels = async () => {
   const objects = await s3.listObjects({
