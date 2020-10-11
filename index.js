@@ -3976,7 +3976,7 @@ try {
   res.end(err.stack);
 }
 };
-const _ws = (req, socket, head) => {
+const _ws = protocol => (req, socket, head) => {
   const host = req.headers['host'];
   if (host === 'events.exokit.org') {
     presenceWss.handleUpgrade(req, socket, head, s => {
@@ -3991,19 +3991,54 @@ const _ws = (req, socket, head) => {
       presenceWss.emit('connection', s, req, webaverseTmpChannels, false);
     }); */
   } else {
-    proxy.ws(req, socket, head);
+    const o = url.parse(protocol + '//' + (req.headers['host'] || '') + req.url);
+    console.log('got', protocol, req.headers['host'], req.url, o);
+    let match;
+    if (match = o.host.match(/^(.+)\.proxy\.exokit.org$/)) {
+      const raw = match[1];
+      const match2 = raw.match(/^(https?-)(.+?)(-[0-9]+)?$/);
+      console.log('match 2', raw, match2);
+      if (match2) {
+        /* o.protocol = match2[1].replace(/-/g, ':');
+        o.host = match2[2].replace(/--/g, '=').replace(/-/g, '.').replace(/=/g, '-').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
+        const oldUrl = req.url;
+        req.url = url.format(o);
+
+        console.log(oldUrl, '->', req.url); */
+
+        const hostname = match2[2].replace(/--/g, '=').replace(/-/g, '.').replace(/=/g, '-').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
+        const host = 'wss://' + hostname;
+        // const host = 'wss://mystifying-artificer.reticulum.io/socket/websocket?vsn=2.0.0';
+        req.headers['host'] = hostname;
+        // o.host = hostname;
+        // req.url = url.format(o);
+
+        // req.headers['user-agent'] = 'curl/1';
+        req.headers['origin'] = 'https://hubs.mozilla.com';
+        delete req.headers['referer'];
+        
+        console.log('redirect', [host, req.url, req.headers]);
+
+        proxy.ws(req, socket, head, {
+          target: host,
+        });
+        return;
+      }
+    }
+    
+    socket.destroy();
   }
 };
 
 await _startWorldsRoute();
 
 const server = http.createServer(_req('http:'));
-server.on('upgrade', _ws);
+server.on('upgrade', _ws('http:'));
 const server2 = https.createServer({
   cert: CERT,
   key: PRIVKEY,
 }, _req('https:'));
-server2.on('upgrade', _ws);
+server2.on('upgrade', _ws('https:'));
 
 const _warn = err => {
   console.warn('uncaught: ' + err.stack);
