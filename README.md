@@ -45,11 +45,11 @@ You can get these credentials from Avaer.
 
 3.) After the GH action is done, copy the hash of the release and paste it into `exokit-backend/routes/worlds.js` in the `updateZipFile()` fetch url.
 
-4.) SSH into `exokit-backend` EC2 server (can get the IP from AWS dashboard), and delete the `world-server.zip` file.
+4.) SSH into `exokit-backend` EC2 server (can get the IP from AWS dashboard), and delete the `world-server.zip` file. (it exists inside `~/exokit-backend/`)
 
 5.) `npm run start` inside of `exokit-backend`. (this will start a forever process and start downloading the new ZIP file from the Github release.
 
-6.) After it is done, verify the logs. The server is up and running and will create new world-servers with the fresh codebase.
+6.) After it is done, verify the logs. (`sudo forever list`, `sudo forever logs [index]`) The server is up and running and will create new world-servers with the fresh codebase.
 
 P.S. To truly wipe the old servers and start fresh, you need to login to AWS and terminate the old world servers OR you can use the DELETE API for worlds.
 
