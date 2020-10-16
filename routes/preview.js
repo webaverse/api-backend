@@ -18,6 +18,7 @@ const PREVIEW_PORT = 8999;
 const bucketNames = {
   preview: 'preview.exokit.org',
 };
+const storageHost = 'https://storage.exokit.org';
 
 const _makePromise = () => {
   let accept, reject;
@@ -94,13 +95,41 @@ const _handlePreviewRequest = async (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', '*');
 
   const u = url.parse(req.url, true);
-  const match = u.pathname.match(/^\/([^\.]+)\.([^\/]+)\/([^\.]+)\.(.+)$/);
-  if (match) {
-    const hash = match[1];
-    const ext = match[2].toLowerCase();
-    const type = match[4].toLowerCase();
-    const {query = {}} = u;
-    const cache = !query['nocache'];
+  const spec = (() => {
+    const match = u.pathname.match(/^\/\[([^\]]+)\.([^\].]+)\]\/([^\.]+)\.(.+)$/);
+    if (match) {
+      const url = match[1] + '.' + match[2];
+      const hash = match[1];
+      const ext = match[2].toLowerCase();
+      const type = match[4].toLowerCase();
+      return {
+        url,
+        hash,
+        ext,
+        type,
+      };
+    } else {
+      const match = u.pathname.match(/^\/([^\.]+)\.([^\/]+)\/([^\.]+)\.(.+)$/);
+      if (match) {
+        const hash = match[1];
+        const ext = match[2].toLowerCase();
+        const type = match[4].toLowerCase();
+        const url = `${storageHost}/${hash}`;
+        return {
+          url,
+          hash,
+          ext,
+          type,
+        };
+      } else {
+        return null;
+      }
+    }
+  })();
+  const {query = {}} = u;
+  const cache = !query['nocache'];
+  if (spec) {
+    const {url, hash, ext, type} = spec;
     console.log('preview request', {hash, ext, type, cache});
     const key = `${hash}/${ext}/${type}`;
     const o = cache ? await (async () => {
@@ -135,7 +164,7 @@ const _handlePreviewRequest = async (req, res) => {
         console.log(err);
       });
       // console.log('load 1', hash, ext, type);
-      await page.goto(`https://app.webaverse.com/screenshot.html?hash=${hash}&ext=${ext}&type=${type}&dst=http://${PREVIEW_HOST}:${PREVIEW_PORT}/` + index);
+      await page.goto(`https://app.webaverse.com/screenshot.html?url=${url}&hash=${hash}&ext=${ext}&type=${type}&dst=http://${PREVIEW_HOST}:${PREVIEW_PORT}/` + index);
       // console.log('load 2');
 
       const {req: proxyReq, res: proxyRes} = await p;
