@@ -25,6 +25,7 @@ flowConstants.load()
   });
 
 const getIsLoaded = () => isLoaded;
+const haveContracts = () => WebaverseToken && WebaverseNFT && WebaverseAccount;
 
 const contractSourceCache = {};
 async function getContractSource(p) {
@@ -91,6 +92,9 @@ const createAccount = async (userKeys, {bake = false} = {}) => {
   const beginPrepareIndex = ls.findIndex(l => /begin prepare/.test(l));
   const endPrepareIndex = ls.findIndex(l => /end prepare/.test(l));
   const prepareBody = ls.slice(beginPrepareIndex + 1, endPrepareIndex).join('\n');
+  if (bake && !haveContracts()) {
+    bake = false;
+  }
 
   console.log('create account', {bake});
 
