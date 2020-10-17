@@ -11,6 +11,7 @@ const awsConfig = new AWS.Config({
 });
 const ddb = new AWS.DynamoDB(awsConfig);
 const tableName = 'users';
+const keyName = 'test-users.cache';
 
 const _makePromise = () => {
   let accept, reject;
@@ -35,7 +36,7 @@ class AccountManager {
     const tokenItem = await ddb.getItem({
       TableName: tableName,
       Key: {
-        email: {S: 'users.cache'},
+        email: {S: keyName},
       }
     }).promise();
     this.users = tokenItem.Item ? JSON.parse(tokenItem.Item.users.S) : [];
@@ -45,7 +46,7 @@ class AccountManager {
       await ddb.putItem({
         TableName: tableName,
         Item: {
-          email: {S: 'users.cache'},
+          email: {S: keyName},
           users: {S: JSON.stringify(this.users)},
         }
       }).promise();
