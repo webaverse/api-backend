@@ -12,7 +12,9 @@ const {mnemonic, infuraProjectId} = require('../config.json');
 
 const loadPromise = (async () => {
   const web3 = {
-    main: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`)),
+    // main: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`)),
+    main: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
+    // main: new Web3(new Web3.providers.HttpProvider('http://13.56.80.83:8545')),
     sidechain: new Web3(new Web3.providers.HttpProvider('http://13.56.80.83:8545')),
   };
   const addresses = await fetch('https://contracts.webaverse.com/ethereum/address.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
