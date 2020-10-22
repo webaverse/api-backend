@@ -108,7 +108,7 @@ const _handleSignRequest = async (req, res) => {
                                   };
                                   const chainId = {
                                     t: 'uint256',
-                                    v: new web3[chainName].utils.BN(chainIds[chainName][proxyContractName]),
+                                    v: new web3[chainName].utils.BN(chainIds[chainName][contractName]),
                                   };
                                   const message = web3[chainName].utils.encodePacked(from, amount, timestamp, chainId);
                                   const hashedMessage = web3[chainName].utils.sha3(message);
@@ -154,7 +154,7 @@ const _handleSignRequest = async (req, res) => {
                                   };
                                   const chainId = {
                                     t: 'uint256',
-                                    v: new web3[chainName].utils.BN(chainIds[chainName][proxyContractName]),
+                                    v: new web3[chainName].utils.BN(chainIds[chainName][contractName]),
                                   };
 
                                   const filenameHash = web3[chainName].utils.sha3(filename.v);
