@@ -59,6 +59,7 @@ const { _handleStorageRequest } = require('./routes/storage.js');
 const { _handleAccountsRequest } = require('./routes/accounts.js');
 const { _handlePreviewRequest } = require('./routes/preview.js')
 const { _handleWorldsRequest, _startWorldsRoute } = require('./routes/worlds.js');
+const { _handleSignRequest } = require('./routes/sign.js');
 
 const CERT = fs.readFileSync('./certs/fullchain.pem');
 const PRIVKEY = fs.readFileSync('./certs/privkey.pem');
@@ -3872,6 +3873,9 @@ try {
     return;
   } else if (o.host === 'scenes.exokit.org') {
     _handleScenes(req, res);
+    return;
+  } else if (o.host === 'sign.exokit.org') {
+    _handleSignRequest(req, res);
     return;
   /* } else if (o.host === 'raw.exokit.org') {
     _handleRaw(req, res);
