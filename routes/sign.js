@@ -220,10 +220,10 @@ const _handleSignRequest = async (req, res) => {
     }
 }
 
-const express = require('express');
+/* const express = require('express');
 const app = express();
 app.all('*', _handleSignRequest);
-app.listen(3002);
+app.listen(3002); */
 
 module.exports = {
   _handleSignRequest,
