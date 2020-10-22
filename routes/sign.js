@@ -74,8 +74,11 @@ const _handleSignRequest = async (req, res) => {
                 if (typeof chainId === 'number') {
                     try {
                       const txr = await web3[chainName].eth.getTransactionReceipt(txid);
-                      if (txr.contractAddress === addresses?.[chainName]?.[contractName]) {
-                        res.json(txr);
+                      console.log('got txr', [chainName, txid, txr && txr.logs[0], addresses?.[chainName]?.[contractName]]);
+                      if (txr) {
+                        const neededContractAddress = addresses?.[chainName]?.[contractName];
+                        const logs = txr.logs ? txr.logs.filter(log => log.address === neededContractAddress) : [];
+                        res.json(logs);
                       } else {
                         res.statusCode = 404;
                         res.end();
