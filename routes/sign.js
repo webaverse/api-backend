@@ -18,7 +18,7 @@ const loadPromise = (async () => {
   const addresses = await fetch('https://contracts.webaverse.com/ethereum/address.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const abis = await fetch('https://contracts.webaverse.com/ethereum/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const chainIds = await fetch('https://contracts.webaverse.com/ethereum/chain-id.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
-  const contracts = (async () => {
+  const contracts = await (async () => {
     console.log('got addresses', addresses);
     const result = {
       main: {},
@@ -35,7 +35,7 @@ const loadPromise = (async () => {
         'FTProxy',
         'NFTProxy',
       ].forEach(contractName => {
-        result[contractName] = new web3[chainName].eth.Contract(abis[contractName], addresses[chainName][contractName]);
+        result[chainName][contractName] = new web3[chainName].eth.Contract(abis[contractName], addresses[chainName][contractName]);
       });
     });
     return result;
@@ -74,11 +74,40 @@ const _handleSignRequest = async (req, res) => {
                 if (typeof chainId === 'number') {
                     try {
                       const txr = await web3[chainName].eth.getTransactionReceipt(txid);
-                      console.log('got txr', [chainName, txid, txr && txr.logs[0], addresses?.[chainName]?.[contractName]]);
+                      console.log('got txr', [chainName, txid, txr, txr && txr.logs[0], addresses?.[chainName]?.[contractName]]);
                       if (txr) {
-                        const neededContractAddress = addresses?.[chainName]?.[contractName];
+                        contracts[chainName][contractName].getPastEvents('Transfer', {
+                          fromBlock: txr.blockNumber,
+                          toBlock: txr.blockNumber,
+                        }, (error, logs) => {
+                          if (error) {
+                            // console.log('Error in myEvent event handler: ' + error);
+                            res.statusCode = 500;
+                            res.end(JSON.stringify({error: error.stack}));
+                          } else {
+                            const log = logs.find(log => log.transactionHash === txid) || null;
+                            // const {returnValues} = log;
+                            // console.log('myEvent: ' + JSON.stringify(log, null, 2));
+                            if (log) {
+                              const proxyContractName = contractName + 'Proxy';
+                              // const proxyContract = contracts[chainName][proxyContractName];
+                              const proxyContractAddress = addresses[chainName][proxyContractName];
+                              
+                              const {returnValues: {from, to, tokenId, value}} = log;
+                              if (to === proxyContractAddress) {
+                                // signable
+                                res.end(JSON.stringify(log));
+                              } else {
+                                res.end(JSON.stringify(null));
+                              }
+                            } else {
+                              res.end(JSON.stringify(null));
+                            }
+                          }
+                        });
+                        /* const neededContractAddress = addresses?.[chainName]?.[contractName];
                         const logs = txr.logs ? txr.logs.filter(log => log.address === neededContractAddress) : [];
-                        res.json(logs);
+                        res.json(logs); */
                       } else {
                         res.statusCode = 404;
                         res.end();
