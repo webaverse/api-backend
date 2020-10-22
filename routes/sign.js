@@ -43,7 +43,8 @@ const loadPromise = (async () => {
     return result;
   })();
   const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
-  
+  const address = wallet.getAddressString();
+
   return {
     web3,
     addresses,
@@ -51,6 +52,7 @@ const loadPromise = (async () => {
     chainIds,
     contracts,
     wallet,
+    address,
   };
 })();
 
