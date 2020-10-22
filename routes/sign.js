@@ -72,8 +72,19 @@ const _handleSignRequest = async (req, res) => {
                 const txid = match[3];
                 const chainId = chainIds?.[chainName]?.[contractName];
                 if (typeof chainId === 'number') {
-                    const txr = await web3[chainName].eth.getTransactionReceipt(txid);
-                    res.json(txr);
+                    try {
+                      const txr = await web3[chainName].eth.getTransactionReceipt(txid);
+                      if (txr.contractAddress === addresses?.[chainName]?.[contractName]) {
+                        res.json(txr);
+                      } else {
+                        res.statusCode = 404;
+                        res.end();
+                      }
+                    } catch(err) {
+                      console.warn(err);
+                      res.statusCode = 404;
+                      res.end();
+                    }
                 } else {
                     res.statusCode = 404;
                     res.end();
@@ -93,10 +104,10 @@ const _handleSignRequest = async (req, res) => {
     }
 }
 
-/* const express = require('express');
+const express = require('express');
 const app = express();
 app.all('*', _handleSignRequest);
-app.listen(3002); */
+app.listen(3002);
 
 module.exports = {
   _handleSignRequest,
