@@ -7,6 +7,7 @@ const fetch = require('node-fetch');
 const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
+const {_setCorsHeaders} = require('../utils.js');
 const {mnemonic, infuraProjectId} = require('../config.json');
 
 const loadPromise = (async () => {
