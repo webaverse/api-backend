@@ -11,10 +11,14 @@ const {_setCorsHeaders} = require('../utils.js');
 const {mnemonic, infuraProjectId} = require('../config.json');
 
 const loadPromise = (async () => {
-  const web3 = new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`));
+  const web3 = {
+    main: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`)),
+    sidechain: new Web3(new Web3.providers.HttpProvider('http://13.56.80.83:8545')),
+  };
+  const addresses = await fetch('https://contracts.webaverse.com/ethereum/address.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
+  const abis = await fetch('https://contracts.webaverse.com/ethereum/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
+  const chainIds = await fetch('https://contracts.webaverse.com/ethereum/chain-id.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const contracts = (async () => {
-    const addresses = await fetch('https://contracts.webaverse.com/ethereum/address.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
-    const abis = await fetch('https://contracts.webaverse.com/ethereum/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
     console.log('got addresses', addresses);
     const result = {
       main: {},
@@ -31,7 +35,7 @@ const loadPromise = (async () => {
         'FTProxy',
         'NFTProxy',
       ].forEach(contractName => {
-        result[contractName] = new web3.eth.Contract(abis[contractName], addresses[chainName][contractName]);
+        result[contractName] = new web3[chainName].eth.Contract(abis[contractName], addresses[chainName][contractName]);
       });
     });
     return result;
@@ -40,73 +44,47 @@ const loadPromise = (async () => {
   
   return {
     web3,
-    wallet,
+    addresses,
+    abis,
+    chainIds,
     contracts,
+    wallet,
   };
 })();
 
 const _handleSignRequest = async (req, res) => {
     console.log('sign request', req.url);
     
+    const {web3, addresses, abis, chainIds, contracts, wallet} = await loadPromise;
+    
     const request = url.parse(req.url);
-    const path = request.path.split('/')[1];
-    let match;
+    // const path = request.path.split('/')[1];
     try {
         res = _setCorsHeaders(res);
         const {method} = req;
         if (method === 'OPTIONS') {
             res.end();
         } else if (method === 'GET') {
-            if (path === 'latestBlock') {
-                const latestBlock = await blockchain.getLatestBlock();
-                res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify(latestBlock, null, 2));
-            } else if (match = request.path.match(/^\/getEvents\/([^\/]+)\/([0-9]+)\/([0-9]+)$/)) {
-                const eventTypes = match[1].split(',');
-                const startBlock = parseInt(match[2], 10);
-                const endBlock = parseInt(match[3], 10);
-                let result = [];
-                await Promise.all(eventTypes.map(eventType =>
-                    blockchain.getEvents(eventType, startBlock, endBlock)
-                        .then(events => {
-                            result.push.apply(result, events);
-                        })
-                ));
-                res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify(result, null, 2));
+            const match = request.path.match(/^\/(.+?)\/(.+?)\/(.+?)$/);
+            if (match) {
+                const chainName = match[1];
+                const contractName = match[2];
+                const txid = match[3];
+                const chainId = chainIds?.[chainName]?.[contractName];
+                if (typeof chainId === 'number') {
+                    const txr = await web3[chainName].eth.getTransactionReceipt(txid);
+                    res.json(txr);
+                } else {
+                    res.statusCode = 404;
+                    res.end();
+                }
             } else {
                 res.statusCode = 404;
                 res.end();
             }
-        } else if (method === 'POST') {
-            console.log('got post');
-            const bs = [];
-            req.on('data', d => {
-                bs.push(d);
-            });
-            req.on('end', async () => {
-                try {
-                  const b = Buffer.concat(bs);
-                  const s = b.toString('utf8');
-
-                  if (path === 'sendTransaction') {
-                    console.log('run tx 1');
-                    const spec = JSON.parse(s);
-                    const transaction = await blockchain.runTransaction(spec);
-                    console.log('run tx 2', transaction);
-                    res.setHeader('Content-Type', 'application/json');
-                    res.end(JSON.stringify(transaction, null, 2));
-                  } else {
-                    const userKeys = await accountManager.getAccount();
-                    res.setHeader('Content-Type', 'application/json');
-                    res.end(JSON.stringify(userKeys, null, 2));
-                  }
-                } catch (err) {
-                  console.log(err);
-                  res.statusCode = 500;
-                  res.end(err.stack);
-                }
-            });
+        } else {
+            res.statusCode = 404;
+            res.end();
         }
     } catch (err) {
         console.log(err);
