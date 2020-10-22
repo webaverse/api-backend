@@ -79,7 +79,7 @@ const _handleSignRequest = async (req, res) => {
                         contracts[chainName][contractName].getPastEvents('Transfer', {
                           fromBlock: txr.blockNumber,
                           toBlock: txr.blockNumber,
-                        }, (error, logs) => {
+                        }, async (error, logs) => {
                           if (error) {
                             // console.log('Error in myEvent event handler: ' + error);
                             res.statusCode = 500;
@@ -96,7 +96,41 @@ const _handleSignRequest = async (req, res) => {
                               const {returnValues: {from, to, tokenId, value}} = log;
                               if (to === proxyContractAddress) {
                                 // signable
-                                res.end(JSON.stringify(log));
+                                if (contractName === 'FT') {
+                                  const amount = {
+                                    t: 'uint256',
+                                    v: new web3[chainName].utils.BN(value),
+                                  };
+                                  const timestamp = {
+                                    t: 'uint256',
+                                    v: txid,
+                                  };
+                                  const chainId = {
+                                    t: 'uint256',
+                                    v: new web3[chainName].utils.BN(chainIds[chainName][proxyContractName]),
+                                  };
+                                  const message = web3[chainName].utils.encodePacked(from, amount, timestamp, chainId);
+                                  const hashedMessage = web3[chainName].utils.sha3(message);
+                                  const sgn = web3[chainName].eth.accounts.sign(hashedMessage, wallet.getPrivateKeyString()); // await web3[chainName].eth.personal.sign(hashedMessage, address);
+                                  console.log('signed', sgn);
+                                  const {r, s, v} = sgn;
+                                  /* const r = sgn.slice(0, 66);
+                                  const s = '0x' + sgn.slice(66, 130);
+                                  const v = '0x' + sgn.slice(130, 132); */
+                                  // console.log('got', JSON.stringify({r, s, v}, null, 2));
+
+                                  res.end(JSON.stringify({
+                                    to: from,
+                                    amount: '0x' + web3[chainName].utils.padLeft(amount.v.toString(16), 32),
+                                    timestamp: timestamp.v,
+                                    chainId: amount.v.toNumber(),
+                                    r,
+                                    s,
+                                    v,
+                                  }));
+                                } else {
+                                  res.end(JSON.stringify(log));
+                                }
                               } else {
                                 res.end(JSON.stringify(null));
                               }
