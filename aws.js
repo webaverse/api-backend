@@ -1,5 +1,6 @@
+const stream = require('stream');
 const AWS = require('aws-sdk');
-const { accessKeyId, secretAccessKey } = require('./config.json');
+const {accessKeyId, secretAccessKey} = require('./config.json');
 const awsConfig = new AWS.Config({
     credentials: new AWS.Credentials({
         accessKeyId,
@@ -40,7 +41,25 @@ const putObject = (bucket, key, data, type) => {
     })
 }
 
+function uploadFromStream(bucket, key, type) {
+  const pass = new stream.PassThrough();
+  const params = {Bucket: bucket, Key: key, Body: pass, ACL: 'public-read'};
+  if (type) {
+    params['ContentType'] = type;
+  }
+  s3.upload(params, function(err, data) {
+    console.log('emit done', !!err, !!data);
+    if (err) {
+      pass.emit('error', err);
+    } else {
+      pass.emit('done', data);
+    }
+  });
+  return pass;
+}
+
 module.exports = {
-    getObject,
-    putObject
+  getObject,
+  putObject,
+  uploadFromStream,
 }
