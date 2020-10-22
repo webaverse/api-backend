@@ -68,6 +68,9 @@ const _handleAccountsRequest = async (req, res) => {
                   res.end(err.stack);
                 }
             });
+        } else {
+          res.statusCode = 404;
+          res.end();
         }
     } catch (err) {
         console.log(err);
