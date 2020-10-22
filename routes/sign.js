@@ -91,6 +91,7 @@ const _handleSignRequest = async (req, res) => {
                             // const {returnValues} = log;
                             // console.log('myEvent: ' + JSON.stringify(log, null, 2));
                             if (log) {
+                              const oppositeChainName = chainName === 'main' ? 'sidechain' : 'main';
                               const proxyContractName = contractName + 'Proxy';
                               // const proxyContract = contracts[chainName][proxyContractName];
                               const proxyContractAddress = addresses[chainName][proxyContractName];
@@ -114,7 +115,7 @@ const _handleSignRequest = async (req, res) => {
                                   };
                                   const chainId = {
                                     t: 'uint256',
-                                    v: new web3[chainName].utils.BN(chainIds[chainName][contractName]),
+                                    v: new web3[chainName].utils.BN(chainIds[oppositeChainName][contractName]),
                                   };
                                   const message = web3[chainName].utils.encodePacked(to, amount, timestamp, chainId);
                                   const hashedMessage = web3[chainName].utils.sha3(message);
@@ -160,7 +161,7 @@ const _handleSignRequest = async (req, res) => {
                                   };
                                   const chainId = {
                                     t: 'uint256',
-                                    v: new web3[chainName].utils.BN(chainIds[chainName][contractName]),
+                                    v: new web3[chainName].utils.BN(chainIds[oppositeChainName][contractName]),
                                   };
 
                                   const filenameHash = web3[chainName].utils.sha3(filename.v);
