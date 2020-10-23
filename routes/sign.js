@@ -78,7 +78,7 @@ const _handleSignRequest = async (req, res) => {
                 if (typeof chainId === 'number') {
                     try {
                       const txr = await web3[chainName].eth.getTransactionReceipt(txid);
-                      console.log('got txr', txr, txr.to.toLowerCase(), addresses[chainName][contractName].toLowerCase());
+                      console.log('got txr', txr, txr.logs);
                       if (txr && txr.to.toLowerCase() === addresses[chainName][contractName].toLowerCase()) {
                         const {logs} = txr;
                         const log = logs.find(log =>
