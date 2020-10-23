@@ -206,7 +206,7 @@ const _handleSignRequest = async (req, res) => {
                                     t: 'string',
                                     v: filenameSpec,
                                   };
-                                  console.log('got filename hash', hash, filename);
+                                  // console.log('got filename hash', hash, filename);
 
                                   // get sidechain deposit receipt signature
                                   const timestamp = {
