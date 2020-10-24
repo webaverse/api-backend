@@ -23,6 +23,7 @@ const Base64Encoder = require('./encoder.js').Encoder;
 // const {JSONServer, CustomEvent} = require('./dist/sync-server.js');
 const {SHA3} = require('sha3');
 const {default: formurlencoded} = require('form-urlencoded');
+const bip39 = require('bip39');
 const blockchain = require('./blockchain.js');
 const config = require('./config.json');
 const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, discordClientId, discordClientSecret, stripeClientId, stripeClientSecret} = config;
@@ -383,9 +384,36 @@ try {
               });
             });
             const {id} = discordUser;
-            // XXX
+            
+            const _getUser = async id => {
+              const tokenItem = await ddb.getItem({
+                TableName: tableName,
+                Key: {
+                  email: {S: id + '.discordtoken'},
+                }
+              }).promise();
+
+              let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
+              return {mnemonic};
+            };
+            const _genKey = async id => {
+              const mnemonic = bip39.generateMnemonic();
+
+              await ddb.putItem({
+                TableName: tableName,
+                Item: {
+                  email: {S: id + '.discordtoken'},
+                  mnemonic: {S: mnemonic},
+                }
+              }).promise();
+              return {mnemonic};
+            };
+            
+            const user = await _getUser(id) || _genKey(id);
+            const {mnemonic} = user;
+
             _setCorsHeaders(res);
-            res.end(JSON.stringify(discordUser));
+            res.end(JSON.stringify({mnemonic}));
           });
           proxyReq2.end();
           proxyReq2.on('error', err => {
