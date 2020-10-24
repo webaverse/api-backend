@@ -78,36 +78,33 @@ const _handleSignRequest = async (req, res) => {
                 if (typeof chainId === 'number') {
                     try {
                       const txr = await web3[chainName].eth.getTransactionReceipt(txid);
-                      console.log('got txr', txr, txr.logs);
-                      if (txr && txr.to.toLowerCase() === addresses[chainName][contractName].toLowerCase()) {
+                      const proxyContractName = contractName + 'Proxy';
+                      console.log('got txr', txr, txr.logs, txr.to.toLowerCase(), addresses[chainName][proxyContractName].toLowerCase());
+                      if (txr && txr.to.toLowerCase() === addresses[chainName][proxyContractName].toLowerCase()) {
+                        
                         const {logs} = txr;
                         const log = logs.find(log =>
-                          (contractName === 'FT' && log.topics[0] === '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') || // ERC20 Transfer
-                          (contractName === 'NFT' && log.topics[0] === '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') // ERC721 withdraw
+                          (contractName === 'FT' && log.topics[0] === '0x2da466a7b24304f47e87fa2e1e5a81b9831ce54fec19055ce277ca2f39ba42c4') || // WebaverseERC20Proxy Deposited
+                          (contractName === 'NFT' && log.topics[0] === '0x2da466a7b24304f47e87fa2e1e5a81b9831ce54fec19055ce277ca2f39ba42c4') // WebaverseERC721Proxy Deposited
                         ) || null;
                         // const {returnValues} = log;
                         // console.log('myEvent: ' + JSON.stringify(log, null, 2));
                         console.log('got log', logs, log);
                         if (log) {
                           const oppositeChainName = chainName === 'main' ? 'sidechain' : 'main';
-                          const proxyContractName = contractName + 'Proxy';
-                          // const proxyContract = contracts[chainName][proxyContractName];
                           const proxyContractAddress = addresses[chainName][proxyContractName];
                           
                           // const {returnValues} = log;
                           // const {from, to: toInverse} = returnValues;
-                          const from = log.topics[1];
-                          const toInverse = log.topics[2];
-                          // if (to === proxyContractAddress) {
-                          const to = '0x' + web3[chainName].utils.padLeft(
-                            new web3[chainName].utils.BN(toInverse.slice(2), 16).xor(new web3[chainName].utils.BN('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF', 16)).toString(16),
-                            40
-                          );
+                          const to = {
+                            t: 'address',
+                            v: '0x' + web3[chainName].utils.padLeft(new web3[chainName].utils.BN(log.topics[1].slice(2), 16), 40),
+                          };
                           // signable
                           if (contractName === 'FT') {
                             const amount = {
                               t: 'uint256',
-                              v: new web3[chainName].utils.BN(log.data.slice(2), 16),
+                              v: new web3[chainName].utils.BN(log.topics[2].slice(2), 16),
                             };
                             const timestamp = {
                               t: 'uint256',
@@ -128,7 +125,7 @@ const _handleSignRequest = async (req, res) => {
                             // console.log('got', JSON.stringify({r, s, v}, null, 2));
 
                             res.end(JSON.stringify({
-                              to,
+                              to: to.v,
                               amount: '0x' + web3[chainName].utils.padLeft(amount.v.toString(16), 32),
                               timestamp: timestamp.v,
                               chainId: chainId.v.toNumber(),
@@ -139,7 +136,7 @@ const _handleSignRequest = async (req, res) => {
                           } else if (contractName === 'NFT') {
                             const tokenId = {
                               t: 'uint256',
-                              v: new web3[chainName].utils.BN(log.topics[3].slice(2), 16),
+                              v: new web3[chainName].utils.BN(log.topics[2].slice(2), 16),
                             };
                             
                             const hashSpec = await contracts[chainName][contractName].methods.getHash(tokenId.v).call();
@@ -175,7 +172,7 @@ const _handleSignRequest = async (req, res) => {
                             const v = '0x' + sgn.slice(130, 132); */
                             // console.log('got', JSON.stringify({r, s, v}, null, 2));
                             res.end(JSON.stringify({
-                              to,
+                              to: to.v,
                               tokenId: '0x' + web3[chainName].utils.padLeft(tokenId.v.toString(16), 32),
                               hash: '0x' + web3[chainName].utils.padLeft(hash.v.toString(16), 32),
                               filenameHash,
