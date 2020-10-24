@@ -79,7 +79,7 @@ const _handleSignRequest = async (req, res) => {
                     try {
                       const txr = await web3[chainName].eth.getTransactionReceipt(txid);
                       const proxyContractName = contractName + 'Proxy';
-                      console.log('got txr', txr, txr.logs, txr.to.toLowerCase(), addresses[chainName][proxyContractName].toLowerCase());
+                      // console.log('got txr', txr, txr.logs, txr.to.toLowerCase(), addresses[chainName][proxyContractName].toLowerCase());
                       if (txr && txr.to.toLowerCase() === addresses[chainName][proxyContractName].toLowerCase()) {
                         
                         const {logs} = txr;
@@ -87,9 +87,7 @@ const _handleSignRequest = async (req, res) => {
                           (contractName === 'FT' && log.topics[0] === '0x2da466a7b24304f47e87fa2e1e5a81b9831ce54fec19055ce277ca2f39ba42c4') || // WebaverseERC20Proxy Deposited
                           (contractName === 'NFT' && log.topics[0] === '0x2da466a7b24304f47e87fa2e1e5a81b9831ce54fec19055ce277ca2f39ba42c4') // WebaverseERC721Proxy Deposited
                         ) || null;
-                        // const {returnValues} = log;
-                        // console.log('myEvent: ' + JSON.stringify(log, null, 2));
-                        console.log('got log', logs, log);
+                        // console.log('got log', logs, log);
                         if (log) {
                           const oppositeChainName = chainName === 'main' ? 'sidechain' : 'main';
                           const proxyContractAddress = addresses[chainName][proxyContractName];
