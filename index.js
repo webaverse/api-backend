@@ -3307,19 +3307,21 @@ try {
 
   if (method === 'GET') {
     const {pathname: p} = url.parse(req.url, true);
-    if (/\.png$/.test(p)) {
+    /* if (/\.png$/.test(p)) {
       res.statusCode = 301;
       res.setHeader('Location', 'https://raw.githubusercontent.com/exokitxr/exokit-web/master/favicon.png');
       _setCorsHeaders(res);
       res.end();
-    } else {
+    } else { */
+      const hash = '599e337da13a8583464229b97cceb34883b80fad9a8a8214c6b98ca43c36aa56';
+      const ext = 'vrm';
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({
-        "name": "Meteria " + p,
-        "description": "Metaverse material token",
-        "image": "https://content.exokit.org/preview" + p,
-        "external_url": "https://viewer.exokit.org" + p,
+        "name": "Webaverse " + p,
+        "description": "Webaverse token",
+        "image": "https://preview.exokit.org/" + hash + '.' + ext + '/preview.jpg',
+        "external_url": "https://app.webaverse.com?h=" + p.slice(1),
         // "background_color": "000000",
         // "animation_url": "https://exokit.org/models/exobot.glb",
         // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
@@ -3343,7 +3345,7 @@ try {
                 }
         }
       }));
-    }
+    // }
   } else {
     _respond(404, 'not found');
   }
@@ -3920,13 +3922,13 @@ try {
   } else if (o.host === 'files.exokit.org') {
     _handleFiles(req, res);
     return;
-  } else if (o.host === 'tokens.exokit.org') {
+  } else if (o.host === 'tokens.exokit.org' || o.host === 'tokens.webaverse.com') {
     _handleTokens(req, res);
     return;
   } else if (o.host === 'worlds.exokit.org') {
     _handleWorldsRequest(req, res);
     return;
-  } else if (o.host === 'storage.exokit.org') {
+  } else if (o.host === 'storage.exokit.org' || o.host === 'storage.webaverse.com') {
     _handleStorageRequest(req, res);
     return;
   } else if (o.host === 'accounts.exokit.org') {
