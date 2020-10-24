@@ -22,9 +22,10 @@ const namegen = require('./namegen.js');
 const Base64Encoder = require('./encoder.js').Encoder;
 // const {JSONServer, CustomEvent} = require('./dist/sync-server.js');
 const {SHA3} = require('sha3');
+const {default: formurlencoded} = require('form-urlencoded');
 const blockchain = require('./blockchain.js');
 const config = require('./config.json');
-const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, stripeClientId, stripeClientSecret} = config;
+const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, discordClientId, discordClientSecret, stripeClientId, stripeClientSecret} = config;
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
     accessKeyId,
@@ -139,6 +140,11 @@ const _handleLogin = async (req, res) => {
     // res.setHeader('Access-Control-Allow-Headers', '*');
     // res.setHeader('Access-Control-Allow-Methods', '*');
     res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
   };
 
 try {
@@ -338,8 +344,8 @@ try {
           host: 'discord.com',
           path: '/api/oauth2/token',
           headers: {
-            Accept: 'application/json',
-            'Content-Type': 'x-www-form-urlencoded',
+            // Accept: 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
             // 'User-Agent': 'exokit-server',
           },
         }, async proxyRes => {
@@ -355,14 +361,48 @@ try {
               reject(err);
             });
           });
-          console.log('got oauth state', discordOauthState);
-          res.end(JSON.stringify(discordOauthState));
+          const {access_token} = discordOauthState;
+          
+          const proxyReq2 = await https.request({
+            host: 'discord.com',
+            path: '/api/users/@me',
+            headers: {
+              Authorization: `Bearer ${access_token}`,
+            },
+          }, async proxyRes2 => {
+            const discordUser = await new Promise((accept, reject) => {
+              const bs = [];
+              proxyRes2.on('data', b => {
+                bs.push(b);
+              });
+              proxyRes2.on('end', () => {
+                accept(JSON.parse(Buffer.concat(bs).toString('utf8')));
+              });
+              proxyRes2.on('error', err => {
+                reject(err);
+              });
+            });
+            const {id} = discordUser;
+            // XXX
+            _setCorsHeaders(res);
+            res.end(JSON.stringify(discordUser));
+          });
+          proxyReq2.end();
+          proxyReq2.on('error', err => {
+            _respond(500, JSON.stringify({
+              error: err.stack,
+            }));
+          });
         });
-        proxyReq.end(formurlencoded({
-          client_id: githubClientId,
-          client_secret: githubClientSecret,
+        const s = formurlencoded({
+          client_id: discordClientId,
+          client_secret: discordClientSecret,
           code: discordcode,
-        }));
+          grant_type: 'authorization_code',
+          scope: 'identify',
+          redirect_uri: 'https://app.webaverse.com/login.html',
+        });
+        proxyReq.end(s);
         proxyReq.on('error', err => {
           _respond(500, JSON.stringify({
             error: err.stack,
