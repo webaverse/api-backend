@@ -148,7 +148,7 @@ try {
     console.log('got login', {method, p, query});
 
     if (method === 'POST') {
-      let {email, code, token} = query;
+      let {email, code, token, discordcode} = query;
       if (email && emailRegex.test(email)) {
         if (token) {
           const tokenItem = await ddb.getItem({
@@ -332,6 +332,42 @@ try {
             }));
           } */
         }
+      } else if (discordcode) {
+        const proxyReq = await https.request({
+          method: 'POST',
+          host: 'discord.com',
+          path: '/api/oauth2/token',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'x-www-form-urlencoded',
+            // 'User-Agent': 'exokit-server',
+          },
+        }, async proxyRes => {
+          const discordOauthState = await new Promise((accept, reject) => {
+            const bs = [];
+            proxyRes.on('data', b => {
+              bs.push(b);
+            });
+            proxyRes.on('end', () => {
+              accept(JSON.parse(Buffer.concat(bs).toString('utf8')));
+            });
+            proxyRes.on('error', err => {
+              reject(err);
+            });
+          });
+          console.log('got oauth state', discordOauthState);
+          res.end(JSON.stringify(discordOauthState));
+        });
+        proxyReq.end(formurlencoded({
+          client_id: githubClientId,
+          client_secret: githubClientSecret,
+          code: discordcode,
+        }));
+        proxyReq.on('error', err => {
+          _respond(500, JSON.stringify({
+            error: err.stack,
+          }));
+        });
       } else {
         _respond(400, JSON.stringify({
           error: 'invalid parameters',
