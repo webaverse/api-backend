@@ -21,8 +21,10 @@ const Stripe = require('stripe');
 const namegen = require('./namegen.js');
 const Base64Encoder = require('./encoder.js').Encoder;
 // const {JSONServer, CustomEvent} = require('./dist/sync-server.js');
+const fetch = require('node-fetch');
 const {SHA3} = require('sha3');
 const {default: formurlencoded} = require('form-urlencoded');
+const Web3 = require('web3');
 const bip39 = require('bip39');
 const blockchain = require('./blockchain.js');
 const config = require('./config.json');
@@ -68,6 +70,7 @@ const PARCEL_SIZE = 8;
 const maxChunkSize = 25*1024*1024;
 const filterTopic = 'webxr-site';
 const gethNodeUrl = 'http://13.56.80.83:8545';
+const web3Endpoint = 'https://ethereum.exokit.org';
 
 const bucketNames = {
   content: 'content.exokit.org',
@@ -83,6 +86,8 @@ const channels = {};
 const gridChannels = {};
 const webaverseChannels = {};
 const webaverseTmpChannels = {};
+
+let web3, addresses, abis, contracts;
 
 Error.stackTraceLimit = 300;
 
@@ -117,6 +122,10 @@ function _getKeyFromBindingUrl(u) {
   } else {
     return [];
   }
+}
+function getExt(fileName) {
+  const match = fileName.match(/\.([^\.]+)$/);
+  return match && match[1].toLowerCase();
 }
 
 const _makePromise = () => {
@@ -3446,20 +3455,20 @@ try {
 
   if (method === 'GET') {
     const {pathname: p} = url.parse(req.url, true);
-    /* if (/\.png$/.test(p)) {
-      res.statusCode = 301;
-      res.setHeader('Location', 'https://raw.githubusercontent.com/exokitxr/exokit-web/master/favicon.png');
-      _setCorsHeaders(res);
-      res.end();
-    } else { */
-      const hash = '599e337da13a8583464229b97cceb34883b80fad9a8a8214c6b98ca43c36aa56';
-      const ext = 'vrm';
+    const match = p.match(/^\/([0-9]+)$/);
+    if (match) {
+      const tokenId = parseInt(match[1], 10);
+      const hashNumberString = await contracts.NFT.methods.getHash(tokenId).call();
+      const hash = '0x' + web3.utils.padLeft(new web3.utils.BN(hashNumberString, 10).toString(16), 32);
+      const filename = await contracts.NFT.methods.getMetadata(hash, 'filename').call();
+      const ext = getExt(filename);
+
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({
         "name": "Webaverse " + p,
         "description": "Webaverse token",
-        "image": "https://preview.exokit.org/" + hash + '.' + ext + '/preview.jpg',
+        "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.jpg',
         "external_url": "https://app.webaverse.com?h=" + p.slice(1),
         // "background_color": "000000",
         // "animation_url": "https://exokit.org/models/exobot.glb",
@@ -3484,7 +3493,9 @@ try {
                 }
         }
       }));
-    // }
+    } else {
+      _respond(404, 'not found');
+    }
   } else {
     _respond(404, 'not found');
   }
@@ -4179,6 +4190,25 @@ const _ws = protocol => (req, socket, head) => {
 };
 
 await _startWorldsRoute();
+
+{
+  web3 = new Web3(new Web3.providers.HttpProvider(web3Endpoint));
+  addresses = await fetch('https://contracts.webaverse.com/ethereum/address.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
+  abis = await fetch('https://contracts.webaverse.com/ethereum/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
+  contracts = (() => {
+    const result = {};
+    [
+      'Account',
+      'FT',
+      'NFT',
+      'FTProxy',
+      'NFTProxy',
+    ].forEach(contractName => {
+      result[contractName] = new web3.eth.Contract(abis[contractName], addresses.sidechain[contractName]);
+    });
+    return result;
+  })();
+}
 
 const server = http.createServer(_req('http:'));
 server.on('upgrade', _ws('http:'));
