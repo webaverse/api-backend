@@ -2,7 +2,8 @@ const url = require('url');
 const https = require('https');
 const { putObject, uploadFromStream } = require('../aws.js');
 const crypto = require('crypto');
-const { _setCorsHeaders } = require('../utils.js');
+const mime = require('mime');
+const {_setCorsHeaders, getExt} = require('../utils.js');
 
 const hashAlgorithm = 'sha256';
 
@@ -61,11 +62,14 @@ const _handleStorageRequest = async (req, res) => {
         } else if (method === 'GET' && path) {
             const proxyReq = https.request('https://s3-us-west-1.amazonaws.com/storage.exokit.org/' + path, proxyRes => {
               res.status = proxyRes.status;
-              const type = req.headers['content-type'];
+              /* const type = req.headers['content-type'];
               if (type) {
                 res.setHeader('content-type', type);
-              }
+              } */
 
+              const ext = filename && getExt(filename);
+              const contentType = ext ? mime.getType(ext) : 'application/octet-stream';
+              res.setHeader('content-type', contentType);
               proxyRes.pipe(res);
               proxyRes.on('error', err => {
                 res.status = 500;
