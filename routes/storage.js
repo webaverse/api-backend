@@ -8,9 +8,9 @@ const hashAlgorithm = 'sha256';
 const _handleStorageRequest = async (req, res) => {
     try {
         const request = url.parse(req.url);
-        const match = request.path.match(/^\/(.+?)(?:\.(.*))?$/);
+        const match = request.path.match(/^\/([^\/]+)(?:\/([^\/]*))?$/);
         const path = match && match[1];
-        const ext = match && match[2];
+        const filename = match && match[2];
 
         res = _setCorsHeaders(res);
         const {method, headers} = req;
