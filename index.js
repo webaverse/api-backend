@@ -3477,7 +3477,7 @@ try {
                 "filename": filename,
                 "hash": hash,
                 "ext": ext,
-                "rich_property": {
+                /* "rich_property": {
                         "name": "Name",
                         "value": "123",
                         "display_value": "123 Example Value",
@@ -3492,7 +3492,7 @@ try {
                         "name": "Name",
                         "value": [1,2,3,4],
                         "class": "emphasis"
-                }
+                } */
         }
       }));
     } else {
