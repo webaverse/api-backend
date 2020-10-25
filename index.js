@@ -67,6 +67,7 @@ const PORT = parseInt(process.env.PORT, 10) || 80;
 const PARCEL_SIZE = 8;
 const maxChunkSize = 25*1024*1024;
 const filterTopic = 'webxr-site';
+const gethNodeUrl = 'http://13.56.80.83:8545';
 
 const bucketNames = {
   content: 'content.exokit.org',
@@ -471,7 +472,7 @@ try {
     const proxy = httpProxy.createProxyServer({});
     proxy
       .web(req, res, {
-        target: 'http://13.56.80.83:8545',
+        target: gethNodeUrl,
         // secure: false,
         changeOrigin: true,
       }, err => {
