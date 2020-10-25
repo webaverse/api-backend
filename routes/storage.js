@@ -1,4 +1,5 @@
 const url = require('url');
+const https = require('https');
 const { putObject, uploadFromStream } = require('../aws.js');
 const crypto = require('crypto');
 const { _setCorsHeaders } = require('../utils.js');
@@ -58,8 +59,26 @@ const _handleStorageRequest = async (req, res) => {
                 _recurse();
             });
         } else if (method === 'GET' && path) {
-            res.writeHead(301, {"Location": 'https://s3-us-west-1.amazonaws.com/storage.exokit.org/' + path});
-            res.end();
+            const proxyReq = https.request('https://s3-us-west-1.amazonaws.com/storage.exokit.org/' + path, proxyRes => {
+              res.status = proxyRes.status;
+              const type = req.headers['content-type'];
+              if (type) {
+                res.setHeader('content-type', type);
+              }
+
+              proxyRes.pipe(res);
+              proxyRes.on('error', err => {
+                res.status = 500;
+                res.end(err.stack);
+              });
+            });
+            proxyReq.end();
+            proxyReq.on('error', err => {
+              res.status = 500;
+              res.end(err.stack);
+            });
+            // res.writeHead(301, {"Location": 'https://s3-us-west-1.amazonaws.com/storage.exokit.org/' + path});
+            // res.end();
         } else if (method === 'DELETE' && path) {
             res.statusCode = 200;
             res.end();
