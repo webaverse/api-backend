@@ -466,7 +466,7 @@ try {
     const {method} = req;
     const {query, pathname: p} = url.parse(req.url, true);
 
-    console.log('got ethereum', {method, p, query});
+    // console.log('got ethereum', {method, p, query});
 
     const proxy = httpProxy.createProxyServer({});
     proxy
