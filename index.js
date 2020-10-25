@@ -138,8 +138,6 @@ const _handleLogin = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     res.setHeader('Access-Control-Allow-Origin', '*');
-    // res.setHeader('Access-Control-Allow-Headers', '*');
-    // res.setHeader('Access-Control-Allow-Methods', '*');
     res.end(body);
   };
   const _setCorsHeaders = res => {
