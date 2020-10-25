@@ -22,23 +22,23 @@ const _handleStorageRequest = async (req, res) => {
             let data = [];
             const hash = crypto.createHash(hashAlgorithm);
             req.on('data', chunk => {
-                console.log('got data', chunk.length);
+                // console.log('got data', chunk.length);
                 data.push(chunk);
                 hash.write(chunk);
             })
             req.on('end', async () => {
-                console.log('got end');
+                // console.log('got end');
                 const hashHex = hash.digest('hex');
                 const type = req.headers['content-type'];
                 const ws = uploadFromStream('storage.exokit.org', hashHex, type);
 
                 ws.on('error', err => {
-                  console.log('got error', err);
+                  // console.log('got error', err);
                   res.status = 500;
                   res.end(err.stack);
                 });
                 ws.on('done', data => {
-                  console.log('got done', data);
+                  // console.log('got done', data);
                   res.end(JSON.stringify({
                     hash: hashHex,
                   }));
@@ -48,7 +48,7 @@ const _handleStorageRequest = async (req, res) => {
                 const _recurse = () => {
                   while (i < data.length) {
                     const ok = ws.write(data[i]);
-                    console.log('send', i, data[i].length, ok);
+                    // console.log('send', i, data[i].length, ok);
                     i++;
                     if (!ok) {
                       ws.once('drain', _recurse);
