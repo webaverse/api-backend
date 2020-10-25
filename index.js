@@ -53,9 +53,6 @@ const eventsManager = require('./events-manager.js');
 
 const Discord = require('discord.js');
 
-// const bip32 = require('./bip32.js');
-// const bip39 = require('./bip39.js');
-// const ethUtil = require('./ethereumjs-util.js');
 const api = require('./api.js');
 const { _handleStorageRequest } = require('./routes/storage.js');
 const { _handleAccountsRequest } = require('./routes/accounts.js');
