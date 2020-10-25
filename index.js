@@ -3466,15 +3466,17 @@ try {
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({
-        "name": "Webaverse " + p,
-        "description": "Webaverse token",
+        "name": filename,
+        "description": 'Hash ' + hash,
         "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.jpg',
         "external_url": "https://app.webaverse.com?h=" + p.slice(1),
         // "background_color": "000000",
         // "animation_url": "https://exokit.org/models/exobot.glb",
         // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
         "properties": {
-                "simple_property": "example value",
+                "filename": filename,
+                "hash": hash,
+                "ext": ext,
                 "rich_property": {
                         "name": "Name",
                         "value": "123",
