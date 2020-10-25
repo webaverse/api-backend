@@ -8,6 +8,7 @@ const https = require('https');
 const crypto = require('crypto');
 const zlib = require('zlib');
 const child_process = require('child_process');
+const mime = require('mime');
 
 const {getObject, putObject} = require('../aws.js');
 const puppeteer = require('puppeteer');
@@ -143,8 +144,10 @@ const _handlePreviewRequest = async (req, res) => {
         return null;
       }
     })() : null;
+    const contentType = mime.getType(ext);
     if (o) {
-      res.setHeader('Content-Type', o.ContentType || 'application/octet-stream');
+      // res.setHeader('Content-Type', o.ContentType || 'application/octet-stream');
+      res.setHeader('Content-Type', contentType);
       res.end(o.Body);
     } else {
       const p = _makePromise()
@@ -171,7 +174,7 @@ const _handlePreviewRequest = async (req, res) => {
 
       // console.log('load 3');
 
-      const contentType = proxyReq.headers['content-type'] || 'application/octet-stream';
+      // proxyReq.headers['content-type'] || 'application/octet-stream';
       res.setHeader('Content-Type', contentType);
       proxyReq.pipe(res);
 
