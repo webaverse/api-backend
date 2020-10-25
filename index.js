@@ -3468,7 +3468,7 @@ try {
       res.end(JSON.stringify({
         "name": filename,
         "description": 'Hash ' + hash,
-        "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.jpg',
+        "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.png',
         "external_url": "https://app.webaverse.com?h=" + p.slice(1),
         // "background_color": "000000",
         "animation_url": `https://storage.exokit.org/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
