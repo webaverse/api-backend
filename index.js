@@ -3471,7 +3471,7 @@ try {
         "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.jpg',
         "external_url": "https://app.webaverse.com?h=" + p.slice(1),
         // "background_color": "000000",
-        // "animation_url": "https://exokit.org/models/exobot.glb",
+        "animation_url": `https://storage.exokit.org/${hash.slice(2)}/${filename}`,
         // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
         "properties": {
                 "filename": filename,
