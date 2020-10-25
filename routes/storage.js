@@ -8,7 +8,7 @@ const hashAlgorithm = 'sha256';
 const _handleStorageRequest = async (req, res) => {
     try {
         const request = url.parse(req.url);
-        const match = request.path.match(/^\/([^\/]+)(?:\/([^\/]*))?$/);
+        const match = request.path.match(/^\/([a-f0-9]+)(?:\/([^\/]*))?/i);
         const path = match && match[1];
         const filename = match && match[2];
 
