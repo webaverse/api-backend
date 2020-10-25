@@ -453,6 +453,45 @@ try {
 }
 };
 
+const _handleEthereum = async (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+
+try {
+    const {method} = req;
+    const {query, pathname: p} = url.parse(req.url, true);
+
+    console.log('got ethereum', {method, p, query});
+
+    const proxy = httpProxy.createProxyServer({});
+    proxy
+      .web(req, res, {
+        target: 'http://13.56.80.83:8545',
+        // secure: false,
+        changeOrigin: true,
+      }, err => {
+        console.warn(err.stack);
+
+        res.statusCode = 500;
+        res.end();
+      });
+} catch(err) {
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
+}
+};
+
 // const staticServer = express.static(__dirname);
 const _handlePresence = async (req, res, channels) => {
   const _respond = (statusCode, body) => {
@@ -3947,6 +3986,9 @@ try {
   let match;
   if (o.host === 'login.exokit.org') {
     _handleLogin(req, res);
+    return;
+  } else if (o.host === 'ethereum.exokit.org') {
+    _handleEthereum(req, res);
     return;
   } else if (o.host === 'presence.exokit.org') {
     _handlePresence(req, res, webaverseChannels);
