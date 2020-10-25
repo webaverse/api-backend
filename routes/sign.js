@@ -142,7 +142,7 @@ const _handleSignRequest = async (req, res) => {
                               t: 'uint256',
                               v: new web3[chainName].utils.BN(hashSpec),
                             };
-                            const filenameSpec = await contracts[chainName][contractName].methods.getMetadata(hashSpec, 'filename').call();
+                            const filenameSpec = await contracts[chainName][contractName].methods.getMetadata(hashSpec, 'filename').call() || '';
                             const filename = {
                               t: 'string',
                               v: filenameSpec,
