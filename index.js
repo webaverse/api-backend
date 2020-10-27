@@ -3455,8 +3455,9 @@ try {
 
   if (method === 'GET') {
     const {pathname: p} = url.parse(req.url, true);
-    const match = p.match(/^\/([0-9]+)$/);
-    if (match) {
+    // console.log('got p', p);
+    let match;
+    if (match = p.match(/^\/([0-9]+)$/)) {
       const tokenId = parseInt(match[1], 10);
       const hashNumberString = await contracts.NFT.methods.getHash(tokenId).call();
       const hash = '0x' + web3.utils.padLeft(new web3.utils.BN(hashNumberString, 10).toString(16), 32);
@@ -3495,6 +3496,34 @@ try {
                 } */
         }
       }));
+    } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
+      const address = match[1];
+      const nftBalance = await contracts.NFT.methods.balanceOf(address).call();
+      const promises = [];
+      for (let i = 0; i < nftBalance; i++) {
+        promises[i] = contracts.NFT.methods.tokenOfOwnerByIndexFull(address, i).call()
+          .then(token => {
+            const ext = getExt(token.filename);
+            token = {
+              name: token.filename,
+              description: 'Hash ' + token.hash,
+              image: 'https://preview.exokit.org/' + token.hash.slice(2) + '.' + ext + '/preview.png',
+              external_url: 'https://app.webaverse.com?h=' + token.hash,
+              animation_url: `https://storage.exokit.org/${token.hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+              properties: {
+                filename: token.filename,
+                hash: token.hash,
+                ext,
+              },
+              balance: parseInt(token.balance, 10),
+              totalSupply: parseInt(token.totalSupply, 10),
+            };
+            console.log('got token', token);
+            return token;
+          })
+      }
+      const tokens = await Promise.all(promises);
+      _respond(200, JSON.stringify(tokens));
     } else {
       _respond(404, 'not found');
     }
