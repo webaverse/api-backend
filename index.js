@@ -70,7 +70,8 @@ const PARCEL_SIZE = 8;
 const maxChunkSize = 25*1024*1024;
 const filterTopic = 'webxr-site';
 const gethNodeUrl = 'http://13.56.80.83:8545';
-const web3Endpoint = 'https://ethereum.exokit.org';
+const web3MainEndpoint = `https://${infuraNetwork}.infura.io/v3/${infuraProjectId}`;
+const web3SidechainEndpoint = 'https://ethereum.exokit.org';
 
 const bucketNames = {
   content: 'content.exokit.org',
@@ -3438,8 +3439,11 @@ try {
 }
 };
 
+const _formatToken = token => {
+  const hash = web3['sidechain'].utils.padLeft(new web3['sidechain'].utils.BN(token.hash, 10).toString(16), 32);
   const ext = getExt(token.filename);
   return {
+    id: token.id,
     name: token.filename,
     description: 'Hash ' + hash,
     image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
@@ -3454,7 +3458,7 @@ try {
     totalSupply: parseInt(token.totalSupply, 10),
   };
 };
-const _handleTokens = async (req, res) => {
+const _handleTokens = chainName => async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -3475,8 +3479,8 @@ try {
     let match;
     if (match = p.match(/^\/([0-9]+)$/)) {
       const tokenId = parseInt(match[1], 10);
-      let token = await contracts.NFT.methods.tokenByIdFull(tokenId).call();
-      if (parseInt(token.totalSupply) > 0) {
+      let token = await contracts[chainName].NFT.methods.tokenByIdFull(tokenId).call();
+      if (parseInt(token.id) > 0) {
         token = _formatToken(token);
       } else {
         token = null;
@@ -3484,7 +3488,7 @@ try {
 
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify(token));
+      _respond(200, JSON.stringify(token));
       /* res.end(JSON.stringify({
         "name": filename,
         "description": 'Hash ' + hash,
@@ -3517,17 +3521,26 @@ try {
       })); */
     } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
       const address = match[1];
-      const nftBalance = await contracts.NFT.methods.balanceOf(address).call();
+      const nftBalance = await contracts[chainName].NFT.methods.balanceOf(address).call();
       const promises = [];
       for (let i = 0; i < nftBalance; i++) {
-        promises[i] = contracts.NFT.methods.tokenOfOwnerByIndexFull(address, i).call()
+        promises[i] = contracts[chainName].NFT.methods.tokenOfOwnerByIndexFull(address, i).call()
           .then(token => {
             token = _formatToken(token);
-            console.log('got token', token);
+            // console.log('got token', token);
             return token;
           })
       }
-      const tokens = await Promise.all(promises);
+      let tokens = await Promise.all(promises);
+      tokens.sort((a, b) => a.id - b.id);
+      tokens = tokens.filter((token, i) => {
+        for (let j = 0; j < i; j++) {
+          if (tokens[j].properties.hash === token.properties.hash) {
+            return false;
+          }
+        }
+        return true;
+      });
       _respond(200, JSON.stringify(tokens));
     } else {
       _respond(404, 'not found');
@@ -4111,8 +4124,11 @@ try {
   } else if (o.host === 'files.exokit.org') {
     _handleFiles(req, res);
     return;
-  } else if (o.host === 'tokens.exokit.org' || o.host === 'tokens.webaverse.com') {
-    _handleTokens(req, res);
+  } else if (o.host === 'tokens.webaverse.com' || o.host === 'tokens-side.webaverse.com') {
+    _handleTokens('sidechain')(req, res);
+    return;
+  } else if (o.host === 'tokens-main.webaverse.com') {
+    _handleTokens('main')(req, res);
     return;
   } else if (o.host === 'worlds.exokit.org') {
     _handleWorldsRequest(req, res);
@@ -4228,22 +4244,35 @@ const _ws = protocol => (req, socket, head) => {
 await _startWorldsRoute();
 
 {
-  web3 = new Web3(new Web3.providers.HttpProvider(web3Endpoint));
+  web3 = {
+    main: new Web3(new Web3.providers.HttpProvider(web3MainEndpoint)),
+    sidechain: new Web3(new Web3.providers.HttpProvider(web3SidechainEndpoint)),
+  };
   addresses = await fetch('https://contracts.webaverse.com/ethereum/address.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   abis = await fetch('https://contracts.webaverse.com/ethereum/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
-  contracts = (() => {
-    const result = {};
-    [
-      'Account',
-      'FT',
-      'NFT',
-      'FTProxy',
-      'NFTProxy',
-    ].forEach(contractName => {
-      result[contractName] = new web3.eth.Contract(abis[contractName], addresses.sidechain[contractName]);
-    });
-    return result;
-  })();
+  let {
+    main: {Account: AccountAddress, FT: FTAddress, NFT: NFTAddress, FTProxy: FTProxyAddress, NFTProxy: NFTProxyAddress, Trade: TradeAddress},
+    sidechain: {Account: AccountAddressSidechain, FT: FTAddressSidechain, NFT: NFTAddressSidechain, FTProxy: FTProxyAddressSidechain, NFTProxy: NFTProxyAddressSidechain, Trade: TradeAddressSidechain},
+  } = addresses;
+  let {Account: AccountAbi, FT: FTAbi, FTProxy: FTProxyAbi, NFT: NFTAbi, NFTProxy: NFTProxyAbi, Trade: TradeAbi} = abis;
+  contracts = {
+    main: {
+      Account: new web3['main'].eth.Contract(AccountAbi, AccountAddress),
+      FT: new web3['main'].eth.Contract(FTAbi, FTAddress),
+      FTProxy: new web3['main'].eth.Contract(FTProxyAbi, FTProxyAddress),
+      NFT: new web3['main'].eth.Contract(NFTAbi, NFTAddress),
+      NFTProxy: new web3['main'].eth.Contract(NFTProxyAbi, NFTProxyAddress),
+      Trade: new web3['main'].eth.Contract(TradeAbi, TradeAddress),
+    },
+    sidechain: {
+      Account: new web3['sidechain'].eth.Contract(AccountAbi, AccountAddressSidechain),
+      FT: new web3['sidechain'].eth.Contract(FTAbi, FTAddressSidechain),
+      FTProxy: new web3['sidechain'].eth.Contract(FTProxyAbi, FTProxyAddressSidechain),
+      NFT: new web3['sidechain'].eth.Contract(NFTAbi, NFTAddressSidechain),
+      NFTProxy: new web3['sidechain'].eth.Contract(NFTProxyAbi, NFTProxyAddressSidechain),
+      Trade: new web3['sidechain'].eth.Contract(TradeAbi, TradeAddressSidechain),
+    },
+  };
 }
 
 const server = http.createServer(_req('http:'));
