@@ -28,7 +28,7 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const blockchain = require('./blockchain.js');
 const config = require('./config.json');
-const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, discordClientId, discordClientSecret, stripeClientId, stripeClientSecret} = config;
+const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, discordClientId, discordClientSecret, stripeClientId, stripeClientSecret, infuraNetwork, infuraProjectId} = config;
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
     accessKeyId,
