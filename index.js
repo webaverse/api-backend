@@ -3438,6 +3438,22 @@ try {
 }
 };
 
+  const ext = getExt(token.filename);
+  return {
+    name: token.filename,
+    description: 'Hash ' + hash,
+    image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
+    external_url: 'https://app.webaverse.com?h=' + hash,
+    animation_url: `https://storage.exokit.org/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+    properties: {
+      filename: token.filename,
+      hash: '0x' + hash,
+      ext,
+    },
+    balance: parseInt(token.balance, 10),
+    totalSupply: parseInt(token.totalSupply, 10),
+  };
+};
 const _handleTokens = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -3459,14 +3475,17 @@ try {
     let match;
     if (match = p.match(/^\/([0-9]+)$/)) {
       const tokenId = parseInt(match[1], 10);
-      const hashNumberString = await contracts.NFT.methods.getHash(tokenId).call();
-      const hash = '0x' + web3.utils.padLeft(new web3.utils.BN(hashNumberString, 10).toString(16), 32);
-      const filename = await contracts.NFT.methods.getMetadata(hash, 'filename').call();
-      const ext = getExt(filename);
+      let token = await contracts.NFT.methods.tokenByIdFull(tokenId).call();
+      if (parseInt(token.totalSupply) > 0) {
+        token = _formatToken(token);
+      } else {
+        token = null;
+      }
 
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({
+      res.end(JSON.stringify(token));
+      /* res.end(JSON.stringify({
         "name": filename,
         "description": 'Hash ' + hash,
         "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.png',
@@ -3478,7 +3497,7 @@ try {
                 "filename": filename,
                 "hash": hash,
                 "ext": ext,
-                /* "rich_property": {
+                "rich_property": {
                         "name": "Name",
                         "value": "123",
                         "display_value": "123 Example Value",
@@ -3493,9 +3512,9 @@ try {
                         "name": "Name",
                         "value": [1,2,3,4],
                         "class": "emphasis"
-                } */
+                }
         }
-      }));
+      })); */
     } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
       const address = match[1];
       const nftBalance = await contracts.NFT.methods.balanceOf(address).call();
@@ -3503,21 +3522,7 @@ try {
       for (let i = 0; i < nftBalance; i++) {
         promises[i] = contracts.NFT.methods.tokenOfOwnerByIndexFull(address, i).call()
           .then(token => {
-            const ext = getExt(token.filename);
-            token = {
-              name: token.filename,
-              description: 'Hash ' + token.hash,
-              image: 'https://preview.exokit.org/' + token.hash + '.' + ext + '/preview.png',
-              external_url: 'https://app.webaverse.com?h=' + token.hash,
-              animation_url: `https://storage.exokit.org/${token.hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
-              properties: {
-                filename: token.filename,
-                hash: token.hash,
-                ext,
-              },
-              balance: parseInt(token.balance, 10),
-              totalSupply: parseInt(token.totalSupply, 10),
-            };
+            token = _formatToken(token);
             console.log('got token', token);
             return token;
           })
