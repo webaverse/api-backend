@@ -3605,7 +3605,9 @@ try {
           let token = await contracts[chainName].NFT.methods.tokenByIdFull(tokenId).call();
           if (token.totalSupply > 0) {
             token = _formatToken(token);
-            tokens.push(token);
+            if (!tokens.some(token2 => token2.properties.hash === token.properties.hash)) {
+              tokens.push(token);
+            }
           }
         }
 
