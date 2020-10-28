@@ -57,7 +57,7 @@ const Discord = require('discord.js');
 
 const api = require('./api.js');
 const { _handleStorageRequest } = require('./routes/storage.js');
-const { _handleAccountsRequest } = require('./routes/accounts.js');
+// const { _handleAccountsRequest } = require('./routes/accounts.js');
 const { _handlePreviewRequest } = require('./routes/preview.js')
 const { _handleWorldsRequest, _startWorldsRoute } = require('./routes/worlds.js');
 const { _handleSignRequest } = require('./routes/sign.js');
@@ -717,6 +717,80 @@ const _handleWorlds = _handleCrud(bucketNames.worlds);
 const _handlePackages = _handleCrud(bucketNames.packages);
 const _handleUsers = _handleCrud(bucketNames.users);
 const _handleScenes = _handleCrud(bucketNames.scenes);
+
+const _handleAccounts = async (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+  const _timeoutChildProcess = (req, cp) => {
+    let timeout;
+    const _kickTimeout = () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      timeout = setTimeout(() => {
+        console.log('child process timed out');
+        cp.kill();
+      }, 10*1000);
+    };
+    _kickTimeout();
+    req.on('data', d => {
+      _kickTimeout();
+    });
+    cp.stdout.on('data', d => {
+      _kickTimeout();
+    });
+    cp.on('exit', () => {
+      clearTimeout(timeout);
+    });
+  };
+
+try {
+  const {method} = req;
+  let {pathname: p} = url.parse(req.url);
+  // console.log('ipfs request', {method, p});
+
+  if (method === 'OPTIONS') {
+    // res.statusCode = 200;
+    _setCorsHeaders(res);
+    res.end();
+  } else if (method === 'GET') {
+    const match = p.match(/^\/(0x[a-f0-9]+)$/i);
+    const address = match[1];
+    const result = {}
+    await Promise.all(
+      [
+        'name',
+        'avatarUrl',
+        'avatarFileName',
+        'avatarPreview',
+        'ftu',
+      ].map(key =>
+        contracts['sidechain'].Account.methods.getMetadata(address, key).call()
+          .then(value => {
+            result[key] = value;
+          })
+      )
+    );
+    _respond(200, JSON.stringify(result));
+  } else {
+    _respond(404, '');
+  }
+} catch(err) {
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
+}
+};
 
 const _handleIpfs = async (req, res, channels) => {
   const _respond = (statusCode, body) => {
@@ -4132,6 +4206,9 @@ try {
   } else if (o.host === 'scenes.exokit.org') {
     _handleScenes(req, res);
     return;
+  } else if (o.host === 'accounts.webaverse.com') {
+    _handleAccounts(req, res);
+    return;
   } else if (o.host === 'sign.exokit.org') {
     _handleSignRequest(req, res);
     return;
@@ -4189,9 +4266,6 @@ try {
     return;
   } else if (o.host === 'storage.exokit.org' || o.host === 'storage.webaverse.com') {
     _handleStorageRequest(req, res);
-    return;
-  } else if (o.host === 'accounts.exokit.org') {
-    _handleAccountsRequest(req, res);
     return;
   }
 
