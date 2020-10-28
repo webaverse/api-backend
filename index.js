@@ -50,8 +50,8 @@ const apiKeyCache = new LRU({
   maxAge: 60 * 1000,
 });
 const stripe = Stripe(stripeClientSecret);
-const accountManager = require('./account-manager.js');
-const eventsManager = require('./events-manager.js');
+// const accountManager = require('./account-manager.js');
+// const eventsManager = require('./events-manager.js');
 
 const Discord = require('discord.js');
 
