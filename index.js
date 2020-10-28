@@ -3519,6 +3519,60 @@ try {
                 }
         }
       })); */
+    } else if (match = p.match(/^\/([0-9]+)-([0-9]+)$/)) {
+      const startTokenId = parseInt(match[1], 10);
+      const endTokenId = parseInt(match[2], 10);
+      // console.log('start token', {startTokenId, endTokenId});
+      if (startTokenId >= 0 && endTokenId > startTokenId) {
+        const numTokens = endTokenId - startTokenId;
+        const tokens = Array(numTokens);
+        for (let i = 0; i < numTokens; i++) {
+          const tokenId = startTokenId + i;
+          let token = await contracts[chainName].NFT.methods.tokenByIdFull(tokenId).call();
+          if (parseInt(token.id) > 0) {
+            token = _formatToken(token);
+          } else {
+            token = null;
+          }
+          tokens[i] = token;
+        }
+
+        _setCorsHeaders(res);
+        res.setHeader('Content-Type', 'application/json');
+        _respond(200, JSON.stringify(tokens));
+        /* res.end(JSON.stringify({
+          "name": filename,
+          "description": 'Hash ' + hash,
+          "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.png',
+          "external_url": "https://app.webaverse.com?h=" + p.slice(1),
+          // "background_color": "000000",
+          "animation_url": `https://storage.exokit.org/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+          // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
+          "properties": {
+                  "filename": filename,
+                  "hash": hash,
+                  "ext": ext,
+                  "rich_property": {
+                          "name": "Name",
+                          "value": "123",
+                          "display_value": "123 Example Value",
+                          "class": "emphasis",
+                          "css": {
+                                  "color": "#ffffff",
+                                  "font-weight": "bold",
+                                  "text-decoration": "underline"
+                          }
+                  },
+                  "array_property": {
+                          "name": "Name",
+                          "value": [1,2,3,4],
+                          "class": "emphasis"
+                  }
+          }
+        })); */
+      } else {
+        _respond(404, 'not found');
+      }
     } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
       const address = match[1];
       const nftBalance = await contracts[chainName].NFT.methods.balanceOf(address).call();
