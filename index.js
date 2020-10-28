@@ -3597,7 +3597,7 @@ try {
       const startTokenId = parseInt(match[1], 10);
       const endTokenId = parseInt(match[2], 10);
       // console.log('start token', {startTokenId, endTokenId});
-      if (startTokenId >= 0 && endTokenId > startTokenId) {
+      if (startTokenId >= 1 && endTokenId > startTokenId) {
         const numTokens = endTokenId - startTokenId;
         const tokens = [];
         for (let i = 0; i < numTokens; i++) {
