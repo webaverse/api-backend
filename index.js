@@ -3517,7 +3517,7 @@ const _formatToken = token => {
   const hash = web3['sidechain'].utils.padLeft(new web3['sidechain'].utils.BN(token.hash, 10).toString(16), 32);
   const ext = getExt(token.filename);
   return {
-    id: token.id,
+    id: parseInt(token.id, 10),
     name: token.filename,
     description: 'Hash ' + hash,
     image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
