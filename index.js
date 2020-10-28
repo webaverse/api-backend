@@ -3599,16 +3599,14 @@ try {
       // console.log('start token', {startTokenId, endTokenId});
       if (startTokenId >= 0 && endTokenId > startTokenId) {
         const numTokens = endTokenId - startTokenId;
-        const tokens = Array(numTokens);
+        const tokens = [];
         for (let i = 0; i < numTokens; i++) {
           const tokenId = startTokenId + i;
           let token = await contracts[chainName].NFT.methods.tokenByIdFull(tokenId).call();
-          if (parseInt(token.id) > 0) {
+          if (token.totalSupply > 0) {
             token = _formatToken(token);
-          } else {
-            token = null;
+            tokens.push(token);
           }
-          tokens[i] = token;
         }
 
         _setCorsHeaders(res);
