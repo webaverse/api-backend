@@ -12,6 +12,7 @@ const ps = require('ps-node');
 const jsPath = '../dialog/index.js';
 
 let worlds = [];
+const pidSymbol = Symbol('pid');
 
 let startPort = 4000;
 let endPort = 5000;
@@ -37,6 +38,7 @@ const _loadWorlds = async () => {
         results = results.filter(w => {
           return w.arguments[0] === jsPath;
         }).map(w => {
+          const {pid} = w;
           let [_, name, publicIp, privateIp, port] = w.arguments;
           port = parseInt(port, 10);
           return {
@@ -44,6 +46,7 @@ const _loadWorlds = async () => {
             publicIp,
             privateIp,
             port,
+            [pidSymbol]: pid,
           };
         });
         accept(results);
@@ -132,8 +135,33 @@ const _handleWorldsRequest = async (req, res) => {
                 }
             });
         } else if (method === 'DELETE') {
-            res.statusCode = 200;
-            res.end();
+            let bs = [];
+            req.on('data', chunk => {
+                bs.push(chunk);
+            })
+            req.on('end', async () => {
+                const b = Buffer.concat(bs);
+                const s = b.toString('utf8');
+                const j = JSON.parse(s);
+                let match;
+                if (j && typeof j.name === 'string' && (match = j.name.match(/^([A-Z]{4})$/))) {
+                  const name = match[1];
+                  const world = worlds.find(w => w.name === name);
+                  if (world) {
+                    const pid = world[pidSymbol];
+                    process.kill(pid);
+
+                    res.statusCode = 200;
+                    res.end();
+                  } else {
+                    res.statusCode = 404;
+                    res.end(JSON.stringify({error: 'world not found'}));
+                  }
+                } else {
+                  res.statusCode = 404;
+                  res.end();
+                }
+            });
         } else {
             res.statusCode = 404;
             res.end();
