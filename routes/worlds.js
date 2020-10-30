@@ -66,105 +66,75 @@ const _waitForWorlds = () => loadPromise;
 const _handleWorldsRequest = async (req, res) => {
     try {
         const request = url.parse(req.url);
-        // const match = request.path.match(/^\/([a-f0-9]+)(?:\/([^\/]*))?/i);
-        // const p = match && match[1];
+        const match = request.path.match(/^\/([A-Z]{4})$/);
+        const p = match && match[1];
         // const filename = match && match[2];
 
         res = _setCorsHeaders(res);
         const {method, headers} = req;
         if (method === 'OPTIONS') {
+          res.end();
+        } else if (method === 'GET' && request.path == '/') {
+          res.end(JSON.stringify(worlds));
+        } else if (method === 'POST' && p) {
+          const name = p;
+          if (!worlds.some(w => w.name === name)) {
+            const port = findPort();
+            const cp = child_process.spawn(process.argv[0], [
+              jsPath,
+              name,
+              publicIp,
+              privateIp,
+              port,
+            ], {
+              env: {
+                PROTOO_LISTEN_PORT: port,
+                MEDIASOUP_LISTEN_IP: privateIp,
+                MEDIASOUP_ANNOUNCED_IP: publicIp,
+                HTTPS_CERT_FULLCHAIN: path.join('..', 'exokit-backend', 'certs', 'fullchain.pem'),
+                HTTPS_CERT_PRIVKEY: path.join('..', 'exokit-backend', 'certs', 'privkey.pem'),
+                AUTH_KEY: path.join('..', 'exokit-backend', 'certs', 'privkey.pem'),
+                NUM_WORKERS: 2,
+              },
+            });
+            cp.stdout.pipe(process.stdout);
+            cp.stderr.pipe(process.stderr);
+            cp.on('error', err => {
+              console.log('cp error', err.stack);
+            });
+            cp.on('exit', code => {
+              console.log('cp exit', code);
+              _loadWorlds();
+            });
+
+            _loadWorlds();
+
+            res.end(JSON.stringify({result: {
+              name,
+              publicIp,
+              privateIp,
+              port,
+            }}));
+          } else {
+            res.statusCode = 400;
+            res.end(JSON.stringify({error: 'name already taken'}));
+          }
+        } else if (method === 'DELETE' && p) { 
+          const name = p
+          const world = worlds.find(w => w.name === name);
+          if (world) {
+            const pid = world[pidSymbol];
+            process.kill(pid);
+
+            res.statusCode = 200;
             res.end();
-        } else if (method === 'GET') {
-            res.end(JSON.stringify(worlds));
-        } else if (method === 'POST') {
-            let bs = [];
-            req.on('data', chunk => {
-                bs.push(chunk);
-            })
-            req.on('end', async () => {
-                const b = Buffer.concat(bs);
-                const s = b.toString('utf8');
-                const j = JSON.parse(s);
-                let match;
-                if (j && typeof j.name === 'string' && (match = j.name.match(/^([A-Z]{4})$/))) {
-                  const name = match[1];
-                  if (!worlds.some(w => w.name === name)) {
-                    const port = findPort();
-                    const cp = child_process.spawn(process.argv[0], [
-                      jsPath,
-                      name,
-                      publicIp,
-                      privateIp,
-                      port,
-                    ], {
-                      env: {
-                        PROTOO_LISTEN_PORT: port,
-                        MEDIASOUP_LISTEN_IP: privateIp,
-                        MEDIASOUP_ANNOUNCED_IP: publicIp,
-                        HTTPS_CERT_FULLCHAIN: path.join('..', 'exokit-backend', 'certs', 'fullchain.pem'),
-                        HTTPS_CERT_PRIVKEY: path.join('..', 'exokit-backend', 'certs', 'privkey.pem'),
-                        AUTH_KEY: path.join('..', 'exokit-backend', 'certs', 'privkey.pem'),
-                        NUM_WORKERS: 2,
-                      },
-                    });
-                    cp.stdout.pipe(process.stdout);
-                    cp.stderr.pipe(process.stderr);
-                    cp.on('error', err => {
-                      console.log('cp error', err.stack);
-                    });
-                    cp.on('exit', code => {
-                      console.log('cp exit', code);
-                      _loadWorlds();
-                    });
-
-                    _loadWorlds();
-
-                    res.end(JSON.stringify({result: {
-                      name,
-                      publicIp,
-                      privateIp,
-                      port,
-                    }}));
-                  } else {
-                    res.statusCode = 400;
-                    res.end(JSON.stringify({error: 'name already taken'}));
-                  }
-                } else {
-                  res.statusCode = 404;
-                  res.end();
-                }
-            });
-        } else if (method === 'DELETE') {
-            let bs = [];
-            req.on('data', chunk => {
-                bs.push(chunk);
-            })
-            req.on('end', async () => {
-                const b = Buffer.concat(bs);
-                const s = b.toString('utf8');
-                const j = JSON.parse(s);
-                let match;
-                if (j && typeof j.name === 'string' && (match = j.name.match(/^([A-Z]{4})$/))) {
-                  const name = match[1];
-                  const world = worlds.find(w => w.name === name);
-                  if (world) {
-                    const pid = world[pidSymbol];
-                    process.kill(pid);
-
-                    res.statusCode = 200;
-                    res.end();
-                  } else {
-                    res.statusCode = 404;
-                    res.end(JSON.stringify({error: 'world not found'}));
-                  }
-                } else {
-                  res.statusCode = 404;
-                  res.end();
-                }
-            });
-        } else {
+          } else {
             res.statusCode = 404;
-            res.end();
+            res.end(JSON.stringify({error: 'world not found'}));
+          }
+        } else {
+          res.statusCode = 404;
+          res.end();
         }
     } catch (e) {
         console.log(e);
