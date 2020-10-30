@@ -34,7 +34,6 @@ const _loadWorlds = async () => {
       // psargs: 'ux',
     }, function(err, results) {
       if (!err) {
-        console.log('got results', results);
         results = results.filter(w => {
           return w.arguments[0] === jsPath;
         }).map(w => {
@@ -108,13 +107,12 @@ const _handleWorldsRequest = async (req, res) => {
                     cp.stdout.pipe(process.stdout);
                     cp.stderr.pipe(process.stderr);
                     cp.on('error', err => {
-                      console.log('got err', err.stack);
+                      console.log('cp error', err.stack);
                     });
                     cp.on('exit', code => {
                       console.log('cp exit', code);
                       _loadWorlds();
                     });
-                    console.log('got pid', cp.pid);
 
                     _loadWorlds();
 
