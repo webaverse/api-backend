@@ -8,7 +8,18 @@ function getExt(fileName) {
   const match = fileName.match(/\.([^\.]+)$/);
   return match && match[1].toLowerCase();
 }
+const makePromise = () => {
+  let accept, reject;
+  const p = new Promise((a, r) => {
+    accept = a;
+    reject = r;
+  });
+  p.accept = accept;
+  p.reject = reject;
+  return p;
+};
 module.exports = {
   _setCorsHeaders,
   getExt,
+  makePromise,
 }

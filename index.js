@@ -27,6 +27,7 @@ const {default: formurlencoded} = require('form-urlencoded');
 const Web3 = require('web3');
 const bip39 = require('bip39');
 const blockchain = require('./blockchain.js');
+const {getExt, makePromise} = require('./utils.js');
 const config = require('./config.json');
 const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, discordClientId, discordClientSecret, stripeClientId, stripeClientSecret, infuraNetwork, infuraProjectId} = config;
 const awsConfig = new AWS.Config({
@@ -124,21 +125,6 @@ function _getKeyFromBindingUrl(u) {
     return [];
   }
 }
-function getExt(fileName) {
-  const match = fileName.match(/\.([^\.]+)$/);
-  return match && match[1].toLowerCase();
-}
-
-const _makePromise = () => {
-  let accept, reject;
-  const p = new Promise((a, r) => {
-    accept = a;
-    reject = r;
-  });
-  p.accept = accept;
-  p.reject = reject;
-  return p;
-};
 
 (async () => {
 
@@ -2981,7 +2967,7 @@ try {
 
                             if (!encoder) {
                               const fullRepoPathname = repopathname + (i === 0 ? '' : `.${i}`);
-                              responsePromise = _makePromise();
+                              responsePromise = makePromise();
                               proxyReq = https.request({
                                 method: 'PUT',
                                 host: 'api.github.com',
