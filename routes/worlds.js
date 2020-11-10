@@ -14,6 +14,8 @@ const jsPath = '../dialog/index.js';
 let worlds = [];
 const pidSymbol = Symbol('pid');
 
+const cps = [];
+
 let startPort = 4000;
 let endPort = 5000;
 const findPort = () => {
@@ -97,6 +99,7 @@ const _handleWorldsRequest = async (req, res) => {
                 NUM_WORKERS: 2,
               },
             });
+            cp.name = name;
             cp.stdout.pipe(process.stdout);
             cp.stderr.pipe(process.stderr);
             cp.on('error', err => {
@@ -105,9 +108,11 @@ const _handleWorldsRequest = async (req, res) => {
             cp.on('exit', code => {
               console.log('cp exit', code);
               _loadWorlds();
+              cps.splice(cps.indexOf(cp), 1);
             });
+            cps.push(cp);
 
-            _loadWorlds();
+            await _loadWorlds();
 
             res.end(JSON.stringify({result: {
               name,
@@ -122,12 +127,16 @@ const _handleWorldsRequest = async (req, res) => {
         } else if (method === 'DELETE' && p) { 
           const name = p
           const world = worlds.find(w => w.name === name);
-          if (world) {
-            const pid = world[pidSymbol];
-            process.kill(pid);
+          const cp = cps.find(cp => cp.name === name);
+          if (world && cp) {
+            cp.on('exit', async () => {
+              await _loadWorlds();
 
-            res.statusCode = 200;
-            res.end();
+              res.statusCode = 200;
+              res.end();
+            });
+
+            cp.kill();
           } else {
             res.statusCode = 404;
             res.end(JSON.stringify({error: 'world not found'}));
