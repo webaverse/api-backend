@@ -718,7 +718,9 @@ const _handleAccounts = async (req, res) => {
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
   const _getAccount = async address => {
-    const result = {}
+    const result = {
+      address,
+    };
     await Promise.all(
       [
         'name',
