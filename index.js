@@ -4400,6 +4400,13 @@ const _ws = protocol => (req, socket, head) => {
       Trade: new web3['sidechain'].eth.Contract(TradeAbi, TradeAddressSidechain),
     },
   };
+  /* web3.sidechain.eth.getPastLogs({
+    fromBlock: 0,
+    toBlock: 'latest',
+    address: FTAddressSidechain,
+  }).then(result => {
+    console.log('got res', result);
+  }); */
 }
 
 const server = http.createServer(_req('http:'));
