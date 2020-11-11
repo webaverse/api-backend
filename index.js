@@ -717,41 +717,7 @@ const _handleAccounts = async (req, res) => {
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
-  const _timeoutChildProcess = (req, cp) => {
-    let timeout;
-    const _kickTimeout = () => {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-      timeout = setTimeout(() => {
-        console.log('child process timed out');
-        cp.kill();
-      }, 10*1000);
-    };
-    _kickTimeout();
-    req.on('data', d => {
-      _kickTimeout();
-    });
-    cp.stdout.on('data', d => {
-      _kickTimeout();
-    });
-    cp.on('exit', () => {
-      clearTimeout(timeout);
-    });
-  };
-
-try {
-  const {method} = req;
-  let {pathname: p} = url.parse(req.url);
-  // console.log('ipfs request', {method, p});
-
-  if (method === 'OPTIONS') {
-    // res.statusCode = 200;
-    _setCorsHeaders(res);
-    res.end();
-  } else if (method === 'GET') {
-    const match = p.match(/^\/(0x[a-f0-9]+)$/i);
-    const address = match[1];
+  const _getAccount = async address => {
     const result = {}
     await Promise.all(
       [
@@ -767,7 +733,54 @@ try {
           })
       )
     );
-    _respond(200, JSON.stringify(result));
+    return result;
+  };
+
+try {
+  const {method} = req;
+  let {pathname: p} = url.parse(req.url);
+  // console.log('ipfs request', {method, p});
+
+  if (method === 'OPTIONS') {
+    // res.statusCode = 200;
+    _setCorsHeaders(res);
+    res.end();
+  } else if (method === 'GET') {
+    if (p === '/') {
+      const addressMap = {};
+      await Promise.all([
+        contracts.sidechain.NFT.getPastEvents('Transfer', {
+          fromBlock: 0,
+          toBlock: 'latest',
+        }).then(entries => {
+          for (const entry of entries) {
+            const address = entry.returnValues.to;
+            addressMap[address] = true;
+          }
+        }),
+        contracts.sidechain.FT.getPastEvents('Transfer', {
+          fromBlock: 0,
+          toBlock: 'latest',
+        }).then(entries => {
+          for (const entry of entries) {
+            const address = entry.returnValues.to;
+            addressMap[address] = true;
+          }
+        }),
+      ]);
+      const addresses = Object.keys(addressMap);
+      const accounts = await Promise.all(addresses.map(address => _getAccount(address)));
+      _respond(200, JSON.stringify(accounts));
+    } else {
+      const match = p.match(/^\/(0x[a-f0-9]+)$/i);
+      if (match) {
+        const address = match[1];
+        const result = await _getAccount(address);
+        _respond(200, JSON.stringify(result));
+      } else {
+        _respond(404, '');
+      }
+    }
   } else {
     _respond(404, '');
   }
