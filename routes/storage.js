@@ -6,6 +6,7 @@ const mime = require('mime');
 const {_setCorsHeaders, getExt} = require('../utils.js');
 
 const hashAlgorithm = 'sha256';
+const MAX_SIZE = 50 * 1024 * 1024;
 
 const _handleStorageRequest = async (req, res) => {
     try {
@@ -21,10 +22,16 @@ const _handleStorageRequest = async (req, res) => {
         } else if (method === 'POST') {
             let data = [];
             const hash = crypto.createHash(hashAlgorithm);
+            let totalSize = 0;
             req.on('data', chunk => {
                 // console.log('got data', chunk.length);
                 data.push(chunk);
                 hash.write(chunk);
+                totalSize += hunk.byteLength;
+                if (totalSize >= MAX_SIZE) {
+                  res.statusCode = 413;
+                  res.end();
+                }
             })
             req.on('end', async () => {
                 // console.log('got end');
