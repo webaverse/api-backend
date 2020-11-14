@@ -3664,7 +3664,7 @@ try {
       }
       let tokens = await Promise.all(promises);
       tokens.sort((a, b) => a.id - b.id);
-      tokens = tokens.filter((token, i) => {
+      tokens = tokens.filter((token, i) => { // filter unique
         for (let j = 0; j < i; j++) {
           if (tokens[j].properties.hash === token.properties.hash) {
             return false;
