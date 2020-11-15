@@ -27,7 +27,7 @@ const _handleStorageRequest = async (req, res) => {
                 // console.log('got data', chunk.length);
                 data.push(chunk);
                 hash.write(chunk);
-                totalSize += hunk.byteLength;
+                totalSize += chunk.byteLength;
                 if (totalSize >= MAX_SIZE) {
                   res.statusCode = 413;
                   res.end();
