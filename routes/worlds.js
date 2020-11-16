@@ -100,6 +100,7 @@ const _handleWorldsRequest = async (req, res) => {
               },
             });
             cp.name = name;
+            req.pipe(cp.stdin);
             cp.stdout.pipe(process.stdout);
             cp.stderr.pipe(process.stderr);
             cp.on('error', err => {
