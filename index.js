@@ -26,6 +26,7 @@ const {SHA3} = require('sha3');
 const {default: formurlencoded} = require('form-urlencoded');
 const Web3 = require('web3');
 const bip39 = require('bip39');
+const {hdkey} = require('ethereumjs-wallet');
 const blockchain = require('./blockchain.js');
 const {getExt, makePromise} = require('./utils.js');
 const config = require('./config.json');
@@ -252,6 +253,7 @@ try {
                   name: {S: name},
                   tokens: {S: JSON.stringify(tokens)},
                   mnemonic: {S: mnemonic},
+                  address: {S: addr},
                   addr: {S: addr},
                   state: {S: state},
                   stripeState: {S: JSON.stringify(stripeState)},
@@ -394,12 +396,15 @@ try {
             };
             const _genKey = async id => {
               const mnemonic = bip39.generateMnemonic();
+              const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
+              const address = wallet.getAddressString();
 
               await ddb.putItem({
                 TableName: tableName,
                 Item: {
                   email: {S: id + '.discordtoken'},
                   mnemonic: {S: mnemonic},
+                  address: {S: address},
                 }
               }).promise();
               return {mnemonic};
