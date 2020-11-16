@@ -38,6 +38,7 @@ const awsConfig = new AWS.Config({
   region: 'us-west-1',
 });
 const ddb = new AWS.DynamoDB(awsConfig);
+const ddbd = new AWS.DynamoDB.DocumentClient(awsConfig);
 const s3 = new AWS.S3(awsConfig);
 const ses = new AWS.SES(new AWS.Config({
   credentials: new AWS.Credentials({
@@ -84,6 +85,7 @@ const bucketNames = {
   scenes: 'scenes.exokit.org',
 };
 const tableName = 'users';
+const storeTableName = 'store';
 const channels = {};
 const gridChannels = {};
 const webaverseChannels = {};
@@ -3687,6 +3689,48 @@ try {
   }));
 }
 };
+const _handleStore = async (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+
+try {
+  const {method} = req;
+
+  if (method === 'GET') {
+    console.log('getting 1');
+    const result = await ddbd.get({
+      TableName: storeTableName,
+      Key: {
+        id: 'store',
+      },
+    }).promise();
+    console.log('getting 2');
+    const store = (result && result.Item) || {
+      id: 'store',
+      nextBuyId: 0,
+      booths: [],
+    };
+    console.log('getting 3', store);
+    _respond(200, JSON.stringify(store));
+  } else {
+    _respond(404, 'not found');
+  }
+} catch(err) {
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
+}
+};
 
 /* const browser = await puppeteer.launch({
   // args,
@@ -4269,6 +4313,10 @@ try {
     return;
   } else if (o.host === 'storage.exokit.org' || o.host === 'storage.webaverse.com') {
     _handleStorageRequest(req, res);
+    return;
+  } else if (o.host === 'store.webaverse.com') {
+    console.log('handle store');
+    _handleStore(req, res);
     return;
   }
 
