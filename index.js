@@ -3705,20 +3705,17 @@ try {
   const {method} = req;
 
   if (method === 'GET') {
-    console.log('getting 1');
     const result = await ddbd.get({
       TableName: storeTableName,
       Key: {
         id: 'store',
       },
     }).promise();
-    console.log('getting 2');
     const store = (result && result.Item) || {
       id: 'store',
       nextBuyId: 0,
       booths: [],
     };
-    console.log('getting 3', store);
     _respond(200, JSON.stringify(store));
   } else {
     _respond(404, 'not found');
@@ -4315,7 +4312,6 @@ try {
     _handleStorageRequest(req, res);
     return;
   } else if (o.host === 'store.webaverse.com') {
-    console.log('handle store');
     _handleStore(req, res);
     return;
   }
