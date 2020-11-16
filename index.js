@@ -3716,7 +3716,20 @@ try {
       nextBuyId: 0,
       booths: [],
     };
-    _respond(200, JSON.stringify(store));
+    const booths = await Promise.all(store.booths.map(async booth => {
+      return Promise.all(booth.entries.map(async entry => {
+        // console.log('get token id', entry);
+        let token = await contracts['sidechain'].NFT.methods.tokenByIdFull(entry.tokenId).call();
+        // if (parseInt(token.id) > 0) {
+          token = _formatToken(token);
+        /* } else {
+          token = null;
+        } */
+        return token;
+      }));
+    }));
+    
+    _respond(200, JSON.stringify(booths));
   } else {
     _respond(404, 'not found');
   }
