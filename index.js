@@ -159,7 +159,7 @@ try {
             TableName: tableName,
             Key: {
               email: {S: email + '.token'},
-            }
+            },
           }).promise();
           
           console.log('got login', tokenItem, {email, token});
