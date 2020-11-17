@@ -3538,6 +3538,8 @@ const _formatToken = token => {
       hash: '0x' + hash,
       ext,
     },
+    minter: token.minter,
+    owner: token.owner,
     balance: parseInt(token.balance, 10),
     totalSupply: parseInt(token.totalSupply, 10),
   };
