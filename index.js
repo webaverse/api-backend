@@ -3722,16 +3722,16 @@ try {
       booths: [],
     };
     const booths = await Promise.all(store.booths.map(async booth => {
-      return Promise.all(booth.entries.map(async entry => {
-        // console.log('get token id', entry);
+      const {address} = booth;
+      const files = Promise.all(booth.entries.map(async entry => {
         let token = await contracts['sidechain'].NFT.methods.tokenByIdFull(entry.tokenId).call();
-        // if (parseInt(token.id) > 0) {
-          token = _formatToken(token);
-        /* } else {
-          token = null;
-        } */
+        token = _formatToken(token);
         return token;
       }));
+      return {
+        address,
+        files,
+      };
     }));
     
     _respond(200, JSON.stringify(booths));
