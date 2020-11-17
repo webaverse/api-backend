@@ -3723,7 +3723,7 @@ try {
     };
     const booths = await Promise.all(store.booths.map(async booth => {
       const {address} = booth;
-      const files = Promise.all(booth.entries.map(async entry => {
+      const files = await Promise.all(booth.entries.map(async entry => {
         let token = await contracts['sidechain'].NFT.methods.tokenByIdFull(entry.tokenId).call();
         token = _formatToken(token);
         return token;
