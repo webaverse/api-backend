@@ -3626,7 +3626,9 @@ try {
     } else if (match = p.match(/^\/([0-9]+)-([0-9]+)$/)) {
       const startTokenId = parseInt(match[1], 10);
       const endTokenId = parseInt(match[2], 10);
-      // console.log('start token', {startTokenId, endTokenId});
+
+      const storeEntries = await _getStoreEntries();
+
       if (startTokenId >= 1 && endTokenId > startTokenId) {
         const numTokens = endTokenId - startTokenId;
         const tokens = [];
@@ -3679,7 +3681,10 @@ try {
       }
     } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
       const address = match[1];
+
       const nftBalance = await contracts[chainName].NFT.methods.balanceOf(address).call();
+      const storeEntries = await _getStoreEntries();
+
       const promises = [];
       for (let i = 0; i < nftBalance; i++) {
         promises[i] = contracts[chainName].NFT.methods.tokenOfOwnerByIndexFull(address, i).call()
