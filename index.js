@@ -3567,6 +3567,7 @@ const _handleTokens = chainName => async (req, res) => {
         id: 'store',
       },
     }).promise();
+    console.log('got get', result);
     return _formatStoreEntries(result);
   };
 
