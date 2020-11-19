@@ -3548,7 +3548,7 @@ const _formatToken = (token, storeEntries) => {
     buyPrice,
   };
 };
-const _formatStoreEntries = result => (result && result.Item) ? result.Item.map(store => store.booths.map(booth => booth.entries)).flat() : [];
+const _formatStoreEntries = result => (result && result.Item) ? result.Item.booths.map(booth => booth.entries).flat() : [];
 const _handleTokens = chainName => async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
