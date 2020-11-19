@@ -3746,6 +3746,7 @@ try {
       nextBuyId: 0,
       booths: [],
     };
+    const storeEntries = await _formatStoreEntries(store);
     const booths = await Promise.all(store.booths.map(async booth => {
       const {address} = booth;
       const files = await Promise.all(booth.entries.map(async entry => {
