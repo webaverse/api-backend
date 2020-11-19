@@ -3523,11 +3523,14 @@ try {
 }
 };
 
-const _formatToken = token => {
+const _formatToken = (token, storeEntries) => {
+  const id = parseInt(token.id, 10);
   const hash = web3['sidechain'].utils.padLeft(new web3['sidechain'].utils.BN(token.hash, 10).toString(16), 32);
   const ext = getExt(token.filename);
+  const storeEntry = storeEntries.find(entry => entry.id === id);
+  const buyPrice = storeEntry ? storeEntry.price : null;
   return {
-    id: parseInt(token.id, 10),
+    id,
     name: token.filename,
     description: 'Hash ' + hash,
     image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
@@ -3542,8 +3545,10 @@ const _formatToken = token => {
     owner: token.owner,
     balance: parseInt(token.balance, 10),
     totalSupply: parseInt(token.totalSupply, 10),
+    buyPrice,
   };
 };
+const _formatStoreEntries = result => (result && result.Item) ? result.Item.map(store => store.booths.map(booth => booth.entries)).flat() : [];
 const _handleTokens = chainName => async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -3555,6 +3560,15 @@ const _handleTokens = chainName => async (req, res) => {
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
+  const _getStoreEntries = async () => {
+    const result = await ddbd.get({
+      TableName: storeTableName,
+      Key: {
+        id: 'store',
+      },
+    }).promise();
+    return _formatStoreEntries(result);
+  };
 
 try {
   const {method} = req;
@@ -3565,9 +3579,12 @@ try {
     let match;
     if (match = p.match(/^\/([0-9]+)$/)) {
       const tokenId = parseInt(match[1], 10);
+
+      const storeEntries = await _getStoreEntries();
+
       let token = await contracts[chainName].NFT.methods.tokenByIdFull(tokenId).call();
       if (parseInt(token.id) > 0) {
-        token = _formatToken(token);
+        token = _formatToken(token, storeEntries);
       } else {
         token = null;
       }
@@ -3616,7 +3633,7 @@ try {
           const tokenId = startTokenId + i;
           let token = await contracts[chainName].NFT.methods.tokenByIdFull(tokenId).call();
           if (token.totalSupply > 0) {
-            token = _formatToken(token);
+            token = _formatToken(token, storeEntries);
             if (!tokens.some(token2 => token2.properties.hash === token.properties.hash)) {
               tokens.push(token);
             }
@@ -3666,7 +3683,7 @@ try {
       for (let i = 0; i < nftBalance; i++) {
         promises[i] = contracts[chainName].NFT.methods.tokenOfOwnerByIndexFull(address, i).call()
           .then(token => {
-            token = _formatToken(token);
+            token = _formatToken(token, storeEntries);
             // console.log('got token', token);
             return token;
           })
@@ -3727,7 +3744,7 @@ try {
       const {address} = booth;
       const files = await Promise.all(booth.entries.map(async entry => {
         let token = await contracts['sidechain'].NFT.methods.tokenByIdFull(entry.tokenId).call();
-        token = _formatToken(token);
+        token = _formatToken(token, storeEntries);
         return token;
       }));
       return {
