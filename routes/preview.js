@@ -12,6 +12,7 @@ const mime = require('mime');
 
 const {getObject, putObject} = require('../aws.js');
 const puppeteer = require('puppeteer');
+const browserManager = require('../browser-manager.js');
 
 const PREVIEW_HOST = '127.0.0.1';
 const PREVIEW_PORT = 8999;
@@ -44,16 +45,7 @@ let cbIndex = 0;
 const cbs = {};
 
 (async () => {
-browser = await puppeteer.launch({
-  args: [
-    '--no-sandbox',
-    '--no-zygote',
-    // '--disable-dev-shm-usage',
-  ],
-  // defaultViewport: chromium.defaultViewport,
-  // executablePath: await chromium.executablePath,
-  headless: true,
-});
+browser = await browserManager.getBrowser();
 
 const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
