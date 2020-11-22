@@ -29,6 +29,7 @@ const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const blockchain = require('./blockchain.js');
 const {getExt, makePromise} = require('./utils.js');
+const browserManager = require('./browser-manager.js');
 const config = require('./config.json');
 const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, discordClientId, discordClientSecret, stripeClientId, stripeClientSecret, infuraNetwork, infuraProjectId} = config;
 const awsConfig = new AWS.Config({
@@ -1379,6 +1380,56 @@ try {
   }));
 }
 }; */
+
+const _handleScreenshot = async (req, res) => {
+  const browser = await browserManager.getBrowser();
+  
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+
+  try {
+    const u = req.url.slice(1);
+
+    // console.log('preview 3');
+    const page = await browser.newPage();
+    // console.log('preview 4');
+    page.on('console', e => {
+      console.log(e);
+    });
+    page.on('error', err => {
+      console.log(err);
+    });
+    page.on('pageerror', err => {
+      console.log(err);
+    });
+    
+    await page.goto(u);
+    
+    // console.log('load 1', hash, ext, type);
+    const b = await page.screenshot();
+    // console.log('load 2');
+
+    // const {req: proxyReq, res: proxyRes} = await p;
+
+    // console.log('load 3');
+
+    // proxyReq.headers['content-type'] || 'application/octet-stream';
+    res.setHeader('Content-Type', 'image/png');
+    _setCorsHeaders(res);
+    res.end(b);
+  } catch (err) {
+    console.warn(err.stack);
+    _respond(500, err.stack);
+  }
+};
 
 const parcels = {};
 const _handleGrid = async (req, res, userName, channelName) => {
@@ -4281,6 +4332,9 @@ try {
     return;
   } else if (o.host === 'preview.exokit.org') {
     _handlePreviewRequest(req, res);
+    return;
+  } else if (o.host === 'screenshot.exokit.org') {
+    _handleScreenshot(req, res);
     return;
   } else if (o.host === 'grid.exokit.org') {
     _handleGrid(req, res);
