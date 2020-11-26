@@ -3786,30 +3786,34 @@ try {
   const {method} = req;
 
   if (method === 'GET') {
-    const result = await ddbd.get({
-      TableName: storeTableName,
-      Key: {
-        id: 'store',
-      },
-    }).promise();
-    const store = (result && result.Item) || {
-      id: 'store',
-      nextBuyId: 0,
-      booths: [],
-    };
-    const storeEntries = await _formatStoreEntries(store);
-    const booths = await Promise.all(store.booths.map(async booth => {
-      const {address} = booth;
-      const files = await Promise.all(booth.entries.map(async entry => {
-        let token = await contracts['sidechain'].NFT.methods.tokenByIdFull(entry.tokenId).call();
-        token = _formatToken(token, storeEntries);
-        return token;
-      }));
-      return {
-        address,
-        files,
-      };
-    }));
+    const numStores = await contracts['sidechain'].Trade.methods.numStores().call();
+    const booths = [];
+    for (let i = 0; i < numStores; i++) {
+      const store = await contracts['sidechain'].Trade.methods.getStoreByIndex(i + 1).call();
+      if (store.live) {
+        const id = parseInt(store.id, 10);
+        const seller = store.seller.toLowerCase();
+        const tokenId = parseInt(store.tokenId, 10);
+        const price = '0x' + new web3['sidechain'].utils.BN(store.price).toString(16);
+        const entry = {
+          id,
+          seller,
+          tokenId,
+          price,
+        };
+        
+        let booth = booths.find(booth => booth.seller === seller);
+        if (!booth) {
+          booth = {
+            seller,
+            entries: [],
+          };
+          booths.push(booth);
+        }
+        booth.entries.push(entry);
+      }
+    }
+    // console.log('got stores', stores);
     
     _respond(200, JSON.stringify(booths));
   } else {
