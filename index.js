@@ -3608,7 +3608,7 @@ const _getStoreEntries = async () => {
       const id = parseInt(store.id, 10);
       const seller = store.seller.toLowerCase();
       const tokenId = parseInt(store.tokenId, 10);
-      const price = new web3.utils.BN(store.price);
+      const price = new web3['sidechain'].utils.BN(store.price);
       const entry = {
         id,
         seller,
