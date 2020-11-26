@@ -3802,7 +3802,7 @@ try {
     const booths = [];
     for (let i = 0; i < storeEntries.length; i++) {
       const store = storeEntries[i]
-      const {id} = store;
+      const {id, seller} = store;
       
       let token = await contracts['sidechain'].NFT.methods.tokenByIdFull(id).call();
       token = _formatToken(token, storeEntries);
