@@ -3599,7 +3599,6 @@ const _formatToken = (token, storeEntries) => {
     buyPrice,
   };
 };
-const _formatStoreEntries = result => (result && result.Item) ? result.Item.booths.map(booth => booth.entries).flat() : [];
 const _handleTokens = chainName => async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -3612,14 +3611,26 @@ const _handleTokens = chainName => async (req, res) => {
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
   const _getStoreEntries = async () => {
-    const result = await ddbd.get({
-      TableName: storeTableName,
-      Key: {
-        id: 'store',
-      },
-    }).promise();
-    console.log('got get', result);
-    return _formatStoreEntries(result);
+    const numStores = await contracts['sidechain'].Trade.methods.numStores().call();
+    const storeEntries = [];
+    for (let i = 0; i < numStores; i++) {
+      const store = await contracts['sidechain'].Trade.methods.getStoreByIndex(i + 1).call();
+      if (store.live) {
+        const id = parseInt(store.id, 10);
+        const seller = store.seller.toLowerCase();
+        const tokenId = parseInt(store.tokenId, 10);
+        const price = new web3.utils.BN(store.price);
+        const entry = {
+          id,
+          seller,
+          tokenId,
+          price,
+        };
+        storeEntries.push(entry);
+      }
+    }
+
+    return storeEntries;
   };
 
 try {
@@ -3786,34 +3797,26 @@ try {
   const {method} = req;
 
   if (method === 'GET') {
-    const numStores = await contracts['sidechain'].Trade.methods.numStores().call();
+    const storeEntries = await _getStoreEntries();
+
     const booths = [];
-    for (let i = 0; i < numStores; i++) {
-      const store = await contracts['sidechain'].Trade.methods.getStoreByIndex(i + 1).call();
-      if (store.live) {
-        const id = parseInt(store.id, 10);
-        const seller = store.seller.toLowerCase();
-        const tokenId = parseInt(store.tokenId, 10);
-        const price = '0x' + new web3['sidechain'].utils.BN(store.price).toString(16);
-        const entry = {
-          id,
+    for (let i = 0; i < storeEntries.length; i++) {
+      const store = storeEntries[i]
+      const {id} = store;
+      
+      let token = await contracts['sidechain'].NFT.methods.tokenByIdFull(id).call();
+      token = _formatToken(token, storeEntries);
+      
+      let booth = booths.find(booth => booth.seller === seller);
+      if (!booth) {
+        booth = {
           seller,
-          tokenId,
-          price,
+          entries: [],
         };
-        
-        let booth = booths.find(booth => booth.seller === seller);
-        if (!booth) {
-          booth = {
-            seller,
-            entries: [],
-          };
-          booths.push(booth);
-        }
-        booth.entries.push(entry);
+        booths.push(booth);
       }
+      booth.entries.push(token);
     }
-    // console.log('got stores', stores);
     
     _respond(200, JSON.stringify(booths));
   } else {
