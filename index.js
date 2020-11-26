@@ -3599,6 +3599,28 @@ const _formatToken = (token, storeEntries) => {
     buyPrice,
   };
 };
+const _getStoreEntries = async () => {
+  const numStores = await contracts['sidechain'].Trade.methods.numStores().call();
+  const storeEntries = [];
+  for (let i = 0; i < numStores; i++) {
+    const store = await contracts['sidechain'].Trade.methods.getStoreByIndex(i + 1).call();
+    if (store.live) {
+      const id = parseInt(store.id, 10);
+      const seller = store.seller.toLowerCase();
+      const tokenId = parseInt(store.tokenId, 10);
+      const price = new web3.utils.BN(store.price);
+      const entry = {
+        id,
+        seller,
+        tokenId,
+        price,
+      };
+      storeEntries.push(entry);
+    }
+  }
+
+  return storeEntries;
+};
 const _handleTokens = chainName => async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -3609,28 +3631,6 @@ const _handleTokens = chainName => async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
-  };
-  const _getStoreEntries = async () => {
-    const numStores = await contracts['sidechain'].Trade.methods.numStores().call();
-    const storeEntries = [];
-    for (let i = 0; i < numStores; i++) {
-      const store = await contracts['sidechain'].Trade.methods.getStoreByIndex(i + 1).call();
-      if (store.live) {
-        const id = parseInt(store.id, 10);
-        const seller = store.seller.toLowerCase();
-        const tokenId = parseInt(store.tokenId, 10);
-        const price = new web3.utils.BN(store.price);
-        const entry = {
-          id,
-          seller,
-          tokenId,
-          price,
-        };
-        storeEntries.push(entry);
-      }
-    }
-
-    return storeEntries;
   };
 
 try {
