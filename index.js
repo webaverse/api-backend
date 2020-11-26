@@ -3802,9 +3802,9 @@ try {
     const booths = [];
     for (let i = 0; i < storeEntries.length; i++) {
       const store = storeEntries[i]
-      const {id, seller} = store;
+      const {tokenId, seller} = store;
       
-      let token = await contracts['sidechain'].NFT.methods.tokenByIdFull(id).call();
+      let token = await contracts['sidechain'].NFT.methods.tokenByIdFull(tokenId).call();
       token = _formatToken(token, storeEntries);
       
       let booth = booths.find(booth => booth.seller === seller);
