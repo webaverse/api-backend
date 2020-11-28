@@ -3699,7 +3699,7 @@ const _getChainToken = chainName => async (tokenId, storeEntries) => {
   }
 };
 const _getSidechainToken = _getChainToken('sidechain');
-const _getChainOwnerToken = chainName => async (address, i) => {
+const _getChainOwnerToken = chainName => async (address, i, storeEntries) => {
   const token = await contracts[chainName].NFT.methods.tokenOfOwnerByIndexFull(address, i).call();
   if (parseInt(token.id) > 0) {
     return await _formatToken(token, storeEntries);
@@ -3851,7 +3851,7 @@ try {
 
       const promises = [];
       for (let i = 0; i < nftBalance; i++) {
-        promises[i] = _getChainOwnerToken(chainName)(address, i);
+        promises[i] = _getChainOwnerToken(chainName)(address, i, storeEntries);
       }
       let tokens = await Promise.all(promises);
       tokens.sort((a, b) => a.id - b.id);
