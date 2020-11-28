@@ -3752,7 +3752,6 @@ try {
       const tokenId = parseInt(match[1], 10);
 
       const storeEntries = await _getStoreEntries();
-
       const token = await _getChainToken(chainName)(tokenId, storeEntries);
 
       _setCorsHeaders(res);
