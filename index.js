@@ -3645,57 +3645,68 @@ try {
 }
 };
 
+const _formatToken = async (token, storeEntries) => {
+  const _fetchAvatar = async address => {
+    let username = await contracts['sidechain'].Account.methods.getMetadata(address, 'name').call();
+    if (!username) {
+      username = 'Anonymous';
+    }
+    let avatarPreview = await contracts['sidechain'].Account.methods.getMetadata(address, 'avatarPreview').call();
+    if (!avatarPreview) {
+      avatarPreview = defaultAvatarPreview;
+    }
+    return {
+      address,
+      username,
+      avatarPreview,
+    };
+  };
+  const [minter, owner] = await Promise.all([
+    _fetchAvatar(token.minter),
+    _fetchAvatar(token.owner),
+  ]);
+
+  const id = parseInt(token.id, 10);
+  const hash = web3['sidechain'].utils.padLeft(new web3['sidechain'].utils.BN(token.hash, 10).toString(16), 32);
+  const ext = getExt(token.filename);
+  const storeEntry = storeEntries.find(entry => entry.id === id);
+  const buyPrice = storeEntry ? storeEntry.price : null;
+  return {
+    id,
+    name: token.filename,
+    description: 'Hash ' + hash,
+    image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
+    external_url: 'https://app.webaverse.com?h=' + hash,
+    animation_url: `https://storage.exokit.org/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+    properties: {
+      filename: token.filename,
+      hash: '0x' + hash,
+      ext,
+    },
+    minter,
+    owner,
+    balance: parseInt(token.balance, 10),
+    totalSupply: parseInt(token.totalSupply, 10),
+    buyPrice,
+  };
+};
 const _getChainToken = chainName => async (tokenId, storeEntries) => {
   const token = await contracts[chainName].NFT.methods.tokenByIdFull(tokenId).call();
   if (parseInt(token.id) > 0) {
-    const _fetchAvatar = async address => {
-      let username = await contracts[chainName].Account.methods.getMetadata(address, 'name').call();
-      if (!username) {
-        username = 'Anonymous';
-      }
-      let avatarPreview = await contracts[chainName].Account.methods.getMetadata(address, 'avatarPreview').call();
-      if (!avatarPreview) {
-        avatarPreview = defaultAvatarPreview;
-      }
-      return {
-        address,
-        username,
-        avatarPreview,
-      };
-    };
-    const [minter, owner] = await Promise.all([
-      _fetchAvatar(token.minter),
-      _fetchAvatar(token.owner),
-    ]);
-
-    const id = parseInt(token.id, 10);
-    const hash = web3['sidechain'].utils.padLeft(new web3['sidechain'].utils.BN(token.hash, 10).toString(16), 32);
-    const ext = getExt(token.filename);
-    const storeEntry = storeEntries.find(entry => entry.id === id);
-    const buyPrice = storeEntry ? storeEntry.price : null;
-    return {
-      id,
-      name: token.filename,
-      description: 'Hash ' + hash,
-      image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
-      external_url: 'https://app.webaverse.com?h=' + hash,
-      animation_url: `https://storage.exokit.org/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
-      properties: {
-        filename: token.filename,
-        hash: '0x' + hash,
-        ext,
-      },
-      minter,
-      owner,
-      balance: parseInt(token.balance, 10),
-      totalSupply: parseInt(token.totalSupply, 10),
-      buyPrice,
-    };
+    return await _formatToken(token, storeEntries);
   } else {
     return null;
   }
 };
 const _getSidechainToken = _getChainToken('sidechain');
+const _getChainOwnerToken = chainName => async (address, i) => {
+  const token = await contracts[chainName].NFT.methods.tokenOfOwnerByIndexFull(address, i).call();
+  if (parseInt(token.id) > 0) {
+    return await _formatToken(token, storeEntries);
+  } else {
+    return null;
+  }
+};
 const _getStoreEntries = async () => {
   const numStores = await contracts['sidechain'].Trade.methods.numStores().call();
   const storeEntries = [];
@@ -3742,10 +3753,7 @@ try {
 
       const storeEntries = await _getStoreEntries();
 
-      let token = await _getChainToken(chainName)(tokenId, storeEntries);
-      if (token) {
-        token = _formatToken(token, storeEntries);
-      }
+      const token = await _getChainToken(chainName)(tokenId, storeEntries);
 
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
@@ -3791,9 +3799,8 @@ try {
         const tokens = [];
         for (let i = 0; i < numTokens; i++) {
           const tokenId = startTokenId + i;
-          let token = await contracts[chainName].NFT.methods.tokenByIdFull(tokenId).call();
-          if (token.totalSupply > 0) {
-            token = _formatToken(token, storeEntries);
+          const token = await _getSidechainToken(tokenId, storeEntries);
+          if (token) {
             if (!tokens.some(token2 => token2.properties.hash === token.properties.hash)) {
               tokens.push(token);
             }
@@ -3844,12 +3851,7 @@ try {
 
       const promises = [];
       for (let i = 0; i < nftBalance; i++) {
-        promises[i] = contracts[chainName].NFT.methods.tokenOfOwnerByIndexFull(address, i).call()
-          .then(token => {
-            token = _formatToken(token, storeEntries);
-            // console.log('got token', token);
-            return token;
-          })
+        promises[i] = _getChainOwnerToken(chainName)(address, i);
       }
       let tokens = await Promise.all(promises);
       tokens.sort((a, b) => a.id - b.id);
@@ -3899,8 +3901,7 @@ try {
       const store = storeEntries[i]
       const {tokenId, seller} = store;
       
-      let token = await contracts['sidechain'].NFT.methods.tokenByIdFull(tokenId).call();
-      token = _formatToken(token, storeEntries);
+      const token = await _getSidechainToken(tokenId);
       
       let booth = booths.find(booth => booth.seller === seller);
       if (!booth) {
