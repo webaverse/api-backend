@@ -3901,7 +3901,7 @@ try {
       const store = storeEntries[i]
       const {tokenId, seller} = store;
       
-      const token = await _getSidechainToken(tokenId);
+      const token = await _getSidechainToken(tokenId, storeEntries);
       
       let booth = booths.find(booth => booth.seller === seller);
       if (!booth) {
