@@ -3574,6 +3574,75 @@ try {
 }
 };
 
+const _handleProfile = () => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+
+try {
+  const {method} = req;
+
+  if (method === 'GET') {
+    const {pathname: p} = url.parse(req.url, true);
+    // console.log('got p', p);
+    let match;
+    if (match = p.match(/^\/(0x[a-f0-9]+)$/)) {
+      let username = await contracts['sidechain'].Account.methods.getMetadata(address, 'name').call();
+      if (!username) {
+        username = 'Anonymous';
+      }
+      let avatarPreview = await contracts['sidechain'].Account.methods.getMetadata(address, 'avatarPreview').call();
+      if (!avatarPreview) {
+        avatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
+      }
+      const balance = await contracts['sidechain'].FT.methods.balanceOf(address).call();
+
+      const storeEntries = await _getStoreEntries();
+
+      const numTokens = endTokenId - startTokenId;
+      const tokens = [];
+      for (let i = 0; i < numTokens; i++) {
+        const tokenId = startTokenId + i;
+        let token = await contracts['sidechain'].NFT.methods.tokenByIdFull(tokenId).call();
+        if (token.totalSupply > 0) {
+          token = _formatToken(token, storeEntries);
+          if (!tokens.some(token2 => token2.properties.hash === token.properties.hash)) {
+            tokens.push(token);
+          }
+        }
+      }
+
+      const result = {
+        username,
+        avatarPreview,
+        balance,
+        tokens,
+      };
+      _setCorsHeaders(res);
+      res.setHeader('Content-Type', 'application/json');
+      _respond(200, JSON.stringify(result));
+    } else {
+      _respond(404, 'not found');
+    }
+  } else {
+    _respond(404, 'not found');
+  }
+} catch(err) {
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
+}
+};
+
 const _formatToken = (token, storeEntries) => {
   const id = parseInt(token.id, 10);
   const hash = web3['sidechain'].utils.padLeft(new web3['sidechain'].utils.BN(token.hash, 10).toString(16), 32);
@@ -4403,6 +4472,9 @@ try {
     return;
   } else if (o.host === 'files.exokit.org') {
     _handleFiles(req, res);
+    return;
+  } else if (o.host === 'profile.webaverse.com') {
+    _handleProfile(req, res);
     return;
   } else if (o.host === 'tokens.webaverse.com' || o.host === 'tokens-side.webaverse.com') {
     _handleTokens('sidechain')(req, res);
