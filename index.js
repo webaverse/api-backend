@@ -92,6 +92,7 @@ const channels = {};
 const gridChannels = {};
 const webaverseChannels = {};
 const webaverseTmpChannels = {};
+const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
 
 let web3, addresses, abis, contracts;
 
@@ -3604,20 +3605,18 @@ try {
       }
       let avatarPreview = await contracts['sidechain'].Account.methods.getMetadata(address, 'avatarPreview').call();
       if (!avatarPreview) {
-        avatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
+        avatarPreview = defaultAvatarPreview;
       }
       const balance = await contracts['sidechain'].FT.methods.balanceOf(address).call();
 
       const storeEntries = await _getStoreEntries();
+      const tokens = await Promise.all(tokenIds.map(tokenId => _getSidechainToken(tokenId, storeEntries)));
 
-      const tokens = [];
-      for (let i = 0; i < tokenIds.length; i++) {
-        const tokenId = tokenIds[i];
-        let token = await contracts['sidechain'].NFT.methods.tokenByIdFull(tokenId).call();
-        if (token.totalSupply > 0) {
-          token = _formatToken(token, storeEntries);
-          if (!tokens.some(token2 => token2.properties.hash === token.properties.hash)) {
-            tokens.push(token);
+      const tokens2 = [];
+      for (const token of tokens) {
+        if (token) {
+          if (!tokens2.some(token2 => token2.properties.hash === token.properties.hash)) {
+            tokens2.push(token);
           }
         }
       }
@@ -3626,7 +3625,7 @@ try {
         username,
         avatarPreview,
         balance,
-        tokens,
+        tokens: tokens2,
       };
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
@@ -3646,31 +3645,57 @@ try {
 }
 };
 
-const _formatToken = (token, storeEntries) => {
-  const id = parseInt(token.id, 10);
-  const hash = web3['sidechain'].utils.padLeft(new web3['sidechain'].utils.BN(token.hash, 10).toString(16), 32);
-  const ext = getExt(token.filename);
-  const storeEntry = storeEntries.find(entry => entry.id === id);
-  const buyPrice = storeEntry ? storeEntry.price : null;
-  return {
-    id,
-    name: token.filename,
-    description: 'Hash ' + hash,
-    image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
-    external_url: 'https://app.webaverse.com?h=' + hash,
-    animation_url: `https://storage.exokit.org/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
-    properties: {
-      filename: token.filename,
-      hash: '0x' + hash,
-      ext,
-    },
-    minter: token.minter,
-    owner: token.owner,
-    balance: parseInt(token.balance, 10),
-    totalSupply: parseInt(token.totalSupply, 10),
-    buyPrice,
-  };
+const _getChainToken = chainName => async (tokenId, storeEntries) => {
+  const token = await contracts[chainName].NFT.methods.tokenByIdFull(tokenId).call();
+  if (parseInt(token.id) > 0) {
+    const _fetchAvatar = async address => {
+      let username = await contracts[chainName].Account.methods.getMetadata(address, 'name').call();
+      if (!username) {
+        username = 'Anonymous';
+      }
+      let avatarPreview = await contracts[chainName].Account.methods.getMetadata(address, 'avatarPreview').call();
+      if (!avatarPreview) {
+        avatarPreview = defaultAvatarPreview;
+      }
+      return {
+        address,
+        username,
+        avatarPreview,
+      };
+    };
+    const [minter, owner] = await Promise.all([
+      _fetchAvatar(token.minter),
+      _fetchAvatar(token.owner),
+    ]);
+
+    const id = parseInt(token.id, 10);
+    const hash = web3['sidechain'].utils.padLeft(new web3['sidechain'].utils.BN(token.hash, 10).toString(16), 32);
+    const ext = getExt(token.filename);
+    const storeEntry = storeEntries.find(entry => entry.id === id);
+    const buyPrice = storeEntry ? storeEntry.price : null;
+    return {
+      id,
+      name: token.filename,
+      description: 'Hash ' + hash,
+      image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
+      external_url: 'https://app.webaverse.com?h=' + hash,
+      animation_url: `https://storage.exokit.org/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+      properties: {
+        filename: token.filename,
+        hash: '0x' + hash,
+        ext,
+      },
+      minter,
+      owner,
+      balance: parseInt(token.balance, 10),
+      totalSupply: parseInt(token.totalSupply, 10),
+      buyPrice,
+    };
+  } else {
+    return null;
+  }
 };
+const _getSidechainToken = _getChainToken('sidechain');
 const _getStoreEntries = async () => {
   const numStores = await contracts['sidechain'].Trade.methods.numStores().call();
   const storeEntries = [];
@@ -3717,11 +3742,9 @@ try {
 
       const storeEntries = await _getStoreEntries();
 
-      let token = await contracts[chainName].NFT.methods.tokenByIdFull(tokenId).call();
-      if (parseInt(token.id) > 0) {
+      let token = await _getChainToken(chainName)(tokenId, storeEntries);
+      if (token) {
         token = _formatToken(token, storeEntries);
-      } else {
-        token = null;
       }
 
       _setCorsHeaders(res);
