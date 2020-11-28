@@ -3574,7 +3574,7 @@ try {
 }
 };
 
-const _handleProfile = () => {
+const _handleProfile = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -3594,6 +3594,10 @@ try {
     // console.log('got p', p);
     let match;
     if (match = p.match(/^\/(0x[a-f0-9]+)$/)) {
+      const address = match[1];
+
+      const tokenIds = await contracts['sidechain'].NFT.methods.getTokenIdsOf(address).call();
+
       let username = await contracts['sidechain'].Account.methods.getMetadata(address, 'name').call();
       if (!username) {
         username = 'Anonymous';
@@ -3606,10 +3610,9 @@ try {
 
       const storeEntries = await _getStoreEntries();
 
-      const numTokens = endTokenId - startTokenId;
       const tokens = [];
-      for (let i = 0; i < numTokens; i++) {
-        const tokenId = startTokenId + i;
+      for (let i = 0; i < tokenIds.length; i++) {
+        const tokenId = tokenIds[i];
         let token = await contracts['sidechain'].NFT.methods.tokenByIdFull(tokenId).call();
         if (token.totalSupply > 0) {
           token = _formatToken(token, storeEntries);
