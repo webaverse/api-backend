@@ -3624,8 +3624,10 @@ try {
       const result = {
         username,
         avatarPreview,
+        homeSpacePreview: `https://desktopography.net/wp-content/uploads/bfi_thumb/desk_ranko_blazina-34qm8ho3dk1rd512mo5pfk.jpg`,
         balance,
         tokens: tokens2,
+        loadout: tokens2.length > 0 ? tokens.slice(0, 1) : [],
       };
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
