@@ -63,7 +63,7 @@ const api = require('./api.js');
 const { _handleStorageRequest } = require('./routes/storage.js');
 // const { _handleAccountsRequest } = require('./routes/accounts.js');
 const { _handlePreviewRequest } = require('./routes/preview.js')
-const { _waitForWorlds, _handleWorldsRequest, _startWorldsRoute } = require('./routes/worlds.js');
+const { worldManager, _handleWorldsRequest, _startWorldsRoute } = require('./routes/worlds.js');
 const { _handleSignRequest } = require('./routes/sign.js');
 
 const CERT = fs.readFileSync('./certs/fullchain.pem');
@@ -133,7 +133,7 @@ function _getKeyFromBindingUrl(u) {
 
 (async () => {
 
-await _waitForWorlds();
+await worldManager.waitForLoad();
 
 const _handleLogin = async (req, res) => {
   const _respond = (statusCode, body) => {
