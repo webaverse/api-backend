@@ -151,24 +151,44 @@ class WorldManager {
       });
     }
   }
-  async deleteWorld() {
-    const world = this.worlds.find(w => w.name === name);
+  async deleteWorld(name) {
+    if (!this.runnings[name]) {
+      this.runnings[name] = true;
 
-    if (world) {
-      const cp = this.childProcesses.find(cp => cp.name === name);
-      if (cp) {
-        cp.kill();
-        await new Promise((accept, reject) => {
-          cp.on('exit', async () => {
-            accept();
+      try {
+        const world = this.worlds.find(w => w.name === name);
+
+        if (world) {
+          const cp = this.childProcesses.find(cp => cp.name === name);
+          if (cp) {
+            cp.kill();
+            await new Promise((accept, reject) => {
+              cp.on('exit', async () => {
+                accept();
+              });
+            });
+            return true;
+          } else {
+            return false;
+          }
+        } else {
+          return false;
+        }
+      } finally {
+        return await new Promise((accept, reject) => {
+          this.queues.push(async () => {
+            const world = await this.deleteWorld(name);
+            accept(world);
           });
         });
-        return true;
-      } else {
-        return false;
       }
     } else {
-      return false;
+      return await new Promise((accept, reject) => {
+        this.queues.push(async () => {
+          const result = await this.deleteWorld(name);
+          accept(result);
+        });
+      });
     }
   }
 }
