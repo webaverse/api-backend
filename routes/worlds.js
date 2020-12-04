@@ -179,7 +179,6 @@ const _handleWorldsRequest = async (req, res) => {
         const request = url.parse(req.url);
         const match = request.path.match(/^\/([a-z0-9]+)$/i);
         const p = match && match[1];
-        console.log('handle worlds request', match, p);
         // const filename = match && match[2];
 
         res = _setCorsHeaders(res);
