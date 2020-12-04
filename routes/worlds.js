@@ -6,6 +6,7 @@ const url = require('url');
 const child_process = require('child_process');
 // const mime = require('mime');
 const {_setCorsHeaders, getExt} = require('../utils.js');
+const AWS = require('aws-sdk');
 const ps = require('ps-node');
 const config = require('../config.json');
 const {privateIp, publicIp, accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, discordClientId, discordClientSecret, stripeClientId, stripeClientSecret, infuraNetwork, infuraProjectId} = config;
