@@ -26,29 +26,30 @@ const pidSymbol = Symbol('pid');
 
 let startPort = 4000;
 let endPort = 5000;
-const findPort = () => {
-  if (worlds.length > 0) {
-    for (let port = startPort; port < endPort; port++) {
-      if (!worlds.some(world => world.port === port)) {
-        return port;
-      }
-    }
-    return null;
-  } else {
-    return startPort;
-  }
-};
-const _waitForWorlds = () => loadPromise;
 
 class WorldManager {
   constructor() {
     this.worlds = [];
     this.childProcesses = [];
+    this.runnings = {};
+    this.queues = {};
 
-    this.loadPromise = _loadWorlds();
+    this.loadPromise = this.loadWorlds();
   }
   waitForLoad() {
     return this.loadPromise;
+  }
+  findPort() {
+    if (this.worlds.length > 0) {
+      for (let port = startPort; port < endPort; port++) {
+        if (!this.worlds.some(world => world.port === port)) {
+          return port;
+        }
+      }
+      return null;
+    } else {
+      return startPort;
+    }
   }
   async loadWorlds() {
     this.worlds = await new Promise((accept, reject) => {
@@ -84,49 +85,70 @@ class WorldManager {
     });
   }
   async createWorld(name) {
-    if (!this.worlds.some(w => w.name === name)) {
-      const port = findPort();
-      const cp = child_process.spawn(process.argv[0], [
-        jsPath,
-        name,
-        publicIp,
-        privateIp,
-        port,
-      ], {
-        env: {
-          PROTOO_LISTEN_PORT: port,
-          MEDIASOUP_LISTEN_IP: privateIp,
-          MEDIASOUP_ANNOUNCED_IP: publicIp,
-          HTTPS_CERT_FULLCHAIN: path.join('..', 'exokit-backend', 'certs', 'fullchain.pem'),
-          HTTPS_CERT_PRIVKEY: path.join('..', 'exokit-backend', 'certs', 'privkey.pem'),
-          AUTH_KEY: path.join('..', 'exokit-backend', 'certs', 'privkey.pem'),
-          // NUM_WORKERS: 2,
-        },
-      });
-      cp.name = name;
-      req.pipe(cp.stdin);
-      cp.stdout.pipe(process.stdout);
-      cp.stderr.pipe(process.stderr);
-      cp.on('error', err => {
-        console.log('cp error', err.stack);
-      });
-      cp.on('exit', code => {
-        console.log('cp exit', code);
-        this.loadWorlds();
-        this.childProcesses.splice(this.childProcesses.indexOf(cp), 1);
-      });
-      this.childProcesses.push(cp);
+    if (!this.runnings[name]) {
+      this.runnings[name] = true;
 
-      await this.loadWorlds();
+      try {
+        if (!this.worlds.some(w => w.name === name)) {
+          const port = this.findPort();
+          const cp = child_process.spawn(process.argv[0], [
+            jsPath,
+            name,
+            publicIp,
+            privateIp,
+            port,
+          ], {
+            env: {
+              PROTOO_LISTEN_PORT: port,
+              MEDIASOUP_LISTEN_IP: privateIp,
+              MEDIASOUP_ANNOUNCED_IP: publicIp,
+              HTTPS_CERT_FULLCHAIN: path.join('..', 'exokit-backend', 'certs', 'fullchain.pem'),
+              HTTPS_CERT_PRIVKEY: path.join('..', 'exokit-backend', 'certs', 'privkey.pem'),
+              AUTH_KEY: path.join('..', 'exokit-backend', 'certs', 'privkey.pem'),
+              // NUM_WORKERS: 2,
+            },
+          });
+          cp.name = name;
+          // req.pipe(cp.stdin);
+          cp.stdin.end();
+          cp.stdout.pipe(process.stdout);
+          cp.stderr.pipe(process.stderr);
+          cp.on('error', err => {
+            console.log('cp error', err.stack);
+          });
+          cp.on('exit', code => {
+            console.log('cp exit', code);
+            this.loadWorlds();
+            this.childProcesses.splice(this.childProcesses.indexOf(cp), 1);
+          });
+          this.childProcesses.push(cp);
 
-      return {
-        name,
-        publicIp,
-        privateIp,
-        port,
-      };
+          await this.loadWorlds();
+
+          return {
+            name,
+            publicIp,
+            privateIp,
+            port,
+          };
+        } else {
+          return null;
+        }
+      } finally {
+        this.runnings[name] = false;
+
+        const queue = this.queues[name] || [];
+        if (queue.length > 0) {
+          queue.splice(0, 1)();
+        }
+      }
     } else {
-      return null;
+      return await new Promise((accept, reject) => {
+        this.queues.push(async () => {
+          const world = await this.createWorld(name);
+          accept(world);
+        });
+      });
     }
   }
   async deleteWorld() {
@@ -155,8 +177,9 @@ const worldManager = new WorldManager();
 const _handleWorldsRequest = async (req, res) => {
     try {
         const request = url.parse(req.url);
-        const match = request.path.match(/^\/([A-Z]{4})$/);
+        const match = request.path.match(/^\/([a-z0-9]+)$/i);
         const p = match && match[1];
+        console.log('handle worlds request', match, p);
         // const filename = match && match[2];
 
         res = _setCorsHeaders(res);
@@ -170,12 +193,9 @@ const _handleWorldsRequest = async (req, res) => {
           const world = await worldManager.createWorld(name);
 
           if (world) {
-            res.end(JSON.stringify({result: {
-              name,
-              publicIp,
-              privateIp,
-              port,
-            }}));
+            res.end(JSON.stringify({
+              result: world,
+            }));
           } else {
             res.statusCode = 400;
             res.end(JSON.stringify({error: 'name already taken'}));
