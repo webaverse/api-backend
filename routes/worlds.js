@@ -7,7 +7,7 @@ const child_process = require('child_process');
 // const mime = require('mime');
 const {_setCorsHeaders, getExt} = require('../utils.js');
 const ps = require('ps-node');
-const config = require('./config.json');
+const config = require('../config.json');
 const {privateIp, publicIp, accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, discordClientId, discordClientSecret, stripeClientId, stripeClientSecret, infuraNetwork, infuraProjectId} = config;
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
