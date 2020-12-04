@@ -175,12 +175,12 @@ class WorldManager {
           return false;
         }
       } finally {
-        return await new Promise((accept, reject) => {
-          this.queues.push(async () => {
-            const world = await this.deleteWorld(name);
-            accept(world);
-          });
-        });
+        this.runnings[name] = false;
+
+        const queue = this.queues[name] || [];
+        if (queue.length > 0) {
+          queue.splice(0, 1)();
+        }
       }
     } else {
       return await new Promise((accept, reject) => {
