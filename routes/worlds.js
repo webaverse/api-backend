@@ -106,6 +106,7 @@ class WorldManager {
               HTTPS_CERT_PRIVKEY: path.join('..', 'exokit-backend', 'certs', 'privkey.pem'),
               AUTH_KEY: path.join('..', 'exokit-backend', 'certs', 'privkey.pem'),
               // NUM_WORKERS: 2,
+              DATA_FILE: path.join('.', 'data', name + '.bin'),
             },
           });
           cp.name = name;
