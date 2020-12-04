@@ -98,6 +98,7 @@ class WorldManager {
             privateIp,
             port,
           ], {
+            cwd: path.dirname(jsPath),
             env: {
               PROTOO_LISTEN_PORT: port,
               MEDIASOUP_LISTEN_IP: privateIp,
@@ -105,8 +106,8 @@ class WorldManager {
               HTTPS_CERT_FULLCHAIN: path.join('..', 'exokit-backend', 'certs', 'fullchain.pem'),
               HTTPS_CERT_PRIVKEY: path.join('..', 'exokit-backend', 'certs', 'privkey.pem'),
               AUTH_KEY: path.join('..', 'exokit-backend', 'certs', 'privkey.pem'),
-              // NUM_WORKERS: 2,
               DATA_FILE: path.join('.', 'data', name + '.bin'),
+              // NUM_WORKERS: 2,
             },
           });
           cp.name = name;
