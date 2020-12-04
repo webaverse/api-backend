@@ -1,5 +1,6 @@
 const path = require('path');
 const url = require('url');
+const fs = require('fs').promises;
 // const https = require('https');
 // const { putObject, uploadFromStream } = require('../aws.js');
 // const crypto = require('crypto');
@@ -17,11 +18,12 @@ const awsConfig = new AWS.Config({
   }),
   region: 'us-west-1',
 });
-const ddb = new AWS.DynamoDB(awsConfig);
-const ddbd = new AWS.DynamoDB.DocumentClient(awsConfig);
+// const ddb = new AWS.DynamoDB(awsConfig);
+// const ddbd = new AWS.DynamoDB.DocumentClient(awsConfig);
+const s3 = new AWS.S3(awsConfig);
 
 const jsPath = '../dialog/index.js';
-
+const bucketName = 'worlds.exokit.org';
 const pidSymbol = Symbol('pid');
 
 let startPort = 4000;
@@ -90,6 +92,28 @@ class WorldManager {
 
       try {
         if (!this.worlds.some(w => w.name === name)) {
+          let b;
+          try {
+            const o = await s3.getObject({
+              Bucket: bucketName,
+              Key: name,
+            }).promise();
+            console.log('got object', o);
+            b = o.Body;
+          } catch(err) {
+            if (err.code === 'NoSuchKey') {
+              // nothing
+            } else {
+              console.warn(err.stack);
+            }
+            b = null;
+          }
+          const dataFilePath = path.join(path.dirname(jsPath), 'data', name + '.bin');
+          // console.log('placing data', b && b.byteLength);
+          if (b) {
+            await fs.writeFile(dataFilePath, b); 
+          }
+
           const port = this.findPort();
           const cp = child_process.spawn(process.argv[0], [
             jsPath,
@@ -106,12 +130,12 @@ class WorldManager {
               HTTPS_CERT_FULLCHAIN: path.join('..', 'exokit-backend', 'certs', 'fullchain.pem'),
               HTTPS_CERT_PRIVKEY: path.join('..', 'exokit-backend', 'certs', 'privkey.pem'),
               AUTH_KEY: path.join('..', 'exokit-backend', 'certs', 'privkey.pem'),
-              DATA_FILE: path.join('.', 'data', name + '.bin'),
+              DATA_FILE: dataFilePath,
               // NUM_WORKERS: 2,
             },
           });
           cp.name = name;
-          // req.pipe(cp.stdin);
+          cp.dataFilePath = dataFilePath;
           cp.stdin.end();
           cp.stdout.pipe(process.stdout);
           cp.stderr.pipe(process.stderr);
@@ -164,8 +188,20 @@ class WorldManager {
           const cp = this.childProcesses.find(cp => cp.name === name);
           if (cp) {
             cp.kill();
+
             await new Promise((accept, reject) => {
               cp.on('exit', async () => {
+                const b = await fs.readFile(cp.dataFilePath);
+                await s3.putObject({
+                  Bucket: bucketName,
+                  Key: name,
+                  ContentType: 'application/octet-stream',
+                  ContentLength: b.length,
+                  Body: b,
+                }).promise();
+
+                await fs.unlink(cp.dataFilePath);
+
                 accept();
               });
             });
