@@ -3653,6 +3653,10 @@ const _formatToken = async (token, storeEntries) => {
     if (!username) {
       username = 'Anonymous';
     }
+    let monetizationPointer = await contracts['sidechain'].Account.methods.getMetadata(address, 'monetizationPointer').call();
+    if (!monetizationPointer) {
+      monetizationPointer = '';
+    }
     let avatarPreview = await contracts['sidechain'].Account.methods.getMetadata(address, 'avatarPreview').call();
     if (!avatarPreview) {
       avatarPreview = defaultAvatarPreview;
@@ -3660,6 +3664,7 @@ const _formatToken = async (token, storeEntries) => {
     return {
       address,
       username,
+      monetizationPointer,
       avatarPreview,
     };
   };
