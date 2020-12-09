@@ -149,6 +149,24 @@ class WorldManager {
           });
           this.childProcesses.push(cp);
 
+          await new Promise((accept, reject) => {
+            cp.stdout.setEncoding('utf8');
+            const _data = s => {
+              if (/ready\n/.test(s)) {
+                console.log('got dialog ready');
+
+                accept();
+                cp.stdout.removeListener('data', _end);
+                cp.stdout.removeListener('end', _end);
+              }
+            };
+            cp.stdout.on('data', _data);
+            const _end = () => {
+              reject(new Error('dialog did not output ready'));
+            };
+            cp.stdout.on('end', _end);
+          });
+
           await this.loadWorlds();
 
           return {
