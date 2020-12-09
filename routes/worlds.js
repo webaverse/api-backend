@@ -245,6 +245,17 @@ const _handleWorldsRequest = async (req, res) => {
           res.end();
         } else if (method === 'GET' && request.path == '/') {
           res.end(JSON.stringify(worldManager.worlds));
+        } else if (method === 'GET' && p) {
+          const name = p;
+          const world = worldManager.worlds.find(world => world.name === name);
+          if (world) {
+            res.end(JSON.stringify({
+              result: world,
+            }));
+          } else {
+            res.statusCode = 404;
+            res.end(JSON.stringify({error: 'world not found'}));
+          }
         } else if (method === 'POST' && p) {
           const name = p;
           const world = await worldManager.createWorld(name);
