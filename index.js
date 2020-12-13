@@ -3898,8 +3898,10 @@ const _handleStore = async (req, res) => {
 
 try {
   const {method} = req;
+  const {pathname: p} = url.parse(req.url);
 
-  if (method === 'GET') {
+  let match;
+  if (method === 'GET' & p === '/') {
     const storeEntries = await _getStoreEntries();
 
     const booths = [];
@@ -3919,8 +3921,14 @@ try {
       }
       booth.entries.push(token);
     }
-    
+
     _respond(200, JSON.stringify(booths));
+  } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
+    const storeEntries = await _getStoreEntries();
+
+    const seller = match[1];
+    const sellerStoreEntries = storeEntries.filter(e => e.seller === seller);
+    _respond(200, JSON.stringify(sellerStoreEntries));
   } else {
     _respond(404, 'not found');
   }
