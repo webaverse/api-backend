@@ -3900,8 +3900,7 @@ try {
   const {method} = req;
   const {pathname: p} = url.parse(req.url);
 
-  let match;
-  if (method === 'GET' & p === '/') {
+  const _getBooths = async () => {
     const storeEntries = await _getStoreEntries();
 
     const booths = [];
@@ -3922,13 +3921,18 @@ try {
       booth.entries.push(token);
     }
 
+    return booths;
+  };
+
+  let match;
+  if (method === 'GET' & p === '/') {
+    const booths = await _getBooths();
     _respond(200, JSON.stringify(booths));
   } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
-    const storeEntries = await _getStoreEntries();
-
     const seller = match[1];
-    const sellerStoreEntries = storeEntries.filter(e => e.seller === seller);
-    _respond(200, JSON.stringify(sellerStoreEntries));
+    let booths = await _getBooths();
+    booths = booths.filter(booth => booth.seller === seller);
+    _respond(200, JSON.stringify(booths));
   } else {
     _respond(404, 'not found');
   }
