@@ -2,17 +2,12 @@ const url = require('url');
 const { _setCorsHeaders } = require('../utils.js');
 
 const _handleAnalyticsRequest = async (req, res) => {
-    const {
-      contentId,
-      ownerAddress,
-      monetizationPointer
-    } = req.params
-  
-    const {
-      amount,
-      assetCode,
-      assetScale
-    } = req.body
+    const request = url.parse(req.url);
+    const path = request.path.split('/');
+
+    const contentId = path[0];
+    const ownerAddress = path[1];
+    const monetizationPointer = path[2];
 
     try {
         res = _setCorsHeaders(res);
