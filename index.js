@@ -65,6 +65,7 @@ const { _handleStorageRequest } = require('./routes/storage.js');
 const { _handlePreviewRequest } = require('./routes/preview.js')
 const { worldManager, _handleWorldsRequest, _startWorldsRoute } = require('./routes/worlds.js');
 const { _handleSignRequest } = require('./routes/sign.js');
+const { _handleAnalyticsRequest } = require('./routes/analytics.js');
 
 const CERT = fs.readFileSync('./certs/fullchain.pem');
 const PRIVKEY = fs.readFileSync('./certs/privkey.pem');
@@ -4459,6 +4460,9 @@ try {
     return;
   } else if (o.host === 'accounts.webaverse.com') {
     _handleAccounts(req, res);
+    return;
+  } else if (o.host === 'analytics.webaverse.com') {
+    _handleAnalyticsRequest(req, res);
     return;
   } else if (o.host === 'sign.exokit.org') {
     _handleSignRequest(req, res);
