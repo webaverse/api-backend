@@ -66,5 +66,5 @@ const _handleAnalyticsRequest = async (req, res) => {
 }
 
 module.exports = {
-    _handleAccountsRequest,
+    _handleAnalyticsRequest,
 }
