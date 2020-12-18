@@ -1,5 +1,16 @@
 const url = require('url');
 const { _setCorsHeaders } = require('../utils.js');
+const AWS = require('aws-sdk');
+const config = require('../config.json');
+const {accessKeyId, secretAccessKey} = config;
+const awsConfig = new AWS.Config({
+  credentials: new AWS.Credentials({
+    accessKeyId,
+    secretAccessKey,
+  }),
+  region: 'us-west-1',
+});
+const ddbd = new AWS.DynamoDB.DocumentClient(awsConfig);
 
 const _handleAnalyticsRequest = async (req, res) => {
     const request = url.parse(req.url);
