@@ -45,7 +45,7 @@ const _handleAnalyticsRequest = async (req, res) => {
                 } = json
 
                 const params = {
-                  TableName: monetization,
+                  TableName: "monetization",
                   Item: {
                     contentId,
                     ownerAddress,
