@@ -1,5 +1,5 @@
 const url = require('url');
-import * as uuid from "uuid";
+const uuid = require('uuid');
 const { _setCorsHeaders } = require('../utils.js');
 const AWS = require('aws-sdk');
 const config = require('../config.json');
