@@ -17,9 +17,9 @@ const _handleAnalyticsRequest = async (req, res) => {
     const request = url.parse(req.url);
     const path = request.path.split('/');
 
-    const contentId = path[0];
-    const ownerAddress = path[1];
-    const monetizationPointer = path[2];
+    const contentId = path[1];
+    const ownerAddress = path[2];
+    const monetizationPointer = decodeURIComponent(path[3]);
 
     try {
       res = _setCorsHeaders(res);
