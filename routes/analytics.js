@@ -1,4 +1,5 @@
 const url = require('url');
+import * as uuid from "uuid";
 const { _setCorsHeaders } = require('../utils.js');
 const AWS = require('aws-sdk');
 const config = require('../config.json');
@@ -48,6 +49,7 @@ const _handleAnalyticsRequest = async (req, res) => {
                   TableName: "monetization",
                   Item: {
                     contentId,
+                    eventId: uuid.v1(),
                     ownerAddress,
                     monetizationPointer,
                     amount,
