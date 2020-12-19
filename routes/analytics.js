@@ -76,6 +76,11 @@ const _handleAnalyticsRequest = async (req, res) => {
         res.statusCode = 404;
         res.end('not found');
       }
+    } catch (err) {
+      console.log(err);
+      res.statusCode = 500;
+      res.end(err.stack);
+    }
 }
 
 module.exports = {
