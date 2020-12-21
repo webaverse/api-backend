@@ -5,6 +5,7 @@ const url = require('url');
 const querystring = require('querystring');
 const http = require('http');
 const https = require('https');
+const dns = require('dns');
 const crypto = require('crypto');
 const zlib = require('zlib');
 const child_process = require('child_process');
@@ -56,6 +57,7 @@ const apiKeyCache = new LRU({
 const stripe = Stripe(stripeClientSecret);
 // const accountManager = require('./account-manager.js');
 // const eventsManager = require('./events-manager.js');
+const ethereumHost = 'ethereum.exokit.org';
 
 const Discord = require('discord.js');
 
@@ -74,7 +76,6 @@ const PORT = parseInt(process.env.PORT, 10) || 80;
 const PARCEL_SIZE = 8;
 const maxChunkSize = 25*1024*1024;
 const filterTopic = 'webxr-site';
-const gethNodeUrl = 'http://13.56.80.83:8545';
 const web3MainEndpoint = `https://${infuraNetwork}.infura.io/v3/${infuraProjectId}`;
 const web3SidechainEndpoint = 'https://ethereum.exokit.org';
 
@@ -95,7 +96,7 @@ const webaverseChannels = {};
 const webaverseTmpChannels = {};
 const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
 
-let web3, addresses, abis, contracts;
+let web3, addresses, abis, contracts, gethNodeUrl;
 
 Error.stackTraceLimit = 300;
 
@@ -4649,6 +4650,20 @@ const _ws = protocol => (req, socket, head) => {
   };
   addresses = await fetch('https://contracts.webaverse.com/ethereum/address.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   abis = await fetch('https://contracts.webaverse.com/ethereum/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
+  const ethereumHostAddress = await new Promise((accept, reject) => {
+    dns.resolve4(ethereumHost, (err, addresses) => {
+      if (!err) {
+        if (addresses.length > 0) {
+          accept(addresses[0]);
+        } else {
+          reject(new Error('no addresses resolved for ' + ethereumHostname));
+        }
+      } else {
+        reject(err);
+      }
+    });
+  });
+  gethNodeUrl = `http://${ethereumHostAddress}:8545`;
   let {
     main: {Account: AccountAddress, FT: FTAddress, NFT: NFTAddress, FTProxy: FTProxyAddress, NFTProxy: NFTProxyAddress, Trade: TradeAddress},
     sidechain: {Account: AccountAddressSidechain, FT: FTAddressSidechain, NFT: NFTAddressSidechain, FTProxy: FTProxyAddressSidechain, NFTProxy: NFTProxyAddressSidechain, Trade: TradeAddressSidechain},
