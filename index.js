@@ -4663,8 +4663,8 @@ const _ws = protocol => (req, socket, head) => {
       }
     });
   });
-  console.log('geth host address', {gethNodeUrl});
   gethNodeUrl = `http://${ethereumHostAddress}:8545`;
+  console.log('geth host address', {gethNodeUrl});
   let {
     main: {Account: AccountAddress, FT: FTAddress, NFT: NFTAddress, FTProxy: FTProxyAddress, NFTProxy: NFTProxyAddress, Trade: TradeAddress},
     sidechain: {Account: AccountAddressSidechain, FT: FTAddressSidechain, NFT: NFTAddressSidechain, FTProxy: FTProxyAddressSidechain, NFTProxy: NFTProxyAddressSidechain, Trade: TradeAddressSidechain},
