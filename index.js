@@ -64,7 +64,7 @@ const Discord = require('discord.js');
 const api = require('./api.js');
 const { _handleStorageRequest } = require('./routes/storage.js');
 // const { _handleAccountsRequest } = require('./routes/accounts.js');
-const { _handlePreviewRequest } = require('./routes/preview.js')
+// const { _handlePreviewRequest } = require('./routes/preview.js')
 const { worldManager, _handleWorldsRequest, _startWorldsRoute } = require('./routes/worlds.js');
 const { _handleSignRequest } = require('./routes/sign.js');
 const { _handleAnalyticsRequest } = require('./routes/analytics.js');
@@ -1384,7 +1384,7 @@ try {
 }
 }; */
 
-const _handleScreenshot = async (req, res) => {
+/* const _handleScreenshot = async (req, res) => {
   const browser = await browserManager.getBrowser();
   
   const _respond = (statusCode, body) => {
@@ -1432,7 +1432,7 @@ const _handleScreenshot = async (req, res) => {
     console.warn(err.stack);
     _respond(500, err.stack);
   }
-};
+}; */
 
 const parcels = {};
 const _handleGrid = async (req, res, userName, channelName) => {
@@ -3755,7 +3755,6 @@ try {
 
   if (method === 'GET') {
     const {pathname: p} = url.parse(req.url, true);
-    // console.log('got p', p);
     let match;
     if (match = p.match(/^\/([0-9]+)$/)) {
       const tokenId = parseInt(match[1], 10);
@@ -4435,7 +4434,7 @@ try {
   if (o.host === 'login.exokit.org') {
     _handleLogin(req, res);
     return;
-  } else if (o.host === 'ethereum.exokit.org') {
+  /* } else if (o.host === 'ethereum.exokit.org') {
     _handleEthereum(req, res);
     return;
   } else if (o.host === 'presence.exokit.org') {
@@ -4470,7 +4469,7 @@ try {
     return;
   } else if (o.host === 'scenes.exokit.org') {
     _handleScenes(req, res);
-    return;
+    return; */
   } else if (o.host === 'accounts.webaverse.com') {
     _handleAccounts(req, res);
     return;
@@ -4502,19 +4501,19 @@ try {
       _handleSites(req, res, userName, channelName);
       return;
     } */
-  } else if (o.host === 'inventory.exokit.org') {
+  /* } else if (o.host === 'inventory.exokit.org') {
     _handleInventory(req, res);
     return;
   } else if (o.host === 'payments.exokit.org') {
     _handlePayments(req, res);
-    return;
+    return; */
   } else if (o.host === 'oauth.exokit.org') {
     _handleOauth(req, res);
     return;
   /* } else if (o.host === 'token.exokit.org') {
     _handleToken(req, res);
     return; */
-  } else if (o.host === 'repos.exokit.org') {
+  /* } else if (o.host === 'repos.exokit.org') {
     _handleRepos(req, res);
     return;
   } else if (o.host === 'git.exokit.org') {
@@ -4522,7 +4521,7 @@ try {
     return;
   } else if (o.host === 'files.exokit.org') {
     _handleFiles(req, res);
-    return;
+    return; */
   } else if (o.host === 'profile.webaverse.com') {
     _handleProfile(req, res);
     return;
