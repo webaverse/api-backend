@@ -4644,10 +4644,6 @@ const _ws = protocol => (req, socket, head) => {
 };
 
 {
-  web3 = {
-    main: new Web3(new Web3.providers.HttpProvider(web3MainEndpoint)),
-    sidechain: new Web3(new Web3.providers.HttpProvider(web3SidechainEndpoint)),
-  };
   addresses = await fetch('https://contracts.webaverse.com/ethereum/address.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   abis = await fetch('https://contracts.webaverse.com/ethereum/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const ethereumHostAddress = await new Promise((accept, reject) => {
@@ -4664,7 +4660,13 @@ const _ws = protocol => (req, socket, head) => {
     });
   });
   gethNodeUrl = `http://${ethereumHostAddress}:8545`;
-  console.log('geth host address', {gethNodeUrl});
+  
+  web3 = {
+    main: new Web3(new Web3.providers.HttpProvider(web3MainEndpoint)),
+    sidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl)),
+  };
+  
+  // console.log('geth host address', {gethNodeUrl});
   let {
     main: {Account: AccountAddress, FT: FTAddress, NFT: NFTAddress, FTProxy: FTProxyAddress, NFTProxy: NFTProxyAddress, Trade: TradeAddress},
     sidechain: {Account: AccountAddressSidechain, FT: FTAddressSidechain, NFT: NFTAddressSidechain, FTProxy: FTProxyAddressSidechain, NFTProxy: NFTProxyAddressSidechain, Trade: TradeAddressSidechain},
