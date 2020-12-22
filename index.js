@@ -738,6 +738,10 @@ const _handleAccounts = async (req, res) => {
         'avatarUrl',
         'avatarFileName',
         'avatarPreview',
+        'loadout',
+        'homeSpaceUrl',
+        'homeSpaceFileName',
+        'homeSpacePreview',
         'ftu',
       ].map(key =>
         contracts['sidechain'].Account.methods.getMetadata(address, key).call()
