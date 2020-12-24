@@ -28,6 +28,7 @@
     "bip39": "^3.0.2",
     "discord.js": "^12.2.0",
     "ethereumjs-wallet": "^1.0.1",
+    "form-data": "^3.0.0",
     "form-urlencoded": "^4.2.1",
     "http-proxy": "^1.18.1",
     "lru": "^3.1.0",
