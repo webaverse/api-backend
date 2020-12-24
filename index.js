@@ -4438,7 +4438,7 @@ try {
   if (o.host === 'login.exokit.org') {
     _handleLogin(req, res);
     return;
-  } else if (o.host === 'ethereum.exokit.org') {
+  } else if (o.host === 'ethereums.exokit.org') {
     _handleEthereum(req, res);
     return;
   /* } else if (o.host === 'presence.exokit.org') {
