@@ -505,21 +505,25 @@ try {
     // console.log('got ethereum', {method, p, query});
 
     if (method === 'GET') {
-      const proxy = httpProxy.createProxyServer({});
-      if (!/^\/ipfs\//.test(req.url)) {
-        req.url = '/ipfs' + req.url;
-      }
-      proxy
-        .web(req, res, {
-          target: 'http://127.0.0.1:8080',
-          // secure: false,
-          changeOrigin: true,
-        }, err => {
-          console.warn(err.stack);
+      const match = req.url.match(/^(?:\/ipfs)?\/([a-z0-9]+)(?:\/(.*))?$/i);
+      if (match) {
+        const proxy = httpProxy.createProxyServer({});
+        req.url = '/ipfs/' + match[1];
+        proxy
+          .web(req, res, {
+            target: 'http://127.0.0.1:8080',
+            // secure: false,
+            changeOrigin: true,
+          }, err => {
+            console.warn(err.stack);
 
-          res.statusCode = 500;
-          res.end();
-        });
+            res.statusCode = 500;
+            res.end();
+          });
+      } else {
+        res.statusCode = 404;
+        res.end();
+      }
     } else if (method === 'POST') {
       const bs = [];
       let totalSize = 0;
