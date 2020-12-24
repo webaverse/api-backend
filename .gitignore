@@ -5,3 +5,4 @@ keys
 .DS_Store
 world-server.zip
 certs
+*.log
