@@ -8,8 +8,10 @@ const https = require('https');
 const dns = require('dns');
 const crypto = require('crypto');
 const zlib = require('zlib');
+const os = require('os');
 const child_process = require('child_process');
 const mkdirp = require('mkdirp');
+const FormData = require('form-data');
 // const express = require('express');
 const httpProxy = require('http-proxy');
 const ws = require('ws');
@@ -137,14 +139,18 @@ function _getKeyFromBindingUrl(u) {
 
 await worldManager.waitForLoad();
 
-const cp = child_process.spawn('ipfs', [
+const ipfsProcess = child_process.spawn('ipfs', [
   'daemon',
   '--writable',
 ]);
-cp.stdout.pipe(process.stdout);
-cp.stderr.pipe(process.stderr);
-cp.on('exit', code => {
+ipfsProcess.stdout.pipe(process.stdout);
+ipfsProcess.stderr.pipe(process.stderr);
+ipfsProcess.on('exit', code => {
   console.warn('ipfs exited', code);
+});
+process.on('exit', () => {
+  ipfsProcess.kill(9);
+  fs.unlinkSync(path.join(os.homedir() + '.ipfs', 'repo.lock'));
 });
 
 const _handleLogin = async (req, res) => {
@@ -459,6 +465,88 @@ try {
     } else {
       _respond(400, JSON.stringify({
         error: 'invalid method',
+      }));
+    }
+} catch(err) {
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
+}
+};
+
+const _handleIpfs = async (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+
+try {
+    const {method} = req;
+    const {query, pathname: p} = url.parse(req.url, true);
+
+    // console.log('got ethereum', {method, p, query});
+
+    if (method === 'GET') {
+      const proxy = httpProxy.createProxyServer({});
+      req.url = '/ipfs' + req.url;
+      proxy
+        .web(req, res, {
+          target: 'http://127.0.0.1:8080',
+          // secure: false,
+          changeOrigin: true,
+        }, err => {
+          console.warn(err.stack);
+
+          res.statusCode = 500;
+          res.end();
+        });
+    } else if (method === 'POST') {
+      const bs = [];
+      req.on('data', function(d) {
+        bs.push(d);
+      });
+      req.on('end', function() {
+        const b = Buffer.concat(bs);
+        bs.length = 0;
+
+        const form = new FormData();
+        form.append('file', b);
+        form.submit('http://127.0.0.1:5001/api/v0/add', function(err, proxyRes) {
+          if (!err) {
+            if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
+              const bs = [];
+              proxyRes.on('data', function(d) {
+                bs.push(d);
+              });
+              proxyRes.on('end', function() {
+                const b = Buffer.concat(bs);
+                const s = b.toString('utf8');
+                // console.log('got s', s);
+                const j = JSON.parse(s);
+                const {Hash} = j;
+                res.end(Hash);
+              });
+            } else {
+              res.statusCode = proxyRes.statusCode;
+              proxyRes.pipe(res);
+            }
+          } else {
+            res.statusCode = 500;
+            res.end(err.stack);
+          }
+        });
+      });
+    } else {
+      _respond(500, JSON.stringify({
+        error: err.stack,
       }));
     }
 } catch(err) {
@@ -820,7 +908,7 @@ try {
 }
 };
 
-const _handleIpfs = async (req, res, channels) => {
+/* const _handleIpfs = async (req, res, channels) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -880,10 +968,7 @@ try {
         hash, // /
       ]);
       let rs = cp.stdout;
-      /*if (req.headers['accept-encoding'] && /br/.test(req.headers['accept-encoding'])) {
-        rs = rs.pipe(zlib.BrotliCompress());
-        res.setHeader('Content-Encoding', 'br');
-      } else */if (req.headers['accept-encoding'] && /gzip/.test(req.headers['accept-encoding'])) {
+      if (req.headers['accept-encoding'] && /gzip/.test(req.headers['accept-encoding'])) {
         rs = rs.pipe(zlib.Gzip());
         res.setHeader('Content-Encoding', 'gzip');
       }
@@ -957,7 +1042,7 @@ try {
     error: err.stack,
   }));
 }
-};
+}; */
 
 const _fetchPrefix = prefix => {
   // console.log('got prefix', prefix);
@@ -4451,14 +4536,14 @@ try {
   } else if (o.host === 'ethereums.exokit.org') {
     _handleEthereum(req, res);
     return;
+  } else if (o.host === 'ipfs.exokit.org') {
+    _handleIpfs(req, res);
+    return;
   /* } else if (o.host === 'presence.exokit.org') {
     _handlePresence(req, res, webaverseChannels);
     return;
   } else if (o.host === 'presence-tmp.exokit.org') {
     _handlePresence(req, res, webaverseTmpChannels);
-    return;
-  } else if (o.host === 'ipfs.exokit.org') {
-    _handleIpfs(req, res);
     return;
   } else if (o.host === 'upload.exokit.org') {
     _handleUpload(req, res);
