@@ -150,7 +150,7 @@ ipfsProcess.on('exit', code => {
 });
 process.on('exit', () => {
   ipfsProcess.kill(9);
-  fs.unlinkSync(path.join(os.homedir() + '.ipfs', 'repo.lock'));
+  fs.unlinkSync(path.join(os.homedir(), '.ipfs', 'repo.lock'));
 });
 
 const _handleLogin = async (req, res) => {
