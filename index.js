@@ -527,7 +527,6 @@ try {
     } else if (method === 'POST') {
       const form = new FormData();
       form.append('file', req);
-      console.log('got req', req.url);
       form.submit('http://127.0.0.1:5001/api/v0/add', function(err, proxyRes) {
         if (!err) {
           if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
