@@ -476,6 +476,7 @@ try {
 }
 };
 
+const MAX_SIZE = 50 * 1024 * 1024;
 const _handleIpfs = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -512,10 +513,22 @@ try {
         });
     } else if (method === 'POST') {
       const bs = [];
-      req.on('data', function(d) {
+      let totalSize = 0;
+      const _data = d => {
         bs.push(d);
-      });
-      req.on('end', function() {
+        totalSize += d.byteLength;
+
+        if (totalSize >= MAX_SIZE) {
+          res.statusCode = 413;
+          res.end();
+
+          req.removeListener('data', _data);
+          req.removeListener('end', _end);
+          bs.length = 0;
+        }
+      };
+      req.on('data', _data);
+      const _end = () => {
         const b = Buffer.concat(bs);
         bs.length = 0;
 
@@ -531,7 +544,6 @@ try {
               proxyRes.on('end', function() {
                 const b = Buffer.concat(bs);
                 const s = b.toString('utf8');
-                // console.log('got s', s);
                 const j = JSON.parse(s);
                 const {Hash} = j;
                 res.end(Hash);
@@ -545,7 +557,8 @@ try {
             res.end(err.stack);
           }
         });
-      });
+      };
+      req.on('end', _end);
     } else {
       _respond(500, JSON.stringify({
         error: err.stack,
