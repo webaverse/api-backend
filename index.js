@@ -139,6 +139,7 @@ await worldManager.waitForLoad();
 
 const cp = child_process.spawn('ipfs', [
   'daemon',
+  '--writable',
 ]);
 cp.stdout.pipe(process.stdout);
 cp.stderr.pipe(process.stderr);
