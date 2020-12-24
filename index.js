@@ -496,7 +496,9 @@ try {
 
     if (method === 'GET') {
       const proxy = httpProxy.createProxyServer({});
-      req.url = '/ipfs' + req.url;
+      if (!/^\/ipfs\//.test(req.url)) {
+        req.url = '/ipfs' + req.url;
+      }
       proxy
         .web(req, res, {
           target: 'http://127.0.0.1:8080',
