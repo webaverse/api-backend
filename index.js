@@ -139,6 +139,16 @@ function _getKeyFromBindingUrl(u) {
 
 await worldManager.waitForLoad();
 
+const ipfsRepoLockPath = path.join(os.homedir(), '.ipfs', 'repo.lock');
+try {
+  fs.unlinkSync(ipfsRepoLockPath);
+} catch (err) {
+  if (err.code === 'ENOENT') {
+    // nothing
+  } else {
+    console.warn(err.stack);
+  }
+}
 const ipfsProcess = child_process.spawn('ipfs', [
   'daemon',
   '--writable',
@@ -150,7 +160,6 @@ ipfsProcess.on('exit', code => {
 });
 process.on('exit', () => {
   ipfsProcess.kill(9);
-  fs.unlinkSync(path.join(os.homedir(), '.ipfs', 'repo.lock'));
 });
 
 const _handleLogin = async (req, res) => {
