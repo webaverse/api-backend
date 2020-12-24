@@ -137,6 +137,15 @@ function _getKeyFromBindingUrl(u) {
 
 await worldManager.waitForLoad();
 
+const cp = child_process.spawn('ipfs', [
+  'daemon',
+]);
+cp.stdout.pipe(process.stdout);
+cp.stderr.pipe(process.stderr);
+cp.on('exit', code => {
+  console.warn('ipfs exited', code);
+});
+
 const _handleLogin = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
