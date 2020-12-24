@@ -525,53 +525,32 @@ try {
         res.end();
       }
     } else if (method === 'POST') {
-      const bs = [];
-      let totalSize = 0;
-      const _data = d => {
-        bs.push(d);
-        totalSize += d.byteLength;
-
-        if (totalSize >= MAX_SIZE) {
-          res.statusCode = 413;
-          res.end();
-
-          req.removeListener('data', _data);
-          req.removeListener('end', _end);
-          bs.length = 0;
-        }
-      };
-      req.on('data', _data);
-      const _end = () => {
-        const b = Buffer.concat(bs);
-        bs.length = 0;
-
-        const form = new FormData();
-        form.append('file', b);
-        form.submit('http://127.0.0.1:5001/api/v0/add', function(err, proxyRes) {
-          if (!err) {
-            if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
-              const bs = [];
-              proxyRes.on('data', function(d) {
-                bs.push(d);
-              });
-              proxyRes.on('end', function() {
-                const b = Buffer.concat(bs);
-                const s = b.toString('utf8');
-                const j = JSON.parse(s);
-                const {Hash} = j;
-                res.end(Hash);
-              });
-            } else {
-              res.statusCode = proxyRes.statusCode;
-              proxyRes.pipe(res);
-            }
+      const form = new FormData();
+      form.append('file', req);
+      console.log('got req', req.url);
+      form.submit('http://127.0.0.1:5001/api/v0/add', function(err, proxyRes) {
+        if (!err) {
+          if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
+            const bs = [];
+            proxyRes.on('data', function(d) {
+              bs.push(d);
+            });
+            proxyRes.on('end', function() {
+              const b = Buffer.concat(bs);
+              const s = b.toString('utf8');
+              const j = JSON.parse(s);
+              const {Hash} = j;
+              res.end(Hash);
+            });
           } else {
-            res.statusCode = 500;
-            res.end(err.stack);
+            res.statusCode = proxyRes.statusCode;
+            proxyRes.pipe(res);
           }
-        });
-      };
-      req.on('end', _end);
+        } else {
+          res.statusCode = 500;
+          res.end(err.stack);
+        }
+      });
     } else {
       _respond(500, JSON.stringify({
         error: err.stack,
