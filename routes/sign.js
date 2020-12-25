@@ -183,8 +183,8 @@ const _handleSignRequest = async (req, res) => {
                               v: new web3[chainName].utils.BN(chainIds[oppositeChainName][contractName]),
                             };
 
-                            const filenameHash = web3[chainName].utils.sha3(filename.v);
-                            const descriptionHash = web3[chainName].utils.sha3(description.v);
+                            const filenameHash = web3[chainName].utils.sha3Raw(filename.v);
+                            const descriptionHash = web3[chainName].utils.sha3Raw(description.v);
                             // console.log('sign', {tokenId: log.tokenId, hashSpec, toInverse, tokenId, hash, filenameHash, timestamp, chainId});
                             const message = web3[chainName].utils.encodePacked(to, tokenId, hash, filenameHash, descriptionHash, timestamp, chainId);
                             const hashedMessage = web3[chainName].utils.sha3(message);
