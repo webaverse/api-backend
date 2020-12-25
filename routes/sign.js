@@ -12,6 +12,8 @@ const {_setCorsHeaders} = require('../utils.js');
 const {mnemonic, infuraProjectId} = require('../config.json');
 
 const loadPromise = (async () => {
+  const ethereumHost = 'ethereum.exokit.org';
+
   const ethereumHostAddress = await new Promise((accept, reject) => {
     dns.resolve4(ethereumHost, (err, addresses) => {
       if (!err) {
