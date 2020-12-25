@@ -165,6 +165,12 @@ const _handleSignRequest = async (req, res) => {
                               t: 'string',
                               v: filenameSpec,
                             };
+
+                            const descriptionSpec = await contracts[chainName][contractName].methods.getMetadata(hashSpec, 'description').call() || '';
+                            const description = {
+                              t: 'string',
+                              v: descriptionSpec,
+                            };
                             // console.log('got filename hash', hash, filename);
 
                             // get sidechain deposit receipt signature
@@ -178,8 +184,9 @@ const _handleSignRequest = async (req, res) => {
                             };
 
                             const filenameHash = web3[chainName].utils.sha3(filename.v);
+                            const descriptionHash = web3[chainName].utils.sha3(description.v);
                             // console.log('sign', {tokenId: log.tokenId, hashSpec, toInverse, tokenId, hash, filenameHash, timestamp, chainId});
-                            const message = web3[chainName].utils.encodePacked(to, tokenId, hash, filenameHash, timestamp, chainId);
+                            const message = web3[chainName].utils.encodePacked(to, tokenId, hash, filenameHash, descriptionHash, timestamp, chainId);
                             const hashedMessage = web3[chainName].utils.sha3(message);
                             const sgn = web3[chainName].eth.accounts.sign(hashedMessage, wallet.getPrivateKeyString()); // await web3.eth.personal.sign(hashedMessage, address);
                             const {r, s, v} = sgn;
@@ -192,6 +199,7 @@ const _handleSignRequest = async (req, res) => {
                               tokenId: '0x' + web3[chainName].utils.padLeft(tokenId.v.toString(16), 32),
                               hash: '0x' + web3[chainName].utils.padLeft(hash.v.toString(16), 32),
                               filenameHash,
+                              descriptionHash,
                               timestamp: timestamp.v,
                               chainId: chainId.v.toNumber(),
                               r,
