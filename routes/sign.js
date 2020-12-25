@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const url = require('url');
+const dns = require('dns');
 // const util = require('util');
 // const fs = require('fs');
 // const {spawn} = require('child_process');
@@ -11,11 +12,26 @@ const {_setCorsHeaders} = require('../utils.js');
 const {mnemonic, infuraProjectId} = require('../config.json');
 
 const loadPromise = (async () => {
+  const ethereumHostAddress = await new Promise((accept, reject) => {
+    dns.resolve4(ethereumHost, (err, addresses) => {
+      if (!err) {
+        if (addresses.length > 0) {
+          accept(addresses[0]);
+        } else {
+          reject(new Error('no addresses resolved for ' + ethereumHostname));
+        }
+      } else {
+        reject(err);
+      }
+    });
+  });
+  gethNodeUrl = `http://${ethereumHostAddress}:8545`;
+
   const web3 = {
     // main: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`)),
     main: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
     // main: new Web3(new Web3.providers.HttpProvider('http://13.56.80.83:8545')),
-    sidechain: new Web3(new Web3.providers.HttpProvider('http://13.56.80.83:8545')),
+    sidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl)),
   };
   const addresses = await fetch('https://contracts.webaverse.com/ethereum/address.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const abis = await fetch('https://contracts.webaverse.com/ethereum/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
