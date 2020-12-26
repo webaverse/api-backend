@@ -1438,36 +1438,6 @@ try {
   } else if (o.host === 'ipfs.exokit.org') {
     _handleIpfs(req, res);
     return;
-  /* } else if (o.host === 'presence.exokit.org') {
-    _handlePresence(req, res, webaverseChannels);
-    return;
-  } else if (o.host === 'presence-tmp.exokit.org') {
-    _handlePresence(req, res, webaverseTmpChannels);
-    return;
-  } else if (o.host === 'upload.exokit.org') {
-    _handleUpload(req, res);
-    return;
-  } else if (o.host === 'hashes.exokit.org') {
-    _handleHashes(req, res);
-    return;
-  } else if (o.host === 'preview.exokit.org') {
-    _handlePreviewRequest(req, res);
-    return;
-  } else if (o.host === 'screenshot.exokit.org') {
-    _handleScreenshot(req, res);
-    return;
-  } else if (o.host === 'grid.exokit.org') {
-    _handleGrid(req, res);
-    return;
-  } else if (o.host === 'packages.exokit.org') {
-    _handlePackages(req, res);
-    return;
-  } else if (o.host === 'users.exokit.org') {
-    _handleUsers(req, res);
-    return;
-  } else if (o.host === 'scenes.exokit.org') {
-    _handleScenes(req, res);
-    return; */
   } else if (o.host === 'accounts.webaverse.com') {
     _handleAccounts(req, res);
     return;
@@ -1477,49 +1447,9 @@ try {
   } else if (o.host === 'sign.exokit.org') {
     _handleSignRequest(req, res);
     return;
-  /* } else if (o.host === 'raw.exokit.org') {
-    _handleRaw(req, res);
-    return; */
-  /* } else if (match = o.host.match(/^([a-z0-9\-]+)\.sites\.exokit\.org$/)) {
-    const userName = match[1];
-    if (o.path === '/sw.js') {
-      proxy.web(req, res, {
-        target: 'https://web.exokit.org',
-        secure: false,
-        changeOrigin: true,
-      }, err => {
-        console.warn(err.stack);
-
-        res.statusCode = 500;
-        res.end();
-      });
-      return;
-    } else if (match = o.path.match(/^\/([^\/]+)(?:\/(?:index\.html)?)?$/)) {
-      const channelName = match[1];
-      _handleSites(req, res, userName, channelName);
-      return;
-    } */
-  /* } else if (o.host === 'inventory.exokit.org') {
-    _handleInventory(req, res);
-    return;
-  } else if (o.host === 'payments.exokit.org') {
-    _handlePayments(req, res);
-    return; */
   } else if (o.host === 'oauth.exokit.org') {
     _handleOauth(req, res);
     return;
-  /* } else if (o.host === 'token.exokit.org') {
-    _handleToken(req, res);
-    return; */
-  /* } else if (o.host === 'repos.exokit.org') {
-    _handleRepos(req, res);
-    return;
-  } else if (o.host === 'git.exokit.org') {
-    _handleGit(req, res);
-    return;
-  } else if (o.host === 'files.exokit.org') {
-    _handleFiles(req, res);
-    return; */
   } else if (o.host === 'profile.webaverse.com') {
     _handleProfile(req, res);
     return;
