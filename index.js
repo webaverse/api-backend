@@ -89,13 +89,13 @@ const codeTestRegex = /^[0-9]{6}$/;
 function _randomString() {
   return Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
 }
-function _jsonParse(s) {
+/* function _jsonParse(s) {
   try {
     return JSON.parse(s);
   } catch(err) {
     return null;
   }
-}
+} */
 
 (async () => {
 
