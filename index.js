@@ -3782,20 +3782,19 @@ const _formatToken = async (token, storeEntries) => {
 
   const id = parseInt(token.id, 10);
   const hash = web3['sidechain'].utils.padLeft(new web3['sidechain'].utils.BN(token.hash, 10).toString(16), 64);
-  const ext = getExt(token.filename);
   const storeEntry = storeEntries.find(entry => entry.id === id);
   const buyPrice = storeEntry ? storeEntry.price : null;
   return {
     id,
-    name: token.filename,
+    name: token.name,
     description: 'Hash ' + hash,
-    image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
+    image: 'https://preview.exokit.org/' + hash + '.' + token.ext + '/preview.png',
     external_url: 'https://app.webaverse.com?h=' + hash,
-    animation_url: `https://storage.exokit.org/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+    animation_url: `https://storage.exokit.org/${hash}/preview.${token.ext === 'vrm' ? 'glb' : token.ext}`,
     properties: {
-      filename: token.filename,
+      name: token.name,
       hash: '0x' + hash,
-      ext,
+      ext: token.ext,
     },
     minter,
     owner,
