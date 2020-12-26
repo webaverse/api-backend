@@ -3755,7 +3755,7 @@ try {
 };
 
 const _formatToken = async (token, storeEntries) => {
-  const _fetchAvatar = async address => {
+  const _fetchExtra = async address => {
     let username = await contracts['sidechain'].Account.methods.getMetadata(address, 'name').call();
     if (!username) {
       username = 'Anonymous';
@@ -3776,8 +3776,8 @@ const _formatToken = async (token, storeEntries) => {
     };
   };
   const [minter, owner] = await Promise.all([
-    _fetchAvatar(token.minter),
-    _fetchAvatar(token.owner),
+    _fetchExtra(token.minter),
+    _fetchExtra(token.owner),
   ]);
 
   const id = parseInt(token.id, 10);
