@@ -4224,33 +4224,6 @@ proxy.on('error', err => {
   console.warn(err.stack);
 });
 
-/* const _getChannels = async () => {
-  const objects = await s3.listObjects({
-    Bucket: bucketNames.rooms,
-  }).promise();
-  const result = [];
-  const channelNames = objects.Contents;
-  for (let i = 0; i < channelNames.length; i++) {
-    const channelName = channelNames[i].Key;
-    const html = await _getChannelHtml(channelName);
-    result.push({
-      channelName,
-      html,
-    });
-  }
-  return result;
-};
-const _getChannelHtml = async channelName => {
-  try {
-    const o = await s3.getObject({
-      Bucket: bucketNames.rooms,
-      Key: channelName,
-    }).promise();
-    return o.Body.toString('utf8');
-  } catch(err) {
-    return null;
-  }
-}; */
 const _getChannelJson = async channelName => {
   try {
     const o = await s3.getObject({
@@ -4316,13 +4289,6 @@ const _makeChannel = (channelName, j, saveHtml) => {
   });
   return channel;
 };
-/* {
-  const newChannels = await _getChannels();
-  for (let i = 0; i < newChannels.length; i++) {
-    const {channelName, html} = newChannels[i];
-    channels[channelName] = _makeChannel(channelName, html, true);
-  }
-} */
 
 const discordClients = [];
 const _getDiscordClient = token => {
