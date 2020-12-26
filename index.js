@@ -3755,29 +3755,45 @@ try {
 };
 
 const _formatToken = async (token, storeEntries) => {
-  const _fetchExtra = async address => {
-    let username = await contracts['sidechain'].Account.methods.getMetadata(address, 'name').call();
-    if (!username) {
-      username = 'Anonymous';
-    }
-    let monetizationPointer = await contracts['sidechain'].Account.methods.getMetadata(address, 'monetizationPointer').call();
-    if (!monetizationPointer) {
-      monetizationPointer = '';
-    }
-    let avatarPreview = await contracts['sidechain'].Account.methods.getMetadata(address, 'avatarPreview').call();
-    if (!avatarPreview) {
-      avatarPreview = defaultAvatarPreview;
-    }
+  const _fetchAccount = async address => {
+    const [
+      username,
+      avatarPreview,
+      monetizationPointer,
+    ] = await Promise.all([
+      (async () => {
+        let username = await contracts['sidechain'].Account.methods.getMetadata(address, 'name').call();
+        if (!username) {
+          username = 'Anonymous';
+        }
+        return username;
+      })(),
+      (async () => {
+        let avatarPreview = await contracts['sidechain'].Account.methods.getMetadata(address, 'avatarPreview').call();
+        if (!avatarPreview) {
+          avatarPreview = defaultAvatarPreview;
+        }
+        return avatarPreview;
+      })(),
+      (async () => {
+        let monetizationPointer = await contracts['sidechain'].Account.methods.getMetadata(address, 'monetizationPointer').call();
+        if (!monetizationPointer) {
+          monetizationPointer = '';
+        }
+        return monetizationPointer;
+      })(),
+    ]);
+
     return {
       address,
       username,
-      monetizationPointer,
       avatarPreview,
+      monetizationPointer,
     };
   };
   const [minter, owner] = await Promise.all([
-    _fetchExtra(token.minter),
-    _fetchExtra(token.owner),
+    _fetchAccount(token.minter),
+    _fetchAccount(token.owner),
   ]);
 
   const id = parseInt(token.id, 10);
