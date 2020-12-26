@@ -75,27 +75,9 @@ const CERT = fs.readFileSync('./certs/fullchain.pem');
 const PRIVKEY = fs.readFileSync('./certs/privkey.pem');
 
 const PORT = parseInt(process.env.PORT, 10) || 80;
-const PARCEL_SIZE = 8;
-const maxChunkSize = 25*1024*1024;
-const filterTopic = 'webxr-site';
+// const filterTopic = 'webxr-site';
 const web3MainEndpoint = `https://${infuraNetwork}.infura.io/v3/${infuraProjectId}`;
-const web3SidechainEndpoint = 'https://ethereum.exokit.org';
-
-const bucketNames = {
-  content: 'content.exokit.org',
-  channels: 'channels.exokit.org',
-  rooms: 'rooms.exokit.org',
-  worlds: 'worlds.exokit.org',
-  packages: 'packages.exokit.org',
-  users: 'users.exokit.org',
-  scenes: 'scenes.exokit.org',
-};
 const tableName = 'users';
-const storeTableName = 'store';
-const channels = {};
-const gridChannels = {};
-const webaverseChannels = {};
-const webaverseTmpChannels = {};
 const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
 
 let web3, addresses, abis, contracts, gethNodeUrl;
