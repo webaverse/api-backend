@@ -1251,9 +1251,9 @@ try {
       const startTokenId = parseInt(match[1], 10);
       const endTokenId = parseInt(match[2], 10);
 
-      const storeEntries = await _getStoreEntries();
-
       if (startTokenId >= 1 && endTokenId > startTokenId && (endTokenId - startTokenId) <= 100) {
+        const storeEntries = await _getStoreEntries();
+        
         const numTokens = endTokenId - startTokenId;
         const tokens = [];
         for (let i = 0; i < numTokens; i++) {
