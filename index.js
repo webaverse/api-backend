@@ -1253,7 +1253,7 @@ try {
 
       const storeEntries = await _getStoreEntries();
 
-      if (startTokenId >= 1 && endTokenId > startTokenId) {
+      if (startTokenId >= 1 && endTokenId > startTokenId && (endTokenId - startTokenId) <= 100) {
         const numTokens = endTokenId - startTokenId;
         const tokens = [];
         for (let i = 0; i < numTokens; i++) {
@@ -1300,7 +1300,7 @@ try {
           }
         })); */
       } else {
-        _respond(404, 'not found');
+        _respond(400, 'not found');
       }
     } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
       const address = match[1];
