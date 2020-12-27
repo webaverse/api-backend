@@ -101,7 +101,7 @@ function _randomString() {
 
 await worldManager.waitForLoad();
 
-const ipfsRepoLockPath = path.join(os.homedir(), '.ipfs', 'repo.lock');
+/* const ipfsRepoLockPath = path.join(os.homedir(), '.ipfs', 'repo.lock');
 try {
   fs.unlinkSync(ipfsRepoLockPath);
 } catch (err) {
@@ -122,7 +122,7 @@ ipfsProcess.on('exit', code => {
 });
 process.on('exit', () => {
   ipfsProcess.kill(9);
-});
+}); */
 
 const _handleLogin = async (req, res) => {
   const _respond = (statusCode, body) => {
@@ -447,7 +447,7 @@ try {
 }
 };
 
-const MAX_SIZE = 50 * 1024 * 1024;
+/* const MAX_SIZE = 50 * 1024 * 1024;
 const _handleIpfs = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -524,7 +524,7 @@ try {
     error: err.stack,
   }));
 }
-};
+}; */
 
 const _handleEthereum = async (req, res) => {
   const _respond = (statusCode, body) => {
@@ -1435,7 +1435,7 @@ try {
   } else if (o.host === 'ethereums.exokit.org') {
     _handleEthereum(req, res);
     return;
-  } else if (o.host === 'ipfs.exokit.org') {
+  /* } else if (o.host === 'ipfs.exokit.org') {
     _handleIpfs(req, res);
     return;
   } else if (o.host === 'accounts.webaverse.com') {
