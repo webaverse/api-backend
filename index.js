@@ -59,7 +59,7 @@ const apiKeyCache = new LRU({
 const stripe = Stripe(stripeClientSecret);
 // const accountManager = require('./account-manager.js');
 // const eventsManager = require('./events-manager.js');
-const storageHost = 'https://storage.exokit.org';
+const storageHost = 'https://ipfs.exokit.org';
 const ethereumHost = 'ethereum.exokit.org';
 
 const Discord = require('discord.js');
