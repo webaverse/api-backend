@@ -1128,7 +1128,7 @@ const _formatToken = async (token, storeEntries) => {
   ]);
 
   const id = parseInt(token.id, 10);
-  const hash = web3['sidechain'].utils.padLeft(new web3['sidechain'].utils.BN(token.hash, 10).toString(16), 64);
+  const {hash} = token;
   const storeEntry = storeEntries.find(entry => entry.id === id);
   const buyPrice = storeEntry ? storeEntry.price : null;
   return {
