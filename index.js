@@ -59,12 +59,13 @@ const apiKeyCache = new LRU({
 const stripe = Stripe(stripeClientSecret);
 // const accountManager = require('./account-manager.js');
 // const eventsManager = require('./events-manager.js');
+const storageHost = 'https://storage.exokit.org';
 const ethereumHost = 'ethereum.exokit.org';
 
 const Discord = require('discord.js');
 
 const api = require('./api.js');
-const { _handleStorageRequest } = require('./routes/storage.js');
+// const { _handleStorageRequest } = require('./routes/storage.js');
 // const { _handleAccountsRequest } = require('./routes/accounts.js');
 // const { _handlePreviewRequest } = require('./routes/preview.js')
 const { worldManager, _handleWorldsRequest, _startWorldsRoute } = require('./routes/worlds.js');
@@ -1137,7 +1138,7 @@ const _formatToken = async (token, storeEntries) => {
     description: 'Hash ' + hash,
     image: 'https://preview.exokit.org/' + hash + '.' + token.ext + '/preview.png',
     external_url: 'https://app.webaverse.com?h=' + hash,
-    animation_url: `https://storage.exokit.org/${hash}/preview.${token.ext === 'vrm' ? 'glb' : token.ext}`,
+    animation_url: `${storageHost}/${hash}/preview.${token.ext === 'vrm' ? 'glb' : token.ext}`,
     properties: {
       name: token.name,
       hash,
@@ -1222,7 +1223,7 @@ try {
         "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.png',
         "external_url": "https://app.webaverse.com?h=" + p.slice(1),
         // "background_color": "000000",
-        "animation_url": `https://storage.exokit.org/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+        "animation_url": `${storageHost}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
         // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
         "properties": {
                 "filename": filename,
@@ -1274,7 +1275,7 @@ try {
           "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.png',
           "external_url": "https://app.webaverse.com?h=" + p.slice(1),
           // "background_color": "000000",
-          "animation_url": `https://storage.exokit.org/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+          "animation_url": `${storageHost}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
           // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
           "properties": {
                   "filename": filename,
@@ -1461,9 +1462,9 @@ try {
   } else if (o.host === 'worlds.exokit.org') {
     _handleWorldsRequest(req, res);
     return;
-  } else if (o.host === 'storage.exokit.org' || o.host === 'storage.webaverse.com') {
+  /* } else if (o.host === 'storage.exokit.org' || o.host === 'storage.webaverse.com') {
     _handleStorageRequest(req, res);
-    return;
+    return; */
   } else if (o.host === 'store.webaverse.com') {
     _handleStore(req, res);
     return;
