@@ -1300,7 +1300,7 @@ try {
           }
         })); */
       } else {
-        _respond(400, 'not found');
+        _respond(400, 'invalid range');
       }
     } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
       const address = match[1];
