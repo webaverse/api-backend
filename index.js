@@ -583,12 +583,14 @@ const _handleAccounts = async (req, res) => {
     await Promise.all(
       [
         'name',
-        'avatarUrl',
-        'avatarFileName',
+        'avatarId',
+        'avatarName',
+        'avatarExt',
         'avatarPreview',
         'loadout',
-        'homeSpaceUrl',
-        'homeSpaceFileName',
+        'homeSpaceId',
+        'homeSpaceName',
+        'homeSpaceExt',
         'homeSpacePreview',
         'ftu',
       ].map(key =>
