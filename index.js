@@ -15,7 +15,7 @@ const FormData = require('form-data');
 // const express = require('express');
 const httpProxy = require('http-proxy');
 const ws = require('ws');
-const LRU = require('lru');
+// const LRU = require('lru');
 const request = require('request');
 const mime = require('mime');
 const AWS = require('aws-sdk');
@@ -52,10 +52,10 @@ const ses = new AWS.SES(new AWS.Config({
   }),
   region: 'us-west-2',
 }));
-const apiKeyCache = new LRU({
+/* const apiKeyCache = new LRU({
   max: 1024,
   maxAge: 60 * 1000,
-});
+}); */
 const stripe = Stripe(stripeClientSecret);
 // const accountManager = require('./account-manager.js');
 // const eventsManager = require('./events-manager.js');
