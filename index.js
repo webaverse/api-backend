@@ -1435,9 +1435,6 @@ try {
   } else if (o.host === 'ethereums.exokit.org') {
     _handleEthereum(req, res);
     return;
-  /* } else if (o.host === 'ipfs.exokit.org') {
-    _handleIpfs(req, res);
-    return;
   } else if (o.host === 'accounts.webaverse.com') {
     _handleAccounts(req, res);
     return;
