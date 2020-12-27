@@ -1140,7 +1140,7 @@ const _formatToken = async (token, storeEntries) => {
     animation_url: `https://storage.exokit.org/${hash}/preview.${token.ext === 'vrm' ? 'glb' : token.ext}`,
     properties: {
       name: token.name,
-      hash: '0x' + hash,
+      hash,
       ext: token.ext,
     },
     minter,
