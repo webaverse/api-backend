@@ -421,7 +421,7 @@ try {
           code: discordcode,
           grant_type: 'authorization_code',
           scope: 'identify',
-          redirect_uri: 'https://app.webaverse.com/discordlogin.html',
+          redirect_uri: 'https://webaverse.com/login',
         });
         proxyReq.end(s);
         proxyReq.on('error', err => {
