@@ -1130,12 +1130,13 @@ const _formatToken = async (token, storeEntries) => {
 
   const id = parseInt(token.id, 10);
   const {hash} = token;
+  const description = await contracts['sidechain'].NFT.methods.getMetadata(hash, 'description').call();
   const storeEntry = storeEntries.find(entry => entry.id === id);
   const buyPrice = storeEntry ? storeEntry.price : null;
   return {
     id,
     name: token.name,
-    description: 'Hash ' + hash,
+    description: description,
     image: 'https://preview.exokit.org/' + hash + '.' + token.ext + '/preview.png',
     external_url: 'https://app.webaverse.com?h=' + hash,
     animation_url: `${storageHost}/${hash}/preview.${token.ext === 'vrm' ? 'glb' : token.ext}`,
