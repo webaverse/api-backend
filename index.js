@@ -145,7 +145,7 @@ try {
     console.log('got login', {method, p, query});
 
     if (method === 'POST') {
-      let {email, code, token, discordcode, discordid} = query;
+      let {email, code, token, discordcode, discordid, autoip} = query;
       if (email && emailRegex.test(email)) {
         if (token) {
           const tokenItem = await ddb.getItem({
@@ -501,6 +501,16 @@ try {
               error: err.stack,
             }));
           });
+        }
+      } else if (autoip) {
+        if (autoip === 'src') {
+          console.log('got remote address src', request.connection.remoteAddress);
+        } else if (autoip === 'dst') {
+          console.log('got remote address dst', request.connection.remoteAddress);
+        } else {
+          _respond(400, JSON.stringify({
+            error: 'invalid autoip endpoint',
+          }));
         }
       } else {
         _respond(400, JSON.stringify({
