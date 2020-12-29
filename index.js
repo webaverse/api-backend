@@ -361,10 +361,6 @@ try {
             let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
             let addr = (tokenItem.Item && tokenItem.Item.addr) ? tokenItem.Item.addr.S : null;
             
-            console.log('got', {name,mnemonic,addr});
-            
-            throw new Error('lo');
-            
             // console.log('old item', tokenItem, {tokens, mnemonic});
 
             const token = crypto.randomBytes(32).toString('base64');
