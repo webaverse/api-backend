@@ -220,9 +220,9 @@ try {
                 name = namegen(2).join('-');
               }
               if (!mnemonic || !addr) {
-                const spec = await accountManager.getAccount();
-                mnemonic = spec.mnemonic;
-                addr = spec.address;
+                mnemonic = bip39.generateMnemonic();
+                const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
+                addr = wallet.getAddressString();
               }
               if (!state) {
                 state = _randomString();
@@ -372,9 +372,9 @@ try {
               name = namegen(2).join('-');
             }
             if (!mnemonic || !addr) {
-              const spec = await accountManager.getAccount();
-              mnemonic = spec.mnemonic;
-              addr = spec.address;
+              mnemonic = bip39.generateMnemonic();
+              const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
+              addr = wallet.getAddressString();
             }
 
             await ddb.putItem({
