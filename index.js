@@ -426,60 +426,66 @@ try {
                 Authorization: `Bearer ${access_token}`,
               },
             }, async proxyRes2 => {
-              const discordUser = await new Promise((accept, reject) => {
+              const j = await new Promise((accept, reject) => {
                 const bs = [];
                 proxyRes2.on('data', b => {
                   bs.push(b);
                 });
                 proxyRes2.on('end', () => {
-                  console.log('got', Buffer.concat(bs).toString('utf8'));
                   accept(JSON.parse(Buffer.concat(bs).toString('utf8')));
                 });
                 proxyRes2.on('error', err => {
                   reject(err);
                 });
               });
-              const {id} = discordUser;
-              
-              const _getUser = async id => {
-                const tokenItem = await ddb.getItem({
-                  TableName: tableName,
-                  Key: {
-                    email: {S: id + '.discordtoken'},
-                  }
-                }).promise();
+              const {id} = j;
 
-                let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
-                return {mnemonic};
-              };
-              const _genKey = async id => {
-                const mnemonic = bip39.generateMnemonic();
-                const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
-                const address = wallet.getAddressString();
+              if (id) {
+                const _getUser = async id => {
+                  const tokenItem = await ddb.getItem({
+                    TableName: tableName,
+                    Key: {
+                      email: {S: id + '.discordtoken'},
+                    }
+                  }).promise();
 
-                await ddb.putItem({
-                  TableName: tableName,
-                  Item: {
-                    email: {S: id + '.discordtoken'},
-                    mnemonic: {S: mnemonic},
-                    address: {S: address},
-                  }
-                }).promise();
-                return {mnemonic};
-              };
-              
-              const user = await _getUser(id) || _genKey(id);
-              const {mnemonic} = user;
+                  let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
+                  return {mnemonic};
+                };
+                const _genKey = async id => {
+                  const mnemonic = bip39.generateMnemonic();
+                  const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
+                  const address = wallet.getAddressString();
 
-              _setCorsHeaders(res);
-              res.end(JSON.stringify({mnemonic}));
-            });
-            proxyReq2.end();
-            proxyReq2.on('error', err => {
-              _respond(500, JSON.stringify({
-                error: err.stack,
+                  await ddb.putItem({
+                    TableName: tableName,
+                    Item: {
+                      email: {S: id + '.discordtoken'},
+                      mnemonic: {S: mnemonic},
+                      address: {S: address},
+                    }
+                  }).promise();
+                  return {mnemonic};
+                };
+                
+                const user = await _getUser(id) || _genKey(id);
+                const {mnemonic} = user;
+
+                _setCorsHeaders(res);
+                res.end(JSON.stringify({mnemonic}));
+              });
+              proxyReq2.end();
+              proxyReq2.on('error', err => {
+                _respond(500, JSON.stringify({
+                  error: err.stack,
+                }));
+              });
+            } else {
+              console.warn('discord oauth failed', j);
+              _respond(403, JSON.stringify({
+                error: 'discord oauth failed',
               }));
-            });
+            }
           });
           const s = formurlencoded({
             client_id: discordClientId,
