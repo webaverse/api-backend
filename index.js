@@ -339,6 +339,8 @@ try {
             }
           }).promise();
           
+          console.log('check item', JSON.stringify(codeItem.Item, null, 2));
+          
           if (codeItem.Item && codeItem.Item.code.S === code) {
             await ddb.deleteItem({
               TableName: tableName,
