@@ -359,7 +359,7 @@ try {
             const tokens = (tokenItem.Item && tokenItem.Item.tokens) ? JSON.parse(tokenItem.Item.tokens.S) : [];
             let name = (tokenItem.Item && tokenItem.Item.name) ? tokenItem.Item.name.S : null;
             let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
-            let addr = (tokenItem.Item && tokenItem.Item.address) ? tokenItem.Item.address.S : null;
+            // let addr = (tokenItem.Item && tokenItem.Item.address) ? tokenItem.Item.address.S : null;
             
             // console.log('old item', tokenItem, {tokens, mnemonic});
 
@@ -373,8 +373,8 @@ try {
             }
             if (!mnemonic) {
               mnemonic = bip39.generateMnemonic();
-              const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
-              addr = wallet.getAddressString();
+              /* const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
+              addr = wallet.getAddressString(); */
             }
 
             await ddb.putItem({
@@ -382,7 +382,7 @@ try {
               Item: {
                 email: {S: discordid + '.discordtoken'},
                 mnemonic: {S: mnemonic},
-                address: {S: addr},
+                // address: {S: addr},
               }
             }).promise();
 
