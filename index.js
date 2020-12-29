@@ -87,6 +87,7 @@ Error.stackTraceLimit = 300;
 
 const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 const codeTestRegex = /^[0-9]{6}$/;
+const discordIdTestRegex = /^[0-9]+$/;
 function _randomString() {
   return Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
 }
@@ -144,7 +145,7 @@ try {
     console.log('got login', {method, p, query});
 
     if (method === 'POST') {
-      let {email, code, token, discordcode} = query;
+      let {email, code, token, discordcode, discordid} = query;
       if (email && emailRegex.test(email)) {
         if (token) {
           const tokenItem = await ddb.getItem({
@@ -330,105 +331,168 @@ try {
           } */
         }
       } else if (discordcode) {
-        const proxyReq = await https.request({
-          method: 'POST',
-          host: 'discord.com',
-          path: '/api/oauth2/token',
-          headers: {
-            // Accept: 'application/json',
-            'Content-Type': 'application/x-www-form-urlencoded',
-            // 'User-Agent': 'exokit-server',
-          },
-        }, async proxyRes => {
-          const discordOauthState = await new Promise((accept, reject) => {
-            const bs = [];
-            proxyRes.on('data', b => {
-              bs.push(b);
-            });
-            proxyRes.on('end', () => {
-              accept(JSON.parse(Buffer.concat(bs).toString('utf8')));
-            });
-            proxyRes.on('error', err => {
-              reject(err);
-            });
-          });
-          const {access_token} = discordOauthState;
+        if (discordIdTestRegex.test(discordid)) {
+          const codeItem = await ddb.getItem({
+            TableName: tableName,
+            Key: {
+              email: {S: discordid + '.code'},
+            }
+          }).promise();
           
-          const proxyReq2 = await https.request({
+          if (codeItem.Item && codeItem.Item.code.S === code) {
+            await ddb.deleteItem({
+              TableName: tableName,
+              Key: {
+                email: {S: discordid + '.code'},
+              }
+            }).promise();
+
+            // generate        
+            const tokenItem = await ddb.getItem({
+              TableName: tableName,
+              Key: {
+                email: {S: discordid + '.discordtoken'},
+              },
+            }).promise();
+            const tokens = (tokenItem.Item && tokenItem.Item.tokens) ? JSON.parse(tokenItem.Item.tokens.S) : [];
+            let name = (tokenItem.Item && tokenItem.Item.name) ? tokenItem.Item.name.S : null;
+            let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
+            let addr = (tokenItem.Item && tokenItem.Item.addr) ? tokenItem.Item.addr.S : null;
+            
+            // console.log('old item', tokenItem, {tokens, mnemonic});
+
+            const token = crypto.randomBytes(32).toString('base64');
+            tokens.push(token);
+            while (tokens.length > 10) {
+              tokens.shift();
+            }
+            if (!name) {
+              name = namegen(2).join('-');
+            }
+            if (!mnemonic || !addr) {
+              const spec = await accountManager.getAccount();
+              mnemonic = spec.mnemonic;
+              addr = spec.address;
+            }
+
+            await ddb.putItem({
+              TableName: tableName,
+              Item: {
+                email: {S: discordid + '.discordtoken'},
+                mnemonic: {S: mnemonic},
+                address: {S: address},
+              }
+            }).promise();
+
+            // respond
+            _setCorsHeaders(res);
+            res.end(JSON.stringify({mnemonic}));
+          } else {
+            _respond(403, JSON.stringify({
+              error: 'invalid code',
+            }));
+          }
+        } else {
+          const proxyReq = await https.request({
+            method: 'POST',
             host: 'discord.com',
-            path: '/api/users/@me',
+            path: '/api/oauth2/token',
             headers: {
-              Authorization: `Bearer ${access_token}`,
+              // Accept: 'application/json',
+              'Content-Type': 'application/x-www-form-urlencoded',
+              // 'User-Agent': 'exokit-server',
             },
-          }, async proxyRes2 => {
-            const discordUser = await new Promise((accept, reject) => {
+          }, async proxyRes => {
+            const discordOauthState = await new Promise((accept, reject) => {
               const bs = [];
-              proxyRes2.on('data', b => {
+              proxyRes.on('data', b => {
                 bs.push(b);
               });
-              proxyRes2.on('end', () => {
+              proxyRes.on('end', () => {
                 accept(JSON.parse(Buffer.concat(bs).toString('utf8')));
               });
-              proxyRes2.on('error', err => {
+              proxyRes.on('error', err => {
                 reject(err);
               });
             });
-            const {id} = discordUser;
+            const {access_token} = discordOauthState;
             
-            const _getUser = async id => {
-              const tokenItem = await ddb.getItem({
-                TableName: tableName,
-                Key: {
-                  email: {S: id + '.discordtoken'},
-                }
-              }).promise();
+            const proxyReq2 = await https.request({
+              host: 'discord.com',
+              path: '/api/users/@me',
+              headers: {
+                Authorization: `Bearer ${access_token}`,
+              },
+            }, async proxyRes2 => {
+              const discordUser = await new Promise((accept, reject) => {
+                const bs = [];
+                proxyRes2.on('data', b => {
+                  bs.push(b);
+                });
+                proxyRes2.on('end', () => {
+                  accept(JSON.parse(Buffer.concat(bs).toString('utf8')));
+                });
+                proxyRes2.on('error', err => {
+                  reject(err);
+                });
+              });
+              const {id} = discordUser;
+              
+              const _getUser = async id => {
+                const tokenItem = await ddb.getItem({
+                  TableName: tableName,
+                  Key: {
+                    email: {S: id + '.discordtoken'},
+                  }
+                }).promise();
 
-              let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
-              return {mnemonic};
-            };
-            const _genKey = async id => {
-              const mnemonic = bip39.generateMnemonic();
-              const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
-              const address = wallet.getAddressString();
+                let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
+                return {mnemonic};
+              };
+              const _genKey = async id => {
+                const mnemonic = bip39.generateMnemonic();
+                const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
+                const address = wallet.getAddressString();
 
-              await ddb.putItem({
-                TableName: tableName,
-                Item: {
-                  email: {S: id + '.discordtoken'},
-                  mnemonic: {S: mnemonic},
-                  address: {S: address},
-                }
-              }).promise();
-              return {mnemonic};
-            };
-            
-            const user = await _getUser(id) || _genKey(id);
-            const {mnemonic} = user;
+                await ddb.putItem({
+                  TableName: tableName,
+                  Item: {
+                    email: {S: id + '.discordtoken'},
+                    mnemonic: {S: mnemonic},
+                    address: {S: address},
+                  }
+                }).promise();
+                return {mnemonic};
+              };
+              
+              const user = await _getUser(id) || _genKey(id);
+              const {mnemonic} = user;
 
-            _setCorsHeaders(res);
-            res.end(JSON.stringify({mnemonic}));
+              _setCorsHeaders(res);
+              res.end(JSON.stringify({mnemonic}));
+            });
+            proxyReq2.end();
+            proxyReq2.on('error', err => {
+              _respond(500, JSON.stringify({
+                error: err.stack,
+              }));
+            });
           });
-          proxyReq2.end();
-          proxyReq2.on('error', err => {
+          const s = formurlencoded({
+            client_id: discordClientId,
+            client_secret: discordClientSecret,
+            code: discordcode,
+            grant_type: 'authorization_code',
+            scope: 'identify',
+            redirect_uri: 'https://webaverse.com/login',
+          });
+          proxyReq.end(s);
+          proxyReq.on('error', err => {
             _respond(500, JSON.stringify({
               error: err.stack,
             }));
           });
-        });
-        const s = formurlencoded({
-          client_id: discordClientId,
-          client_secret: discordClientSecret,
-          code: discordcode,
-          grant_type: 'authorization_code',
-          scope: 'identify',
-          redirect_uri: 'https://webaverse.com/login',
-        });
-        proxyReq.end(s);
-        proxyReq.on('error', err => {
-          _respond(500, JSON.stringify({
-            error: err.stack,
-          }));
-        });
+        }
       } else {
         _respond(400, JSON.stringify({
           error: 'invalid parameters',
