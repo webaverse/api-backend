@@ -508,7 +508,7 @@ try {
           console.log('got remote address src', ip);
           
           await ddb.putItem({
-            TableName: usersTableName,
+            TableName: tableName,
             Item: {
               email: {S: ip + '.ipcode'},
               mnemonic: {S: mnemonic},
