@@ -371,7 +371,7 @@ try {
             if (!name) {
               name = namegen(2).join('-');
             }
-            if (!mnemonic || !addr) {
+            if (!mnemonic) {
               mnemonic = bip39.generateMnemonic();
               const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
               addr = wallet.getAddressString();
