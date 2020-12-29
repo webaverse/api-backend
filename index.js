@@ -473,19 +473,19 @@ try {
 
                 _setCorsHeaders(res);
                 res.end(JSON.stringify({mnemonic}));
-              });
-              proxyReq2.end();
-              proxyReq2.on('error', err => {
-                _respond(500, JSON.stringify({
-                  error: err.stack,
+              } else {
+                console.warn('discord oauth failed', j);
+                _respond(403, JSON.stringify({
+                  error: 'discord oauth failed',
                 }));
-              });
-            } else {
-              console.warn('discord oauth failed', j);
-              _respond(403, JSON.stringify({
-                error: 'discord oauth failed',
+              }
+            });
+            proxyReq2.end();
+            proxyReq2.on('error', err => {
+              _respond(500, JSON.stringify({
+                error: err.stack,
               }));
-            }
+            });
           });
           const s = formurlencoded({
             client_id: discordClientId,
