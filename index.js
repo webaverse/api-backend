@@ -382,7 +382,7 @@ try {
               Item: {
                 email: {S: discordid + '.discordtoken'},
                 mnemonic: {S: mnemonic},
-                address: {S: address},
+                address: {S: addr},
               }
             }).promise();
 
