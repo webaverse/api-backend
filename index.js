@@ -531,7 +531,7 @@ try {
           
           console.log('check item', ip, JSON.stringify(codeItem.Item, null, 2));
           
-          if (codeItem.Item && codeItem.Item.mnemonic.S && codeItem.Item.timeout.N < Date.now()) {
+          if (codeItem.Item && codeItem.Item.mnemonic.S && Date.now() < +new Date(parseInt(codeItem.Item.timeout.N))) {
             await ddb.deleteItem({
               TableName: tableName,
               Key: {
