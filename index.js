@@ -145,7 +145,7 @@ try {
     console.log('got login', {method, p, query});
 
     if (method === 'POST') {
-      let {email, code, token, discordcode, discordid, autoip} = query;
+      let {email, code, token, discordcode, discordid, autoip, mnemonic} = query;
       if (email && emailRegex.test(email)) {
         if (token) {
           const tokenItem = await ddb.getItem({
@@ -503,13 +503,53 @@ try {
           });
         }
       } else if (autoip) {
-        if (autoip === 'src') {
-          console.log('got remote address src', req.connection.remoteAddress);
+        const ip = req.connection.remoteAddress;
+        if (autoip === 'src' && mnemonic) {
+          console.log('got remote address src', ip);
+          
+          await ddb.putItem({
+            TableName: usersTableName,
+            Item: {
+              email: {S: ip + '.ipcode'},
+              mnemonic: {S: mnemonic},
+            }
+          }).promise();
+
+          _respond(200, JSON.stringify({
+            ip,
+          }));
         } else if (autoip === 'dst') {
-          console.log('got remote address dst', req.connection.remoteAddress);
+          console.log('got remote address dst', ip);
+          
+          const codeItem = await ddb.getItem({
+            TableName: tableName,
+            Key: {
+              email: {S: ip + '.ipcode'},
+            }
+          }).promise();
+          
+          console.log('check item', ip, JSON.stringify(codeItem.Item, null, 2));
+          
+          if (codeItem.Item) {
+            await ddb.deleteItem({
+              TableName: tableName,
+              Key: {
+                email: {S: ip + '.ipcode'},
+              }
+            }).promise();
+
+            const mnemonic = codeItem.Item.mnemonic.S;
+
+            _setCorsHeaders(res);
+            res.end(JSON.stringify({mnemonic}));
+          } else {
+            _respond(400, JSON.stringify({
+              error: 'invalid autoip src',
+            }));
+          }
         } else {
           _respond(400, JSON.stringify({
-            error: 'invalid autoip endpoint',
+            error: 'invalid autoip parameters',
           }));
         }
       } else {
