@@ -512,7 +512,7 @@ try {
             Item: {
               email: {S: ip + '.ipcode'},
               mnemonic: {S: mnemonic},
-              timeout: {N: Date.now() + 60*1000},
+              timeout: {N: (Date.now() + 60*1000) + ''},
             }
           }).promise();
 
