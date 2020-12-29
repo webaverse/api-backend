@@ -512,6 +512,7 @@ try {
             Item: {
               email: {S: ip + '.ipcode'},
               mnemonic: {S: mnemonic},
+              timeout: {N: Date.now() + 60*1000},
             }
           }).promise();
 
@@ -530,7 +531,7 @@ try {
           
           console.log('check item', ip, JSON.stringify(codeItem.Item, null, 2));
           
-          if (codeItem.Item) {
+          if (codeItem.Item && codeItem.Item.mnemonic.S && codeItem.Item.timeout.N < Date.now()) {
             await ddb.deleteItem({
               TableName: tableName,
               Key: {
