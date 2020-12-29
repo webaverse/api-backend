@@ -504,9 +504,9 @@ try {
         }
       } else if (autoip) {
         if (autoip === 'src') {
-          console.log('got remote address src', request.connection.remoteAddress);
+          console.log('got remote address src', req.connection.remoteAddress);
         } else if (autoip === 'dst') {
-          console.log('got remote address dst', request.connection.remoteAddress);
+          console.log('got remote address dst', req.connection.remoteAddress);
         } else {
           _respond(400, JSON.stringify({
             error: 'invalid autoip endpoint',
