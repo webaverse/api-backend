@@ -432,6 +432,7 @@ try {
                   bs.push(b);
                 });
                 proxyRes2.on('end', () => {
+                  console.log('got', Buffer.concat(bs).toString('utf8'));
                   accept(JSON.parse(Buffer.concat(bs).toString('utf8')));
                 });
                 proxyRes2.on('error', err => {
