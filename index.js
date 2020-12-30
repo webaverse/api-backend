@@ -1257,6 +1257,7 @@ const _formatToken = async (token, storeEntries) => {
   const description = await contracts['sidechain'].NFT.methods.getMetadata(hash, 'description').call();
   const storeEntry = storeEntries.find(entry => entry.tokenId === id);
   const buyPrice = storeEntry ? storeEntry.price : null;
+  const storeId = storeEntry ? storeEntry.id : null;
   return {
     id,
     name: token.name,
@@ -1274,6 +1275,7 @@ const _formatToken = async (token, storeEntries) => {
     balance: parseInt(token.balance, 10),
     totalSupply: parseInt(token.totalSupply, 10),
     buyPrice,
+    storeId,
   };
 };
 const _getChainToken = chainName => async (tokenId, storeEntries) => {
