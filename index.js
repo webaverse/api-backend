@@ -1255,8 +1255,7 @@ const _formatToken = async (token, storeEntries) => {
   const id = parseInt(token.id, 10);
   const {hash} = token;
   const description = await contracts['sidechain'].NFT.methods.getMetadata(hash, 'description').call();
-  const storeEntry = storeEntries.find(entry => entry.id === id);
-  console.log('got store entries', storeEntries, id);
+  const storeEntry = storeEntries.find(entry => entry.tokenId === id);
   const buyPrice = storeEntry ? storeEntry.price : null;
   return {
     id,
