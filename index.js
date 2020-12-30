@@ -1443,7 +1443,7 @@ try {
         _getStoreEntries(),
       ]);
 
-      const promises = [];
+      const promises = Array(nftBalance);
       for (let i = 0; i < nftBalance; i++) {
         promises[i] = _getChainOwnerToken(chainName)(address, i, storeEntries);
       }
