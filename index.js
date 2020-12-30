@@ -1295,24 +1295,29 @@ const _getChainOwnerToken = chainName => async (address, i, storeEntries) => {
 };
 const _getStoreEntries = async () => {
   const numStores = await contracts['sidechain'].Trade.methods.numStores().call();
-  const storeEntries = [];
+  const promises = Array(numStores);
   for (let i = 0; i < numStores; i++) {
-    const store = await contracts['sidechain'].Trade.methods.getStoreByIndex(i + 1).call();
-    if (store.live) {
-      const id = parseInt(store.id, 10);
-      const seller = store.seller.toLowerCase();
-      const tokenId = parseInt(store.tokenId, 10);
-      const price = new web3['sidechain'].utils.BN(store.price);
-      const entry = {
-        id,
-        seller,
-        tokenId,
-        price,
-      };
-      storeEntries.push(entry);
-    }
+    promises[i] = contracts['sidechain'].Trade.methods.getStoreByIndex(i + 1).call()
+      .then(store => {
+        if (store.live) {
+          const id = parseInt(store.id, 10);
+          const seller = store.seller.toLowerCase();
+          const tokenId = parseInt(store.tokenId, 10);
+          const price = new web3['sidechain'].utils.BN(store.price);
+          const entry = {
+            id,
+            seller,
+            tokenId,
+            price,
+          };
+          return entry;
+        } else {
+          return null;
+        }
+      });
   }
-
+  let storeEntries = await Promise.all(promises);
+  storeEntries = storeEntries.filter(store => store !== null);
   return storeEntries;
 };
 const _handleTokens = chainName => async (req, res) => {
