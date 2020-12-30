@@ -1430,8 +1430,13 @@ try {
     } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
       const address = match[1];
 
-      const nftBalance = await contracts[chainName].NFT.methods.balanceOf(address).call();
-      const storeEntries = await _getStoreEntries();
+      const [
+        nftBalance,
+        storeEntries,
+      ] = await Promise.all([
+        contracts[chainName].NFT.methods.balanceOf(address).call(),
+        _getStoreEntries(),
+      ]);
 
       const promises = [];
       for (let i = 0; i < nftBalance; i++) {
