@@ -1385,16 +1385,21 @@ try {
         const storeEntries = await _getStoreEntries();
         
         const numTokens = endTokenId - startTokenId;
-        const tokens = [];
+        const promises = Array(numTokens);
         for (let i = 0; i < numTokens; i++) {
-          const tokenId = startTokenId + i;
-          const token = await _getSidechainToken(tokenId, storeEntries);
-          if (token) {
-            if (!tokens.some(token2 => token2.properties.hash === token.properties.hash)) {
-              tokens.push(token);
+          promises[i] = _getSidechainToken(tokenId, storeEntries);
+        }
+        let tokens = await Promise.all(promises);
+        tokens = tokens.filter(token => token !== null);
+        tokens.sort((a, b) => a.id - b.id);
+        tokens = tokens.filter((token, i) => { // filter unique
+          for (let j = 0; j < i; j++) {
+            if (tokens[j].properties.hash === token.properties.hash) {
+              return false;
             }
           }
-        }
+          return true;
+        });
 
         _setCorsHeaders(res);
         res.setHeader('Content-Type', 'application/json');
@@ -1448,6 +1453,7 @@ try {
         promises[i] = _getChainOwnerToken(chainName)(address, i, storeEntries);
       }
       let tokens = await Promise.all(promises);
+      tokens = tokens.filter(token => token !== null);
       tokens.sort((a, b) => a.id - b.id);
       tokens = tokens.filter((token, i) => { // filter unique
         for (let j = 0; j < i; j++) {
