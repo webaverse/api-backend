@@ -1389,7 +1389,7 @@ try {
         const numTokens = endTokenId - startTokenId;
         const promises = Array(numTokens);
         for (let i = 0; i < numTokens; i++) {
-          promises[i] = _getSidechainToken(tokenId, storeEntries);
+          promises[i] = _getSidechainToken(startTokenId + i, storeEntries);
         }
         let tokens = await Promise.all(promises);
         tokens = tokens.filter(token => token !== null);
