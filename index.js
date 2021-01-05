@@ -1278,23 +1278,28 @@ const _formatToken = async (token, storeEntries) => {
     storeId,
   };
 };
-const _getChainToken = chainName => async (tokenId, storeEntries) => {
-  const token = await contracts[chainName].NFT.methods.tokenByIdFull(tokenId).call();
+const _getChainNft = contractName => chainName => async (tokenId, storeEntries) => {
+  const token = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
   if (parseInt(token.id) > 0) {
     return await _formatToken(token, storeEntries);
   } else {
     return null;
   }
 };
+const _getChainToken = _getChainNft('NFT');
+const _getChainLand = _getChainNft('LAND');
 const _getSidechainToken = _getChainToken('sidechain');
-const _getChainOwnerToken = chainName => async (address, i, storeEntries) => {
-  const token = await contracts[chainName].NFT.methods.tokenOfOwnerByIndexFull(address, i).call();
+const _getSidechainLand = _getChainLand('sidechain');
+const _getChainOwnerNft = contractName => chainName => async (address, i, storeEntries) => {
+  const token = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
   if (parseInt(token.id) > 0) {
     return await _formatToken(token, storeEntries);
   } else {
     return null;
   }
 };
+const _getChainOwnerToken = _getChainOwnerNft('NFT');
+const _getChainOwnerLand = _getChainOwnerNft('LAND');
 const _getStoreEntries = async () => {
   const numStores = await contracts['sidechain'].Trade.methods.numStores().call();
   const promises = Array(numStores);
@@ -1322,7 +1327,7 @@ const _getStoreEntries = async () => {
   storeEntries = storeEntries.filter(store => store !== null);
   return storeEntries;
 };
-const _handleTokens = chainName => async (req, res) => {
+const _handleNft = contractName => chainName => async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -1333,6 +1338,7 @@ const _handleTokens = chainName => async (req, res) => {
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
+  const _maybeGetStoreEntries = () => (contractName === 'NFT' && chainName === 'sidechain') ? _getStoreEntries() : Promise.resolve([]);
 
 try {
   const {method} = req;
@@ -1343,8 +1349,8 @@ try {
     if (match = p.match(/^\/([0-9]+)$/)) {
       const tokenId = parseInt(match[1], 10);
 
-      const storeEntries = await _getStoreEntries();
-      const token = await _getChainToken(chainName)(tokenId, storeEntries);
+      const storeEntries = await _maybeGetStoreEntries();
+      const token = await _getChainNft(contractName)(chainName)(tokenId, storeEntries);
 
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
@@ -1384,12 +1390,12 @@ try {
       const endTokenId = parseInt(match[2], 10);
 
       if (startTokenId >= 1 && endTokenId > startTokenId && (endTokenId - startTokenId) <= 100) {
-        const storeEntries = await _getStoreEntries();
+        const storeEntries = await _maybeGetStoreEntries();
         
         const numTokens = endTokenId - startTokenId;
         const promises = Array(numTokens);
         for (let i = 0; i < numTokens; i++) {
-          promises[i] = _getSidechainToken(startTokenId + i, storeEntries);
+          promises[i] = _getChainNft(contractName)(chainName)(startTokenId + i, storeEntries);
         }
         let tokens = await Promise.all(promises);
         tokens = tokens.filter(token => token !== null);
@@ -1446,13 +1452,13 @@ try {
         nftBalance,
         storeEntries,
       ] = await Promise.all([
-        contracts[chainName].NFT.methods.balanceOf(address).call(),
-        _getStoreEntries(),
+        contracts[chainName][contractName].methods.balanceOf(address).call(),
+        _maybeGetStoreEntries(),
       ]);
 
       const promises = Array(nftBalance);
       for (let i = 0; i < nftBalance; i++) {
-        promises[i] = _getChainOwnerToken(chainName)(address, i, storeEntries);
+        promises[i] = _getChainOwnerNft(contractName)(chainName)(address, i, storeEntries);
       }
       let tokens = await Promise.all(promises);
       tokens = tokens.filter(token => token !== null);
@@ -1480,6 +1486,9 @@ try {
   }));
 }
 };
+const _handleTokens = _handleNft('NFT');
+const _handleLand = _handleNft('LAND');
+
 const _handleStore = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -1601,6 +1610,12 @@ try {
     return;
   } else if (o.host === 'tokens-main.webaverse.com') {
     _handleTokens('main')(req, res);
+    return;
+  } else if (o.host === 'land.webaverse.com' || o.host === 'land-side.webaverse.com') {
+    _handleLand('sidechain')(req, res);
+    return;
+  } else if (o.host === 'land-main.webaverse.com') {
+    _handleLand('main')(req, res);
     return;
   } else if (o.host === 'worlds.exokit.org') {
     _handleWorldsRequest(req, res);
@@ -1738,10 +1753,10 @@ const _ws = protocol => (req, socket, head) => {
   
   // console.log('geth host address', {gethNodeUrl});
   let {
-    main: {Account: AccountAddress, FT: FTAddress, NFT: NFTAddress, FTProxy: FTProxyAddress, NFTProxy: NFTProxyAddress, Trade: TradeAddress},
-    sidechain: {Account: AccountAddressSidechain, FT: FTAddressSidechain, NFT: NFTAddressSidechain, FTProxy: FTProxyAddressSidechain, NFTProxy: NFTProxyAddressSidechain, Trade: TradeAddressSidechain},
+    main: {Account: AccountAddress, FT: FTAddress, NFT: NFTAddress, FTProxy: FTProxyAddress, NFTProxy: NFTProxyAddress, Trade: TradeAddress, LAND: LandAddress, LANDProxy: LandProxyAddress},
+    sidechain: {Account: AccountAddressSidechain, FT: FTAddressSidechain, NFT: NFTAddressSidechain, FTProxy: FTProxyAddressSidechain, NFTProxy: NFTProxyAddressSidechain, Trade: TradeAddressSidechain, LAND: LandAddressSidechain, LANDProxy: LandProxyAddressSidechain},
   } = addresses;
-  let {Account: AccountAbi, FT: FTAbi, FTProxy: FTProxyAbi, NFT: NFTAbi, NFTProxy: NFTProxyAbi, Trade: TradeAbi} = abis;
+  let {Account: AccountAbi, FT: FTAbi, FTProxy: FTProxyAbi, NFT: NFTAbi, NFTProxy: NFTProxyAbi, Trade: TradeAbi, LAND: LANDAbi, LANDProxy: LANDProxyAbi} = abis;
   contracts = {
     main: {
       Account: new web3['main'].eth.Contract(AccountAbi, AccountAddress),
@@ -1750,6 +1765,8 @@ const _ws = protocol => (req, socket, head) => {
       NFT: new web3['main'].eth.Contract(NFTAbi, NFTAddress),
       NFTProxy: new web3['main'].eth.Contract(NFTProxyAbi, NFTProxyAddress),
       Trade: new web3['main'].eth.Contract(TradeAbi, TradeAddress),
+      LAND: new web3['main'].eth.Contract(LANDAbi, LandAddress),
+      LANDProxy: new web3['main'].eth.Contract(LANDProxyAbi, LandProxyAddress),
     },
     sidechain: {
       Account: new web3['sidechain'].eth.Contract(AccountAbi, AccountAddressSidechain),
@@ -1758,6 +1775,8 @@ const _ws = protocol => (req, socket, head) => {
       NFT: new web3['sidechain'].eth.Contract(NFTAbi, NFTAddressSidechain),
       NFTProxy: new web3['sidechain'].eth.Contract(NFTProxyAbi, NFTProxyAddressSidechain),
       Trade: new web3['sidechain'].eth.Contract(TradeAbi, TradeAddressSidechain),
+      LAND: new web3['sidechain'].eth.Contract(LANDAbi, LandAddressSidechain),
+      LANDProxy: new web3['sidechain'].eth.Contract(LANDProxyAbi, LandProxyAddressSidechain),
     },
   };
   /* web3.sidechain.eth.getPastLogs({
