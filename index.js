@@ -1545,7 +1545,7 @@ const proxy = httpProxy.createProxyServer({});
 proxy.on('proxyRes', (proxyRes, req) => {
   if (proxyRes.headers['location']) {
     const o = new url.URL(proxyRes.headers['location'], req.url);
-    console.log('redirect location 1', req.url, proxyRes.headers['location'], o.href);
+    // console.log('redirect location 1', req.url, proxyRes.headers['location'], o.href);
     o.host = o.host.replace('-', '--');
     o.host = o.protocol.slice(0, -1) + '-' + o.host.replace(/\./g, '-').replace(/:([0-9]+)$/, '-$1') + '.proxy.exokit.org';
     o.protocol = 'https:';
