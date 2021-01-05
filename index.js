@@ -1756,7 +1756,7 @@ const _ws = protocol => (req, socket, head) => {
     main: {Account: AccountAddress, FT: FTAddress, NFT: NFTAddress, FTProxy: FTProxyAddress, NFTProxy: NFTProxyAddress, Trade: TradeAddress, LAND: LandAddress, LANDProxy: LandProxyAddress},
     sidechain: {Account: AccountAddressSidechain, FT: FTAddressSidechain, NFT: NFTAddressSidechain, FTProxy: FTProxyAddressSidechain, NFTProxy: NFTProxyAddressSidechain, Trade: TradeAddressSidechain, LAND: LandAddressSidechain, LANDProxy: LandProxyAddressSidechain},
   } = addresses;
-  let {Account: AccountAbi, FT: FTAbi, FTProxy: FTProxyAbi, NFT: NFTAbi, NFTProxy: NFTProxyAbi, Trade: TradeAbi} = abis;
+  let {Account: AccountAbi, FT: FTAbi, FTProxy: FTProxyAbi, NFT: NFTAbi, NFTProxy: NFTProxyAbi, Trade: TradeAbi, LAND: LANDAbi, LANDProxy: LANDProxyAbi} = abis;
   contracts = {
     main: {
       Account: new web3['main'].eth.Contract(AccountAbi, AccountAddress),
@@ -1765,8 +1765,8 @@ const _ws = protocol => (req, socket, head) => {
       NFT: new web3['main'].eth.Contract(NFTAbi, NFTAddress),
       NFTProxy: new web3['main'].eth.Contract(NFTProxyAbi, NFTProxyAddress),
       Trade: new web3['main'].eth.Contract(TradeAbi, TradeAddress),
-      LAND: new web3['main'].eth.Contract(NFTAbi, LandAddress),
-      LANDProxy: new web3['main'].eth.Contract(NFTProxyAbi, LandProxyAddress),
+      LAND: new web3['main'].eth.Contract(LANDAbi, LandAddress),
+      LANDProxy: new web3['main'].eth.Contract(LANDProxyAbi, LandProxyAddress),
     },
     sidechain: {
       Account: new web3['sidechain'].eth.Contract(AccountAbi, AccountAddressSidechain),
@@ -1775,8 +1775,8 @@ const _ws = protocol => (req, socket, head) => {
       NFT: new web3['sidechain'].eth.Contract(NFTAbi, NFTAddressSidechain),
       NFTProxy: new web3['sidechain'].eth.Contract(NFTProxyAbi, NFTProxyAddressSidechain),
       Trade: new web3['sidechain'].eth.Contract(TradeAbi, TradeAddressSidechain),
-      LAND: new web3['sidechain'].eth.Contract(NFTAbi, LandAddressSidechain),
-      LANDProxy: new web3['sidechain'].eth.Contract(NFTProxyAbi, LandProxyAddressSidechain),
+      LAND: new web3['sidechain'].eth.Contract(LANDAbi, LandAddressSidechain),
+      LANDProxy: new web3['sidechain'].eth.Contract(LANDProxyAbi, LandProxyAddressSidechain),
     },
   };
   /* web3.sidechain.eth.getPastLogs({
