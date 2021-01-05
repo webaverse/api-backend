@@ -1753,8 +1753,8 @@ const _ws = protocol => (req, socket, head) => {
   
   // console.log('geth host address', {gethNodeUrl});
   let {
-    main: {Account: AccountAddress, FT: FTAddress, NFT: NFTAddress, FTProxy: FTProxyAddress, NFTProxy: NFTProxyAddress, Trade: TradeAddress, Land: LandAddress, LandProxy: LandProxyAddress},
-    sidechain: {Account: AccountAddressSidechain, FT: FTAddressSidechain, NFT: NFTAddressSidechain, FTProxy: FTProxyAddressSidechain, NFTProxy: NFTProxyAddressSidechain, Trade: TradeAddressSidechain, Land: LandAddressSidechain, LandProxy: LandProxyAddressSidechain},
+    main: {Account: AccountAddress, FT: FTAddress, NFT: NFTAddress, FTProxy: FTProxyAddress, NFTProxy: NFTProxyAddress, Trade: TradeAddress, LAND: LandAddress, LANDProxy: LandProxyAddress},
+    sidechain: {Account: AccountAddressSidechain, FT: FTAddressSidechain, NFT: NFTAddressSidechain, FTProxy: FTProxyAddressSidechain, NFTProxy: NFTProxyAddressSidechain, Trade: TradeAddressSidechain, LAND: LandAddressSidechain, LANDProxy: LandProxyAddressSidechain},
   } = addresses;
   let {Account: AccountAbi, FT: FTAbi, FTProxy: FTProxyAbi, NFT: NFTAbi, NFTProxy: NFTProxyAbi, Trade: TradeAbi} = abis;
   contracts = {
