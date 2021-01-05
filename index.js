@@ -1322,7 +1322,7 @@ const _getStoreEntries = async () => {
   storeEntries = storeEntries.filter(store => store !== null);
   return storeEntries;
 };
-const _handleTokens = chainName => async (req, res) => {
+const _handleNft = contractName => chainName => async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -1343,7 +1343,7 @@ try {
     if (match = p.match(/^\/([0-9]+)$/)) {
       const tokenId = parseInt(match[1], 10);
 
-      const storeEntries = await _getStoreEntries();
+      const storeEntries = (contractName === 'NFT' && chainName === 'sidechain') ? (await _getStoreEntries()) : [];
       const token = await _getChainToken(chainName)(tokenId, storeEntries);
 
       _setCorsHeaders(res);
@@ -1384,12 +1384,12 @@ try {
       const endTokenId = parseInt(match[2], 10);
 
       if (startTokenId >= 1 && endTokenId > startTokenId && (endTokenId - startTokenId) <= 100) {
-        const storeEntries = await _getStoreEntries();
+        const storeEntries = (contractName === 'NFT' && chainName === 'sidechain') ? (await _getStoreEntries()) : [];
         
         const numTokens = endTokenId - startTokenId;
         const promises = Array(numTokens);
         for (let i = 0; i < numTokens; i++) {
-          promises[i] = _getSidechainToken(startTokenId + i, storeEntries);
+          promises[i] = _getChainToken(chainName)(startTokenId + i, storeEntries);
         }
         let tokens = await Promise.all(promises);
         tokens = tokens.filter(token => token !== null);
@@ -1540,6 +1540,8 @@ try {
   }));
 }
 };
+const _handleTokens = _handleNft('NFT');
+const _handleLand = _handleNft('LAND');
 
 const proxy = httpProxy.createProxyServer({});
 proxy.on('proxyRes', (proxyRes, req) => {
@@ -1601,6 +1603,12 @@ try {
     return;
   } else if (o.host === 'tokens-main.webaverse.com') {
     _handleTokens('main')(req, res);
+    return;
+  } else if (o.host === 'land.webaverse.com' || o.host === 'land-side.webaverse.com') {
+    _handleLand('sidechain')(req, res);
+    return;
+  } else if (o.host === 'land-main.webaverse.com') {
+    _handleLand('main')(req, res);
     return;
   } else if (o.host === 'worlds.exokit.org') {
     _handleWorldsRequest(req, res);
