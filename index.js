@@ -1280,7 +1280,7 @@ const _formatNft = contractName => async (token, storeEntries) => {
 };
 const _getChainNft = contractName => chainName => async (tokenId, storeEntries) => {
   const token = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
-  if (parseInt(token.id) > 0) {
+  if (token.totalSupply > 0) {
     return await _formatNft(contractName)(token, storeEntries);
   } else {
     return null;
