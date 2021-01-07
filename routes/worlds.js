@@ -253,7 +253,7 @@ const worldManager = new WorldManager();
 const _handleWorldsRequest = async (req, res) => {
     try {
         const request = url.parse(req.url);
-        const match = request.path.match(/^\/([a-z0-9\- \.]+)$/i);
+        const match = request.path.match(/^\/([a-z0-9\-\ \.]+)$/i);
         const p = match && match[1];
         // const filename = match && match[2];
 
