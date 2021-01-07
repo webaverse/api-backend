@@ -1210,7 +1210,7 @@ try {
 }
 };
 
-const _formatToken = async (token, storeEntries) => {
+const _formatNft = contractName => async (token, storeEntries) => {
   const _fetchAccount = async address => {
     const [
       username,
@@ -1254,7 +1254,7 @@ const _formatToken = async (token, storeEntries) => {
 
   const id = parseInt(token.id, 10);
   const {hash} = token;
-  const description = await contracts['sidechain'].NFT.methods.getMetadata(hash, 'description').call();
+  const description = await contracts['sidechain'][contractName].methods.getMetadata(hash, 'description').call();
   const storeEntry = storeEntries.find(entry => entry.tokenId === id);
   const buyPrice = storeEntry ? storeEntry.price : null;
   const storeId = storeEntry ? storeEntry.id : null;
@@ -1281,7 +1281,7 @@ const _formatToken = async (token, storeEntries) => {
 const _getChainNft = contractName => chainName => async (tokenId, storeEntries) => {
   const token = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
   if (parseInt(token.id) > 0) {
-    return await _formatToken(token, storeEntries);
+    return await _formatNft(contractName)(token, storeEntries);
   } else {
     return null;
   }
@@ -1293,7 +1293,7 @@ const _getSidechainLand = _getChainLand('sidechain');
 const _getChainOwnerNft = contractName => chainName => async (address, i, storeEntries) => {
   const token = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
   if (parseInt(token.id) > 0) {
-    return await _formatToken(token, storeEntries);
+    return await _formatNft(contractName)(token, storeEntries);
   } else {
     return null;
   }
