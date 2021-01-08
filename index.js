@@ -1177,11 +1177,11 @@ try {
 
       const tokens2 = [];
       for (const token of tokens) {
-        if (token) {
+        // if (token) {
           if (!tokens2.some(token2 => token2.properties.hash === token.properties.hash)) {
             tokens2.push(token);
           }
-        }
+        // }
       }
 
       const result = {
@@ -1341,14 +1341,10 @@ const _formatLand = async (token, storeEntries) => {
 };
 const _getChainNft = contractName => chainName => async (tokenId, storeEntries) => {
   const token = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
-  if (token.totalSupply > 0) {
-    if (contractName === 'NFT') {
-      return await _formatToken(token, storeEntries);
-    } else if (contractName === 'LAND') {
-      return await _formatLand(token, storeEntries);
-    } else {
-      return null;
-    }
+  if (contractName === 'NFT') {
+    return await _formatToken(token, storeEntries);
+  } else if (contractName === 'LAND') {
+    return await _formatLand(token, storeEntries);
   } else {
     return null;
   }
@@ -1359,14 +1355,10 @@ const _getSidechainToken = _getChainToken('sidechain');
 const _getSidechainLand = _getChainLand('sidechain');
 const _getChainOwnerNft = contractName => chainName => async (address, i, storeEntries) => {
   const token = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
-  if (parseInt(token.id) > 0) {
-    if (contractName === 'NFT') {
-      return await _formatToken(token, storeEntries);
-    } else if (contractName === 'LAND') {
-      return await _formatLand(token, storeEntries);
-    } else {
-      return null;
-    }
+  if (contractName === 'NFT') {
+    return await _formatToken(token, storeEntries);
+  } else if (contractName === 'LAND') {
+    return await _formatLand(token, storeEntries);
   } else {
     return null;
   }
@@ -1534,7 +1526,7 @@ try {
         promises[i] = _getChainOwnerNft(contractName)(chainName)(address, i, storeEntries);
       }
       let tokens = await Promise.all(promises);
-      tokens = tokens.filter(token => token !== null);
+      // tokens = tokens.filter(token => token !== null);
       tokens.sort((a, b) => a.id - b.id);
       tokens = tokens.filter((token, i) => { // filter unique
         for (let j = 0; j < i; j++) {
