@@ -1210,7 +1210,7 @@ try {
 }
 };
 
-const _formatNft = contractName => async (token, storeEntries) => {
+const _formatToken = async (token, storeEntries) => {
   const _fetchAccount = async address => {
     const [
       username,
@@ -1253,22 +1253,22 @@ const _formatNft = contractName => async (token, storeEntries) => {
   ]);
 
   const id = parseInt(token.id, 10);
-  const {hash} = token;
-  const description = await contracts['sidechain'][contractName].methods.getMetadata(hash, 'description').call();
+  const {name, ext, hash} = token;
+  const description = await contracts['sidechain'].NFT.methods.getMetadata(hash, 'description').call();
   const storeEntry = storeEntries.find(entry => entry.tokenId === id);
   const buyPrice = storeEntry ? storeEntry.price : null;
   const storeId = storeEntry ? storeEntry.id : null;
   return {
     id,
-    name: token.name,
-    description: description,
-    image: 'https://preview.exokit.org/' + hash + '.' + token.ext + '/preview.png',
+    name,
+    description,
+    image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
     external_url: 'https://app.webaverse.com?h=' + hash,
-    animation_url: `${storageHost}/${hash}/preview.${token.ext === 'vrm' ? 'glb' : token.ext}`,
+    animation_url: `${storageHost}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
     properties: {
-      name: token.name,
+      name,
       hash,
-      ext: token.ext,
+      ext,
     },
     minter,
     owner,
@@ -1278,10 +1278,77 @@ const _formatNft = contractName => async (token, storeEntries) => {
     storeId,
   };
 };
+const _formatLand = async (token, storeEntries) => {
+  const _fetchAccount = async address => {
+    const [
+      username,
+      avatarPreview,
+      monetizationPointer,
+    ] = await Promise.all([
+      (async () => {
+        let username = await contracts['sidechain'].Account.methods.getMetadata(address, 'name').call();
+        if (!username) {
+          username = 'Anonymous';
+        }
+        return username;
+      })(),
+      (async () => {
+        let avatarPreview = await contracts['sidechain'].Account.methods.getMetadata(address, 'avatarPreview').call();
+        if (!avatarPreview) {
+          avatarPreview = defaultAvatarPreview;
+        }
+        return avatarPreview;
+      })(),
+      (async () => {
+        let monetizationPointer = await contracts['sidechain'].Account.methods.getMetadata(address, 'monetizationPointer').call();
+        if (!monetizationPointer) {
+          monetizationPointer = '';
+        }
+        return monetizationPointer;
+      })(),
+    ]);
+
+    return {
+      address,
+      username,
+      avatarPreview,
+      monetizationPointer,
+    };
+  };
+  const owner = await _fetchAccount(token.owner);
+
+  const id = parseInt(token.id, 10);
+  const {name} = token;
+  const hash = await contracts['sidechain'].LAND.methods.getSingleMetadata(id, 'hash').call();
+  const ext = await contracts['sidechain'].LAND.methods.getSingleMetadata(id, 'ext').call();
+  const description = await contracts['sidechain'].LAND.methods.getSingleMetadata(id, 'description').call();
+  return {
+    id,
+    name,
+    description,
+    image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
+    external_url: 'https://app.webaverse.com?h=' + hash,
+    animation_url: `${storageHost}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+    properties: {
+      name,
+      hash,
+      ext,
+    },
+    owner,
+    balance: parseInt(token.balance, 10),
+    totalSupply: parseInt(token.totalSupply, 10)
+  };
+};
 const _getChainNft = contractName => chainName => async (tokenId, storeEntries) => {
   const token = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
   if (token.totalSupply > 0) {
-    return await _formatNft(contractName)(token, storeEntries);
+    if (contractName === 'NFT') {
+      return await _formatToken(token, storeEntries);
+    } else if (contractName === 'LAND') {
+      return await _formatLand(token, storeEntries);
+    } else {
+      return null;
+    }
   } else {
     return null;
   }
