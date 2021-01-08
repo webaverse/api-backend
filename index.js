@@ -1318,7 +1318,7 @@ const _formatLand = async (token, storeEntries) => {
   const owner = await _fetchAccount(token.owner);
 
   const id = parseInt(token.id, 10);
-  const {name} = token;
+  const {hash: name} = token;
   const hash = await contracts['sidechain'].LAND.methods.getSingleMetadata(id, 'hash').call();
   const ext = await contracts['sidechain'].LAND.methods.getSingleMetadata(id, 'ext').call();
   const description = await contracts['sidechain'].LAND.methods.getSingleMetadata(id, 'description').call();
