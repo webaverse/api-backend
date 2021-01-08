@@ -52,8 +52,10 @@ const loadPromise = (async () => {
         'Account',
         'FT',
         'NFT',
+        'LAND',
         'FTProxy',
         'NFTProxy',
+        'LANDProxy',
       ].forEach(contractName => {
         result[chainName][contractName] = new web3[chainName].eth.Contract(abis[contractName], addresses[chainName][contractName]);
       });
@@ -103,6 +105,7 @@ const _handleSignRequest = async (req, res) => {
                         const {logs} = txr;
                         const log = logs.find(log =>
                           (contractName === 'FT' && log.topics[0] === '0x2da466a7b24304f47e87fa2e1e5a81b9831ce54fec19055ce277ca2f39ba42c4') || // WebaverseERC20Proxy Deposited
+                          (contractName === 'LAND' && log.topics[0] === '0x2da466a7b24304f47e87fa2e1e5a81b9831ce54fec19055ce277ca2f39ba42c4') || // WebaverseERC721Proxy Deposited
                           (contractName === 'NFT' && log.topics[0] === '0x2da466a7b24304f47e87fa2e1e5a81b9831ce54fec19055ce277ca2f39ba42c4') // WebaverseERC721Proxy Deposited
                         ) || null;
                         // console.log('got log', logs, log);
@@ -149,7 +152,7 @@ const _handleSignRequest = async (req, res) => {
                               s,
                               v,
                             }));
-                          } else if (contractName === 'NFT') {
+                          } else if (contractName === 'NFT' || contractName === 'LAND') {
                             const tokenId = {
                               t: 'uint256',
                               v: new web3[chainName].utils.BN(log.topics[2].slice(2), 16),
