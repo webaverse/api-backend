@@ -1360,7 +1360,13 @@ const _getSidechainLand = _getChainLand('sidechain');
 const _getChainOwnerNft = contractName => chainName => async (address, i, storeEntries) => {
   const token = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
   if (parseInt(token.id) > 0) {
-    return await _formatNft(contractName)(token, storeEntries);
+    if (contractName === 'NFT') {
+      return await _formatToken(token, storeEntries);
+    } else if (contractName === 'LAND') {
+      return await _formatLand(token, storeEntries);
+    } else {
+      return null;
+    }
   } else {
     return null;
   }
