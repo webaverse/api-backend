@@ -259,7 +259,7 @@ const _handleWorldsRequest = async (req, res) => {
     const p = match && match[1];
     // const filename = match && match[2];
     
-    console.log('get worlds request', p);
+    console.log('get worlds request', {method, headers, p});
 
     res = _setCorsHeaders(res);
     const {method, headers} = req;
