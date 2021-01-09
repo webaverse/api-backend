@@ -258,11 +258,12 @@ const _handleWorldsRequest = async (req, res) => {
     const match = decodeURIComponent(request.path.match(/^\/([a-z0-9\-\ \.]+)$/i));
     const p = match && match[1];
     // const filename = match && match[2];
-    
-    console.log('get worlds request', {method, headers, p});
 
     res = _setCorsHeaders(res);
     const {method, headers} = req;
+    
+    console.log('get worlds request', {method, headers, p});
+    
     if (method === 'OPTIONS') {
       res.end();
     } else if (method === 'GET' && request.path == '/') {
