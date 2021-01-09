@@ -253,58 +253,60 @@ class WorldManager {
 const worldManager = new WorldManager();
 
 const _handleWorldsRequest = async (req, res) => {
-    try {
-        const request = url.parse(req.url);
-        const match = decodeURIComponent(request.path.match(/^\/([a-z0-9\-\ \.]+)$/i));
-        const p = match && match[1];
-        // const filename = match && match[2];
+  try {
+    const request = url.parse(req.url);
+    const match = decodeURIComponent(request.path.match(/^\/([a-z0-9\-\ \.]+)$/i));
+    const p = match && match[1];
+    // const filename = match && match[2];
+    
+    console.log('get worlds request', p);
 
-        res = _setCorsHeaders(res);
-        const {method, headers} = req;
-        if (method === 'OPTIONS') {
-          res.end();
-        } else if (method === 'GET' && request.path == '/') {
-          res.end(JSON.stringify(worldManager.worlds));
-        } else if (method === 'GET' && p) {
-          const name = p;
-          const world = worldManager.worlds.find(world => world.name === name);
-          if (world) {
-            res.end(JSON.stringify({
-              result: world,
-            }));
-          } else {
-            res.statusCode = 404;
-            res.end(JSON.stringify({error: 'world not found'}));
-          }
-        } else if (method === 'POST' && p) {
-          const name = p;
-          const world = await worldManager.createWorld(name);
+    res = _setCorsHeaders(res);
+    const {method, headers} = req;
+    if (method === 'OPTIONS') {
+      res.end();
+    } else if (method === 'GET' && request.path == '/') {
+      res.end(JSON.stringify(worldManager.worlds));
+    } else if (method === 'GET' && p) {
+      const name = p;
+      const world = worldManager.worlds.find(world => world.name === name);
+      if (world) {
+        res.end(JSON.stringify({
+          result: world,
+        }));
+      } else {
+        res.statusCode = 404;
+        res.end(JSON.stringify({error: 'world not found'}));
+      }
+    } else if (method === 'POST' && p) {
+      const name = p;
+      const world = await worldManager.createWorld(name);
 
-          if (world) {
-            res.end(JSON.stringify({
-              result: world,
-            }));
-          } else {
-            res.statusCode = 400;
-            res.end(JSON.stringify({error: 'name already taken'}));
-          }
-        } else if (method === 'DELETE' && p) {
-          const name = p;
-          const ok = await worldManager.deleteWorld(name);
-          if (ok) {
-            res.statusCode = 200;
-            res.end();
-          } else {
-            res.statusCode = 404;
-            res.end(JSON.stringify({error: 'world not found'}));
-          }
-        } else {
-          res.statusCode = 404;
-          res.end();
-        }
-    } catch (e) {
-        console.log(e);
+      if (world) {
+        res.end(JSON.stringify({
+          result: world,
+        }));
+      } else {
+        res.statusCode = 400;
+        res.end(JSON.stringify({error: 'name already taken'}));
+      }
+    } else if (method === 'DELETE' && p) {
+      const name = p;
+      const ok = await worldManager.deleteWorld(name);
+      if (ok) {
+        res.statusCode = 200;
+        res.end();
+      } else {
+        res.statusCode = 404;
+        res.end(JSON.stringify({error: 'world not found'}));
+      }
+    } else {
+      res.statusCode = 404;
+      res.end();
     }
+  } catch (e) {
+    console.log(e);
+  }
 }
 
 module.exports = {
