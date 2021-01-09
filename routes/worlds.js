@@ -87,6 +87,7 @@ class WorldManager {
     });
   }
   async createWorld(name) {
+    console.log('create world', name, new Error().stack);
     if (!this.runnings[name]) {
       this.runnings[name] = true;
 
