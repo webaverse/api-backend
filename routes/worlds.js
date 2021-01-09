@@ -60,20 +60,21 @@ class WorldManager {
         // psargs: 'ux',
       }, function(err, results) {
         if (!err) {
-          results = results.filter(w => {
-            return w.arguments[0] === jsPath;
-          }).map(w => {
-            const {pid} = w;
-            let [_, name, publicIp, privateIp, port] = w.arguments;
-            port = parseInt(port, 10);
-            return {
-              name,
-              publicIp,
-              privateIp,
-              port,
-              [pidSymbol]: pid,
-            };
-          });
+          results = results
+            .filter(w => w.arguments[0] === jsPath)
+            .map(w => {
+              const {pid} = w;
+              let [_, name, publicIp, privateIp, port] = w.arguments;
+              port = parseInt(port, 10);
+              return {
+                name,
+                publicIp,
+                privateIp,
+                port,
+                [pidSymbol]: pid,
+              };
+            });
+          console.log('got load world results', results);
           accept(results);
         } else {
           /* resultList.forEach(function( process ){
