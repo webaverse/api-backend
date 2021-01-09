@@ -254,19 +254,19 @@ const worldManager = new WorldManager();
 
 const _handleWorldsRequest = async (req, res) => {
   try {
-    const request = url.parse(req.url);
-    const match = decodeURIComponent(request.path.match(/^\/([a-z0-9\-\ \.]+)$/i));
+    const {method, headers, url} = req;
+    const o = url.parse(url);
+    const match = decodeURIComponent(o.path.match(/^\/([a-z0-9\-\ \.]+)$/i));
     const p = match && match[1];
     // const filename = match && match[2];
 
     res = _setCorsHeaders(res);
-    const {method, headers} = req;
     
-    console.log('get worlds request', {method, headers, p});
+    console.log('get worlds request', {method, headers, o, p});
     
     if (method === 'OPTIONS') {
       res.end();
-    } else if (method === 'GET' && request.path == '/') {
+    } else if (method === 'GET' && o.path == '/') {
       res.end(JSON.stringify(worldManager.worlds));
     } else if (method === 'GET' && p) {
       const name = p;
