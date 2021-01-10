@@ -1319,7 +1319,7 @@ const _formatLand = async (token, storeEntries) => {
 
   const id = parseInt(token.id, 10);
   // console.log('got token', token);
-  const {name, hash: contentId, ext} = token;
+  const {name, hash, ext} = token;
   const description = await contracts['sidechain'].LAND.methods.getSingleMetadata(id, 'description').call();
   return {
     id,
@@ -1330,7 +1330,7 @@ const _formatLand = async (token, storeEntries) => {
     animation_url: `${storageHost}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
     properties: {
       name,
-      contentId,
+      hash,
       ext,
     },
     owner,
