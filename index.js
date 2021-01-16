@@ -1326,8 +1326,8 @@ const _formatLand = async (token, storeEntries) => {
     extents,
   ] = await Promise.all([
     contracts['sidechain'].LAND.methods.getSingleMetadata(id, 'description').call(),
-    contracts['sidechain'].LAND.methods.getMetadata(hash, 'rarity').call(),
-    contracts['sidechain'].LAND.methods.getMetadata(hash, 'extents').call(),
+    contracts['sidechain'].LAND.methods.getMetadata(name, 'rarity').call(),
+    contracts['sidechain'].LAND.methods.getMetadata(name, 'extents').call(),
   ]);
   return {
     id,
