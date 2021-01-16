@@ -81,6 +81,14 @@ const web3MainEndpoint = `https://${infuraNetwork}.infura.io/v3/${infuraProjectI
 const tableName = 'users';
 const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
 
+const _jsonParse = s => {
+  try {
+    return JSON.parse(s);
+  } catch (err) {
+    return null;
+  }
+};
+
 let web3, addresses, abis, contracts, gethNodeUrl;
 
 Error.stackTraceLimit = 300;
