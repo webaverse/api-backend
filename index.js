@@ -1320,7 +1320,15 @@ const _formatLand = async (token, storeEntries) => {
   const id = parseInt(token.id, 10);
   // console.log('got token', token);
   const {name, hash, ext} = token;
-  const description = await contracts['sidechain'].LAND.methods.getSingleMetadata(id, 'description').call();
+  const [
+    description,
+    rarity,
+    extents,
+  ] = await Promise.all([
+    contracts['sidechain'].LAND.methods.getSingleMetadata(id, 'description').call(),
+    contracts['sidechain'].LAND.methods.getMetadata(hash, 'rarity').call(),
+    contracts['sidechain'].LAND.methods.getMetadata(hash, 'extents').call(),
+  ]);
   return {
     id,
     name,
@@ -1331,6 +1339,8 @@ const _formatLand = async (token, storeEntries) => {
     properties: {
       name,
       hash,
+      rarity,
+      extents,
       ext,
     },
     owner,
