@@ -1540,6 +1540,8 @@ try {
           }
           return true;
         });
+      } else if (contractName === 'LAND') {
+        tokens = tokens.filter(token => !!token.name);
       }
       _respond(200, JSON.stringify(tokens));
     } else {
