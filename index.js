@@ -1329,12 +1329,22 @@ const _formatLand = async (token, storeEntries) => {
     contracts['sidechain'].LAND.methods.getMetadata(name, 'rarity').call(),
     contracts['sidechain'].LAND.methods.getMetadata(name, 'extents').call(),
   ]);
+  const extentsJson = _jsonParse(extents);
+  const coord = (
+    extentsJson && extentsJson[0] &&
+    typeof extentsJson[0][0] === 'number' && typeof extentsJson[0][1] === 'number' && typeof extentsJson[0][2] === 'number' &&
+    typeof extentsJson[1][0] === 'number' && typeof extentsJson[1][1] === 'number' && typeof extentsJson[1][2] === 'number'
+  ) [
+    (extentsJson[1][0] + extentsJson[0][0])/2,
+    (extentsJson[1][1] + extentsJson[0][1])/2,
+    (extentsJson[1][2] + extentsJson[0][2])/2,
+  ] : null;
   return {
     id,
     name,
     description,
-    image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
-    external_url: 'https://app.webaverse.com?h=' + hash,
+    image: coord ? `https://land-preview.exokit.org/32/${coord[0]}/${coord[2]}?${extentsJson ? `e=${JSON.stringify(extentsJson)` : ''}` : null,
+    external_url: `https://app.webaverse.com?${coord ? `c=${JSON.stringify(extentsJson)}` : ''}`,
     animation_url: `${storageHost}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
     properties: {
       name,
