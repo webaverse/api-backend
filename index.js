@@ -1531,14 +1531,16 @@ try {
       let tokens = await Promise.all(promises);
       // tokens = tokens.filter(token => token !== null);
       tokens.sort((a, b) => a.id - b.id);
-      tokens = tokens.filter((token, i) => { // filter unique
-        for (let j = 0; j < i; j++) {
-          if (tokens[j].properties.hash === token.properties.hash) {
-            return false;
+      if (contractName === 'NFT') {
+        tokens = tokens.filter((token, i) => { // filter unique hashes
+          for (let j = 0; j < i; j++) {
+            if (tokens[j].properties.hash === token.properties.hash) {
+              return false;
+            }
           }
-        }
-        return true;
-      });
+          return true;
+        });
+      }
       _respond(200, JSON.stringify(tokens));
     } else {
       _respond(404, 'not found');
