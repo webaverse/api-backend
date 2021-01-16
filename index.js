@@ -1334,7 +1334,7 @@ const _formatLand = async (token, storeEntries) => {
     extentsJson && extentsJson[0] &&
     typeof extentsJson[0][0] === 'number' && typeof extentsJson[0][1] === 'number' && typeof extentsJson[0][2] === 'number' &&
     typeof extentsJson[1][0] === 'number' && typeof extentsJson[1][1] === 'number' && typeof extentsJson[1][2] === 'number'
-  ) [
+  ) ? [
     (extentsJson[1][0] + extentsJson[0][0])/2,
     (extentsJson[1][1] + extentsJson[0][1])/2,
     (extentsJson[1][2] + extentsJson[0][2])/2,
