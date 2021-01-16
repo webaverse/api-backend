@@ -1343,7 +1343,7 @@ const _formatLand = async (token, storeEntries) => {
     id,
     name,
     description,
-    image: coord ? `https://land-preview.exokit.org/32/${coord[0]}/${coord[2]}?${extentsJson ? `e=${JSON.stringify(extentsJson)` : ''}` : null,
+    image: coord ? `https://land-preview.exokit.org/32/${coord[0]}/${coord[2]}?${extentsJson ? `e=${JSON.stringify(extentsJson)}` : ''}` : null,
     external_url: `https://app.webaverse.com?${coord ? `c=${JSON.stringify(extentsJson)}` : ''}`,
     animation_url: `${storageHost}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
     properties: {
