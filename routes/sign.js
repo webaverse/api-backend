@@ -11,6 +11,8 @@ const {hdkey} = require('ethereumjs-wallet');
 const {_setCorsHeaders} = require('../utils.js');
 const {mnemonic, infuraProjectId} = require('../config.json');
 
+const isMainnet = false;
+
 const loadPromise = (async () => {
   const ethereumHost = 'ethereum.exokit.org';
 
@@ -30,23 +32,20 @@ const loadPromise = (async () => {
   gethNodeUrl = `http://${ethereumHostAddress}:8545`;
 
   const web3 = {
-    // main: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`)),
-    main: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
-    // main: new Web3(new Web3.providers.HttpProvider('http://13.56.80.83:8545')),
-    sidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl)),
+    main: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`)),
+    mainnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl)),
+    rinkeby: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
+    rinkebysidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl)),
   };
-  const addresses = await fetch('https://contracts.webaverse.com/ethereum/address.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
-  const abis = await fetch('https://contracts.webaverse.com/ethereum/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
-  const chainIds = await fetch('https://contracts.webaverse.com/ethereum/chain-id.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
+  const addresses = await fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
+  const abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
+  const chainIds = await fetch('https://contracts.webaverse.com/config/chain-id.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const contracts = await (async () => {
     console.log('got addresses', addresses);
-    const result = {
-      main: {},
-      sidechain: {},
-    };
+    const result = {};
     [
-      'main',
-      'sidechain',
+      (isMainnet ? 'mainnet' : 'rinkeby'),
+      (isMainnet ? 'mainnet' : 'rinkeby') + 'sidechain',
     ].forEach(chainName => {
       [
         'Account',
@@ -57,6 +56,9 @@ const loadPromise = (async () => {
         'NFTProxy',
         'LANDProxy',
       ].forEach(contractName => {
+        if (!result[chainName]) {
+          result[chainName] = {};
+        }
         result[chainName][contractName] = new web3[chainName].eth.Contract(abis[contractName], addresses[chainName][contractName]);
       });
     });
