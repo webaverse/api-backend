@@ -1210,6 +1210,66 @@ try {
 }
 };
 
+const _handleProxyRoot = (() => {
+  const proxy = httpProxy.createProxyServer({});
+  /* proxy.on('proxyRes', (proxyRes, req) => {
+    if (proxyRes.headers['location']) {
+      const o = new url.URL(proxyRes.headers['location'], req.url);
+      // console.log('redirect location 1', req.url, proxyRes.headers['location'], o.href);
+      o.host = o.host.replace('-', '--');
+      o.host = o.protocol.slice(0, -1) + '-' + o.host.replace(/\./g, '-').replace(/:([0-9]+)$/, '-$1') + '.proxy.exokit.org';
+      o.protocol = 'https:';
+      proxyRes.headers['location'] = o.href;
+    }
+    proxyRes.headers['access-control-allow-origin'] = '*';
+  }); */
+  proxy.on('error', err => {
+    console.warn(err.stack);
+  });
+  return (req, res) => {
+    proxy.web(req, res, {
+      target: 'https://webaverse.com',
+      // secure: false,
+      changeOrigin: true,
+    }, err => {
+      console.warn(err.stack);
+
+      res.statusCode = 500;
+      res.end();
+    });
+  };
+})();
+
+const _handleProxyApp = (() => {
+  const proxy = httpProxy.createProxyServer({});
+  /* proxy.on('proxyRes', (proxyRes, req) => {
+    if (proxyRes.headers['location']) {
+      const o = new url.URL(proxyRes.headers['location'], req.url);
+      // console.log('redirect location 1', req.url, proxyRes.headers['location'], o.href);
+      o.host = o.host.replace('-', '--');
+      o.host = o.protocol.slice(0, -1) + '-' + o.host.replace(/\./g, '-').replace(/:([0-9]+)$/, '-$1') + '.proxy.exokit.org';
+      o.protocol = 'https:';
+      proxyRes.headers['location'] = o.href;
+    }
+    proxyRes.headers['access-control-allow-origin'] = '*';
+  }); */
+  proxy.on('error', err => {
+    console.warn(err.stack);
+  });
+  return (req, res) => {
+    proxy.web(req, res, {
+      target: 'https://app.webaverse.com',
+      // secure: false,
+      changeOrigin: true,
+    }, err => {
+      console.warn(err.stack);
+
+      res.statusCode = 500;
+      res.end();
+    });
+  };
+})();
+
 const _formatToken = async (token, storeEntries) => {
   const _fetchAccount = async address => {
     const [
@@ -1696,6 +1756,12 @@ try {
     return;
   } else if (o.host === 'profile.webaverse.com') {
     _handleProfile(req, res);
+    return;
+  } else if (o.host === 'main.webaverse.com' || o.host === 'test.webaverse.com') {
+    _handleProxyRoot();
+    return;
+  } else if (o.host === 'main.app.webaverse.com' || o.host === 'test.app.webaverse.com') {
+    _handleProxyApp();
     return;
   } else if (o.host === 'tokens.webaverse.com' || o.host === 'tokens-side.webaverse.com') {
     _handleTokens('sidechain')(req, res);
