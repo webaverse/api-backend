@@ -1758,10 +1758,10 @@ try {
     _handleProfile(req, res);
     return;
   } else if (o.host === 'main.webaverse.com' || o.host === 'test.webaverse.com') {
-    _handleProxyRoot();
+    _handleProxyRoot(req, res);
     return;
   } else if (o.host === 'main.app.webaverse.com' || o.host === 'test.app.webaverse.com') {
-    _handleProxyApp();
+    _handleProxyApp(req, res);
     return;
   } else if (o.host === 'tokens.webaverse.com' || o.host === 'tokens-side.webaverse.com') {
     _handleTokens('sidechain')(req, res);
