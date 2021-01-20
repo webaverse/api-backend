@@ -1887,8 +1887,8 @@ const _ws = protocol => (req, socket, head) => {
 };
 
 {
-  addresses = await fetch('https://contracts.webaverse.com/ethereum/address.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
-  abis = await fetch('https://contracts.webaverse.com/ethereum/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
+  addresses = await fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
+  abis = await fetch('https://contracts.webaverse.com/config/abis.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const ethereumHostAddress = await new Promise((accept, reject) => {
     dns.resolve4(ethereumHost, (err, addresses) => {
       if (!err) {
@@ -1915,26 +1915,32 @@ const _ws = protocol => (req, socket, head) => {
     sidechain: {Account: AccountAddressSidechain, FT: FTAddressSidechain, NFT: NFTAddressSidechain, FTProxy: FTProxyAddressSidechain, NFTProxy: NFTProxyAddressSidechain, Trade: TradeAddressSidechain, LAND: LandAddressSidechain, LANDProxy: LandProxyAddressSidechain},
   } = addresses;
   let {Account: AccountAbi, FT: FTAbi, FTProxy: FTProxyAbi, NFT: NFTAbi, NFTProxy: NFTProxyAbi, Trade: TradeAbi, LAND: LANDAbi, LANDProxy: LANDProxyAbi} = abis;
-  contracts = {
+
+  const addressFront = addresses.rinkeby;
+  const addressBack = addresses.rinkebysidechain;
+  const web3.front = web3.main;
+  const web3.back = web3.sidechain;
+
+  const contracts = {
     main: {
-      Account: new web3['main'].eth.Contract(AccountAbi, AccountAddress),
-      FT: new web3['main'].eth.Contract(FTAbi, FTAddress),
-      FTProxy: new web3['main'].eth.Contract(FTProxyAbi, FTProxyAddress),
-      NFT: new web3['main'].eth.Contract(NFTAbi, NFTAddress),
-      NFTProxy: new web3['main'].eth.Contract(NFTProxyAbi, NFTProxyAddress),
-      Trade: new web3['main'].eth.Contract(TradeAbi, TradeAddress),
-      LAND: new web3['main'].eth.Contract(LANDAbi, LandAddress),
-      LANDProxy: new web3['main'].eth.Contract(LANDProxyAbi, LandProxyAddress),
+      Account: new web3.front.eth.Contract(abis.Account, addressFront.Account),
+      FT: new web3.front.eth.Contract(abis.FT, addressFront.FT),
+      FTProxy: new web3.front.eth.Contract(abis.FTProxy, addressFront.FTProxy),
+      NFT: new web3.front.eth.Contract(abis.NFT, addressFront.NFT),
+      NFTProxy: new web3.front.eth.Contract(abis.NFTProxy, addressFront.NFTProxy),
+      Trade: new web3.front.eth.Contract(abis.Trade, addressFront.Trade),
+      LAND: new web3.front.eth.Contract(abis.LAND, addressFront.LAND),
+      LANDProxy: new web3.front.eth.Contract(abis.LANDProxy, addressFront.LANDProxy),
     },
     sidechain: {
-      Account: new web3['sidechain'].eth.Contract(AccountAbi, AccountAddressSidechain),
-      FT: new web3['sidechain'].eth.Contract(FTAbi, FTAddressSidechain),
-      FTProxy: new web3['sidechain'].eth.Contract(FTProxyAbi, FTProxyAddressSidechain),
-      NFT: new web3['sidechain'].eth.Contract(NFTAbi, NFTAddressSidechain),
-      NFTProxy: new web3['sidechain'].eth.Contract(NFTProxyAbi, NFTProxyAddressSidechain),
-      Trade: new web3['sidechain'].eth.Contract(TradeAbi, TradeAddressSidechain),
-      LAND: new web3['sidechain'].eth.Contract(LANDAbi, LandAddressSidechain),
-      LANDProxy: new web3['sidechain'].eth.Contract(LANDProxyAbi, LandProxyAddressSidechain),
+      Account: new web3.back.eth.Contract(abis.Account, addressBack.Account),
+      FT: new web3.back.eth.Contract(abis.FT, addressBack.FT),
+      FTProxy: new web3.back.eth.Contract(abis.FTProxy, addressBack.FTProxy),
+      NFT: new web3.back.eth.Contract(abis.NFT, addressBack.NFT),
+      NFTProxy: new web3.back.eth.Contract(abis.NFTProxy, addressBack.NFTProxy),
+      Trade: new web3.back.eth.Contract(abis.Trade, addressBack.Trade),
+      LAND: new web3.back.eth.Contract(abis.LAND, addressBack.LAND),
+      LANDProxy: new web3.back.eth.Contract(abis.LANDProxy, addressBack.LANDProxy),
     },
   };
   /* web3.sidechain.eth.getPastLogs({
