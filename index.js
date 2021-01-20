@@ -1932,7 +1932,7 @@ const _ws = protocol => (req, socket, head) => {
   }
   _setMainChain(isMainChain);
 
-  const contracts = {
+  contracts = {
     front: {
       Account: new web3.front.eth.Contract(abis.Account, addressFront.Account),
       FT: new web3.front.eth.Contract(abis.FT, addressFront.FT),
