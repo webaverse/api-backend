@@ -77,7 +77,6 @@ const PRIVKEY = fs.readFileSync('./certs/privkey.pem');
 
 const PORT = parseInt(process.env.PORT, 10) || 80;
 // const filterTopic = 'webxr-site';
-const web3MainEndpoint = `https://${infuraNetwork}.infura.io/v3/${infuraProjectId}`;
 const tableName = 'users';
 const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
 
@@ -651,7 +650,7 @@ try {
 }
 }; */
 
-const _handleEthereum = async (req, res) => {
+const _handleEthereum = async (req, res) => { // XXX make this per-port
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -1739,9 +1738,9 @@ try {
   if (o.host === 'login.exokit.org') {
     _handleLogin(req, res);
     return;
-  } else if (o.host === 'ethereums.exokit.org') {
+  /* } else if (o.host === 'ethereums.exokit.org') {
     _handleEthereum(req, res);
-    return;
+    return; */
   } else if (o.host === 'accounts.webaverse.com') {
     _handleAccounts(req, res);
     return;
@@ -1887,8 +1886,8 @@ const _ws = protocol => (req, socket, head) => {
 };
 
 {
-  addresses = await fetch('https://contracts.webaverse.com/ethereum/address.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
-  abis = await fetch('https://contracts.webaverse.com/ethereum/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
+  addresses = await fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
+  abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const ethereumHostAddress = await new Promise((accept, reject) => {
     dns.resolve4(ethereumHost, (err, addresses) => {
       if (!err) {
@@ -1902,14 +1901,16 @@ const _ws = protocol => (req, socket, head) => {
       }
     });
   });
-  gethNodeUrl = `http://${ethereumHostAddress}:8545`;
+  gethNodeUrl = `http://${ethereumHostAddress}`;
   
   web3 = {
-    main: new Web3(new Web3.providers.HttpProvider(web3MainEndpoint)),
-    sidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl)),
+    mainnet: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`)),
+    sidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8545')),
+    rinkeby: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
+    rinkebysidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8546')),
   };
-  
-  // console.log('geth host address', {gethNodeUrl});
+
+  // XXX refactor this
   let {
     main: {Account: AccountAddress, FT: FTAddress, NFT: NFTAddress, FTProxy: FTProxyAddress, NFTProxy: NFTProxyAddress, Trade: TradeAddress, LAND: LandAddress, LANDProxy: LandProxyAddress},
     sidechain: {Account: AccountAddressSidechain, FT: FTAddressSidechain, NFT: NFTAddressSidechain, FTProxy: FTProxyAddressSidechain, NFTProxy: NFTProxyAddressSidechain, Trade: TradeAddressSidechain, LAND: LandAddressSidechain, LANDProxy: LandProxyAddressSidechain},
