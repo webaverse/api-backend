@@ -1914,20 +1914,17 @@ const _ws = protocol => (req, socket, head) => {
   };
   let addressFront = null;
   let addressBack = null;
-  // let networkName = '';
   function _setMainChain(isMainChain) {
     if (isMainChain) {
       web3.front = web3.mainnet;
       web3.back = web3.mainnetsidechain;
       addressFront = addresses.mainnet;
       addressBack = addresses.mainnetsidechain;
-      // networkName = 'main';
     } else {
       web3.front = web3.rinkeby;
       web3.back = web3.rinkebysidechain;
       addressFront = addresses.rinkeby;
       addressBack = addresses.rinkebysidechain;
-      // networkName = 'side';
     }
   }
   _setMainChain(isMainChain);
