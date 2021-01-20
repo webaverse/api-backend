@@ -33,6 +33,7 @@ const {hdkey} = require('ethereumjs-wallet');
 // const blockchain = require('./blockchain.js');
 const {getExt, makePromise} = require('./utils.js');
 // const browserManager = require('./browser-manager.js');
+const {isMainChain} = require('./constants.js');
 const config = require('./config.json');
 const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, discordClientId, discordClientSecret, stripeClientId, stripeClientSecret, infuraNetwork, infuraProjectId} = config;
 const awsConfig = new AWS.Config({
@@ -77,7 +78,6 @@ const PRIVKEY = fs.readFileSync('./certs/privkey.pem');
 
 const PORT = parseInt(process.env.PORT, 10) || 80;
 // const filterTopic = 'webxr-site';
-const web3MainEndpoint = `https://${infuraNetwork}.infura.io/v3/${infuraProjectId}`;
 const tableName = 'users';
 const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
 
@@ -651,7 +651,7 @@ try {
 }
 }; */
 
-const _handleEthereum = async (req, res) => {
+const _handleEthereum = port => async (req, res) => { // XXX make this per-port
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -672,7 +672,7 @@ try {
     const proxy = httpProxy.createProxyServer({});
     proxy
       .web(req, res, {
-        target: gethNodeUrl,
+        target: gethNodeUrl + ':' + port,
         // secure: false,
         changeOrigin: true,
       }, err => {
@@ -719,7 +719,7 @@ const _handleAccounts = async (req, res) => {
         'homeSpacePreview',
         'ftu',
       ].map(key =>
-        contracts['sidechain'].Account.methods.getMetadata(address, key).call()
+        contracts.back.Account.methods.getMetadata(address, key).call()
           .then(value => {
             result[key] = value;
           })
@@ -741,7 +741,7 @@ try {
     if (p === '/') {
       const addressMap = {};
       await Promise.all([
-        contracts.sidechain.NFT.getPastEvents('Transfer', {
+        contracts.back.NFT.getPastEvents('Transfer', {
           fromBlock: 0,
           toBlock: 'latest',
         }).then(entries => {
@@ -750,7 +750,7 @@ try {
             addressMap[address] = true;
           }
         }),
-        contracts.sidechain.FT.getPastEvents('Transfer', {
+        contracts.back.FT.getPastEvents('Transfer', {
           fromBlock: 0,
           toBlock: 'latest',
         }).then(entries => {
@@ -1160,17 +1160,17 @@ try {
     if (match = p.match(/^\/(0x[a-f0-9]+)$/)) {
       const address = match[1];
 
-      const tokenIds = await contracts['sidechain'].NFT.methods.getTokenIdsOf(address).call();
+      const tokenIds = await contracts.back.NFT.methods.getTokenIdsOf(address).call();
 
-      let username = await contracts['sidechain'].Account.methods.getMetadata(address, 'name').call();
+      let username = await contracts.back.Account.methods.getMetadata(address, 'name').call();
       if (!username) {
         username = 'Anonymous';
       }
-      let avatarPreview = await contracts['sidechain'].Account.methods.getMetadata(address, 'avatarPreview').call();
+      let avatarPreview = await contracts.back.Account.methods.getMetadata(address, 'avatarPreview').call();
       if (!avatarPreview) {
         avatarPreview = defaultAvatarPreview;
       }
-      const balance = await contracts['sidechain'].FT.methods.balanceOf(address).call();
+      const balance = await contracts.back.FT.methods.balanceOf(address).call();
 
       const storeEntries = await _getStoreEntries();
       const tokens = await Promise.all(tokenIds.map(tokenId => _getSidechainToken(tokenId, storeEntries)));
@@ -1278,21 +1278,21 @@ const _formatToken = async (token, storeEntries) => {
       monetizationPointer,
     ] = await Promise.all([
       (async () => {
-        let username = await contracts['sidechain'].Account.methods.getMetadata(address, 'name').call();
+        let username = await contracts.back.Account.methods.getMetadata(address, 'name').call();
         if (!username) {
           username = 'Anonymous';
         }
         return username;
       })(),
       (async () => {
-        let avatarPreview = await contracts['sidechain'].Account.methods.getMetadata(address, 'avatarPreview').call();
+        let avatarPreview = await contracts.back.Account.methods.getMetadata(address, 'avatarPreview').call();
         if (!avatarPreview) {
           avatarPreview = defaultAvatarPreview;
         }
         return avatarPreview;
       })(),
       (async () => {
-        let monetizationPointer = await contracts['sidechain'].Account.methods.getMetadata(address, 'monetizationPointer').call();
+        let monetizationPointer = await contracts.back.Account.methods.getMetadata(address, 'monetizationPointer').call();
         if (!monetizationPointer) {
           monetizationPointer = '';
         }
@@ -1314,7 +1314,7 @@ const _formatToken = async (token, storeEntries) => {
 
   const id = parseInt(token.id, 10);
   const {name, ext, hash} = token;
-  const description = await contracts['sidechain'].NFT.methods.getMetadata(hash, 'description').call();
+  const description = await contracts.back.NFT.methods.getMetadata(hash, 'description').call();
   const storeEntry = storeEntries.find(entry => entry.tokenId === id);
   const buyPrice = storeEntry ? storeEntry.price : null;
   const storeId = storeEntry ? storeEntry.id : null;
@@ -1346,21 +1346,21 @@ const _formatLand = async (token, storeEntries) => {
       monetizationPointer,
     ] = await Promise.all([
       (async () => {
-        let username = await contracts['sidechain'].Account.methods.getMetadata(address, 'name').call();
+        let username = await contracts.back.Account.methods.getMetadata(address, 'name').call();
         if (!username) {
           username = 'Anonymous';
         }
         return username;
       })(),
       (async () => {
-        let avatarPreview = await contracts['sidechain'].Account.methods.getMetadata(address, 'avatarPreview').call();
+        let avatarPreview = await contracts.back.Account.methods.getMetadata(address, 'avatarPreview').call();
         if (!avatarPreview) {
           avatarPreview = defaultAvatarPreview;
         }
         return avatarPreview;
       })(),
       (async () => {
-        let monetizationPointer = await contracts['sidechain'].Account.methods.getMetadata(address, 'monetizationPointer').call();
+        let monetizationPointer = await contracts.back.Account.methods.getMetadata(address, 'monetizationPointer').call();
         if (!monetizationPointer) {
           monetizationPointer = '';
         }
@@ -1385,9 +1385,9 @@ const _formatLand = async (token, storeEntries) => {
     rarity,
     extents,
   ] = await Promise.all([
-    contracts['sidechain'].LAND.methods.getSingleMetadata(id, 'description').call(),
-    contracts['sidechain'].LAND.methods.getMetadata(name, 'rarity').call(),
-    contracts['sidechain'].LAND.methods.getMetadata(name, 'extents').call(),
+    contracts.back.LAND.methods.getSingleMetadata(id, 'description').call(),
+    contracts.back.LAND.methods.getMetadata(name, 'rarity').call(),
+    contracts.back.LAND.methods.getMetadata(name, 'extents').call(),
   ]);
   const extentsJson = _jsonParse(extents);
   const coord = (
@@ -1445,10 +1445,10 @@ const _getChainOwnerNft = contractName => chainName => async (address, i, storeE
 const _getChainOwnerToken = _getChainOwnerNft('NFT');
 const _getChainOwnerLand = _getChainOwnerNft('LAND');
 const _getStoreEntries = async () => {
-  const numStores = await contracts['sidechain'].Trade.methods.numStores().call();
+  const numStores = await contracts.back.Trade.methods.numStores().call();
   const promises = Array(numStores);
   for (let i = 0; i < numStores; i++) {
-    promises[i] = contracts['sidechain'].Trade.methods.getStoreByIndex(i + 1).call()
+    promises[i] = contracts.back.Trade.methods.getStoreByIndex(i + 1).call()
       .then(store => {
         if (store.live) {
           const id = parseInt(store.id, 10);
@@ -1739,8 +1739,11 @@ try {
   if (o.host === 'login.exokit.org') {
     _handleLogin(req, res);
     return;
-  } else if (o.host === 'ethereums.exokit.org') {
-    _handleEthereum(req, res);
+  } else if (o.host === 'mainnetsidechain.exokit.org') {
+    _handleEthereum(8545)(req, res);
+    return;
+  } else if (o.host === 'rinkebysidechain.exokit.org') {
+    _handleEthereum(8546)(req, res);
     return;
   } else if (o.host === 'accounts.webaverse.com') {
     _handleAccounts(req, res);
@@ -1887,8 +1890,8 @@ const _ws = protocol => (req, socket, head) => {
 };
 
 {
-  addresses = await fetch('https://contracts.webaverse.com/ethereum/address.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
-  abis = await fetch('https://contracts.webaverse.com/ethereum/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
+  addresses = await fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
+  abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const ethereumHostAddress = await new Promise((accept, reject) => {
     dns.resolve4(ethereumHost, (err, addresses) => {
       if (!err) {
@@ -1902,42 +1905,57 @@ const _ws = protocol => (req, socket, head) => {
       }
     });
   });
-  gethNodeUrl = `http://${ethereumHostAddress}:8545`;
+  gethNodeUrl = `http://${ethereumHostAddress}`;
   
   web3 = {
-    main: new Web3(new Web3.providers.HttpProvider(web3MainEndpoint)),
-    sidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl)),
+    mainnet: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`)),
+    mainnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8545')),
+    rinkeby: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
+    rinkebysidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8546')),
+    front: null,
+    back: null,
   };
-  
-  // console.log('geth host address', {gethNodeUrl});
-  let {
-    main: {Account: AccountAddress, FT: FTAddress, NFT: NFTAddress, FTProxy: FTProxyAddress, NFTProxy: NFTProxyAddress, Trade: TradeAddress, LAND: LandAddress, LANDProxy: LandProxyAddress},
-    sidechain: {Account: AccountAddressSidechain, FT: FTAddressSidechain, NFT: NFTAddressSidechain, FTProxy: FTProxyAddressSidechain, NFTProxy: NFTProxyAddressSidechain, Trade: TradeAddressSidechain, LAND: LandAddressSidechain, LANDProxy: LandProxyAddressSidechain},
-  } = addresses;
-  let {Account: AccountAbi, FT: FTAbi, FTProxy: FTProxyAbi, NFT: NFTAbi, NFTProxy: NFTProxyAbi, Trade: TradeAbi, LAND: LANDAbi, LANDProxy: LANDProxyAbi} = abis;
-  contracts = {
-    main: {
-      Account: new web3['main'].eth.Contract(AccountAbi, AccountAddress),
-      FT: new web3['main'].eth.Contract(FTAbi, FTAddress),
-      FTProxy: new web3['main'].eth.Contract(FTProxyAbi, FTProxyAddress),
-      NFT: new web3['main'].eth.Contract(NFTAbi, NFTAddress),
-      NFTProxy: new web3['main'].eth.Contract(NFTProxyAbi, NFTProxyAddress),
-      Trade: new web3['main'].eth.Contract(TradeAbi, TradeAddress),
-      LAND: new web3['main'].eth.Contract(LANDAbi, LandAddress),
-      LANDProxy: new web3['main'].eth.Contract(LANDProxyAbi, LandProxyAddress),
+  let addressFront = null;
+  let addressBack = null;
+  function _setMainChain(isMainChain) {
+    if (isMainChain) {
+      web3.front = web3.mainnet;
+      web3.back = web3.mainnetsidechain;
+      addressFront = addresses.mainnet;
+      addressBack = addresses.mainnetsidechain;
+    } else {
+      web3.front = web3.rinkeby;
+      web3.back = web3.rinkebysidechain;
+      addressFront = addresses.rinkeby;
+      addressBack = addresses.rinkebysidechain;
+    }
+  }
+  _setMainChain(isMainChain);
+
+  const contracts = {
+    front: {
+      Account: new web3.front.eth.Contract(abis.Account, addressFront.Account),
+      FT: new web3.front.eth.Contract(abis.FT, addressFront.FT),
+      FTProxy: new web3.front.eth.Contract(abis.FTProxy, addressFront.FTProxy),
+      NFT: new web3.front.eth.Contract(abis.NFT, addressFront.NFT),
+      NFTProxy: new web3.front.eth.Contract(abis.NFTProxy, addressFront.NFTProxy),
+      Trade: new web3.front.eth.Contract(abis.Trade, addressFront.Trade),
+      LAND: new web3.front.eth.Contract(abis.LAND, addressFront.LAND),
+      LANDProxy: new web3.front.eth.Contract(abis.LANDProxy, addressFront.LANDProxy),
     },
-    sidechain: {
-      Account: new web3['sidechain'].eth.Contract(AccountAbi, AccountAddressSidechain),
-      FT: new web3['sidechain'].eth.Contract(FTAbi, FTAddressSidechain),
-      FTProxy: new web3['sidechain'].eth.Contract(FTProxyAbi, FTProxyAddressSidechain),
-      NFT: new web3['sidechain'].eth.Contract(NFTAbi, NFTAddressSidechain),
-      NFTProxy: new web3['sidechain'].eth.Contract(NFTProxyAbi, NFTProxyAddressSidechain),
-      Trade: new web3['sidechain'].eth.Contract(TradeAbi, TradeAddressSidechain),
-      LAND: new web3['sidechain'].eth.Contract(LANDAbi, LandAddressSidechain),
-      LANDProxy: new web3['sidechain'].eth.Contract(LANDProxyAbi, LandProxyAddressSidechain),
+    back: {
+      Account: new web3.back.eth.Contract(abis.Account, addressBack.Account),
+      FT: new web3.back.eth.Contract(abis.FT, addressBack.FT),
+      FTProxy: new web3.back.eth.Contract(abis.FTProxy, addressBack.FTProxy),
+      NFT: new web3.back.eth.Contract(abis.NFT, addressBack.NFT),
+      NFTProxy: new web3.back.eth.Contract(abis.NFTProxy, addressBack.NFTProxy),
+      Trade: new web3.back.eth.Contract(abis.Trade, addressBack.Trade),
+      LAND: new web3.back.eth.Contract(abis.LAND, addressBack.LAND),
+      LANDProxy: new web3.back.eth.Contract(abis.LANDProxy, addressBack.LANDProxy),
     },
   };
-  /* web3.sidechain.eth.getPastLogs({
+
+  /* web3.mainnetsidechain.eth.getPastLogs({
     fromBlock: 0,
     toBlock: 'latest',
     address: FTAddressSidechain,
