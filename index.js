@@ -1906,7 +1906,7 @@ const _ws = protocol => (req, socket, head) => {
   
   web3 = {
     mainnet: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`)),
-    sidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8545')),
+    mainnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8545')),
     rinkeby: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
     rinkebysidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8546')),
     front: null,
@@ -1918,7 +1918,7 @@ const _ws = protocol => (req, socket, head) => {
   function _setMainChain(isMainChain) {
     if (isMainChain) {
       web3.front = web3.mainnet;
-      web3.back = web3.sidechain;
+      web3.back = web3.mainnetsidechain;
       addressFront = addresses.mainnet;
       addressBack = addresses.mainnetsidechain;
       // networkName = 'main';
@@ -1955,7 +1955,7 @@ const _ws = protocol => (req, socket, head) => {
     },
   };
 
-  /* web3.sidechain.eth.getPastLogs({
+  /* web3.mainnetsidechain.eth.getPastLogs({
     fromBlock: 0,
     toBlock: 'latest',
     address: FTAddressSidechain,
