@@ -8,10 +8,9 @@ const fetch = require('node-fetch');
 const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
+const {isMainnet} = require('../constants.js');
 const {_setCorsHeaders} = require('../utils.js');
 const {mnemonic, infuraProjectId} = require('../config.json');
-
-const isMainnet = false;
 
 const loadPromise = (async () => {
   const ethereumHost = 'ethereum.exokit.org';
@@ -29,13 +28,13 @@ const loadPromise = (async () => {
       }
     });
   });
-  gethNodeUrl = `http://${ethereumHostAddress}:8545`;
+  gethNodeUrl = `http://${ethereumHostAddress}`;
 
   const web3 = {
     main: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`)),
-    mainnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl)),
+    mainnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8545')),
     rinkeby: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
-    rinkebysidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl)),
+    rinkebysidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl) + ':8546'),
   };
   const addresses = await fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
