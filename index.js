@@ -651,7 +651,7 @@ try {
 }
 }; */
 
-const _handleEthereum = async (req, res) => { // XXX make this per-port
+const _handleEthereum = port => async (req, res) => { // XXX make this per-port
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -672,7 +672,7 @@ try {
     const proxy = httpProxy.createProxyServer({});
     proxy
       .web(req, res, {
-        target: gethNodeUrl,
+        target: gethNodeUrl + ':' + port,
         // secure: false,
         changeOrigin: true,
       }, err => {
@@ -1739,9 +1739,12 @@ try {
   if (o.host === 'login.exokit.org') {
     _handleLogin(req, res);
     return;
-  /* } else if (o.host === 'ethereums.exokit.org') {
-    _handleEthereum(req, res);
-    return; */
+  } else if (o.host === 'mainnetsidechain.exokit.org') {
+    _handleEthereum(8545)(req, res);
+    return;
+  } else if (o.host === 'rinkebysidechain.exokit.org') {
+    _handleEthereum(8546)(req, res);
+    return;
   } else if (o.host === 'accounts.webaverse.com') {
     _handleAccounts(req, res);
     return;
