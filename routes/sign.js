@@ -10,7 +10,7 @@ const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {isMainnet} = require('../constants.js');
 const {_setCorsHeaders} = require('../utils.js');
-const {mnemonic, infuraProjectId} = require('../config.json');
+const {mainnetMnemonic, rinkebyMnemonic, infuraProjectId} = require('../config.json');
 
 const loadPromise = (async () => {
   const ethereumHost = 'ethereum.exokit.org';
@@ -63,6 +63,7 @@ const loadPromise = (async () => {
     });
     return result;
   })();
+  const mnemonic = isMainnet ? mainnetMnemonic : rinkebyMnemonic;
   const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
   const address = wallet.getAddressString();
 
