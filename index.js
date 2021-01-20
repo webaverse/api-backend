@@ -740,7 +740,7 @@ try {
     if (p === '/') {
       const addressMap = {};
       await Promise.all([
-        contracts.sidechain.NFT.getPastEvents('Transfer', {
+        contracts['sidechain'].NFT.getPastEvents('Transfer', {
           fromBlock: 0,
           toBlock: 'latest',
         }).then(entries => {
@@ -749,7 +749,7 @@ try {
             addressMap[address] = true;
           }
         }),
-        contracts.sidechain.FT.getPastEvents('Transfer', {
+        contracts['sidechain'].FT.getPastEvents('Transfer', {
           fromBlock: 0,
           toBlock: 'latest',
         }).then(entries => {
