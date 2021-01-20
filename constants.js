@@ -1,5 +1,5 @@
 const isMainnet = false;
 
-export {
+module.exports = {
   isMainnet,
 };
