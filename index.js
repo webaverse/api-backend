@@ -1430,8 +1430,8 @@ const _getChainNft = contractName => chainName => async (tokenId, storeEntries) 
 };
 const _getChainToken = _getChainNft('NFT');
 const _getChainLand = _getChainNft('LAND');
-const _getSidechainToken = _getChainToken('sidechain');
-const _getSidechainLand = _getChainLand('sidechain');
+const _getSidechainToken = _getChainToken('back');
+const _getSidechainLand = _getChainLand('back');
 const _getChainOwnerNft = contractName => chainName => async (address, i, storeEntries) => {
   const token = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
   if (contractName === 'NFT') {
@@ -1482,7 +1482,7 @@ const _handleNft = contractName => chainName => async (req, res) => {
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
-  const _maybeGetStoreEntries = () => (contractName === 'NFT' && chainName === 'sidechain') ? _getStoreEntries() : Promise.resolve([]);
+  const _maybeGetStoreEntries = () => (contractName === 'NFT' && chainName === 'back') ? _getStoreEntries() : Promise.resolve([]);
 
 try {
   const {method} = req;
@@ -1767,16 +1767,16 @@ try {
     _handleProxyApp(req, res);
     return;
   } else if (o.host === 'tokens.webaverse.com' || o.host === 'tokens-side.webaverse.com') {
-    _handleTokens('sidechain')(req, res);
+    _handleTokens('back')(req, res);
     return;
   } else if (o.host === 'tokens-main.webaverse.com') {
-    _handleTokens('main')(req, res);
+    _handleTokens('front')(req, res);
     return;
   } else if (o.host === 'land.webaverse.com' || o.host === 'land-side.webaverse.com') {
-    _handleLand('sidechain')(req, res);
+    _handleLand('back')(req, res);
     return;
   } else if (o.host === 'land-main.webaverse.com') {
-    _handleLand('main')(req, res);
+    _handleLand('front')(req, res);
     return;
   } else if (o.host === 'worlds.exokit.org') {
     _handleWorldsRequest(req, res);
