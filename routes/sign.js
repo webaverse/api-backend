@@ -112,7 +112,16 @@ const _handleSignRequest = async (req, res) => {
                         ) || null;
                         // console.log('got log', logs, log);
                         if (log) {
-                          const oppositeChainName = chainName === 'main' ? 'sidechain' : 'main';
+                          let oppositeChainName;
+                          if (chainName === 'mainnet') {
+                            oppositeChainName = 'mainnetsidechain';
+                          } else if (chainName === 'mainnetsidechain') {
+                            oppositeChainName = 'mainnet';
+                          } else if (chainName === 'rinkeby') {
+                            oppositeChainName = 'rinkebysidechain';
+                          } else if (chainName === 'rinkebysidechain') {
+                            oppositeChainName = 'rinkeby';
+                          }
                           const proxyContractAddress = addresses[chainName][proxyContractName];
                           
                           // const {returnValues} = log;
