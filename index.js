@@ -1748,10 +1748,10 @@ try {
   } else if (o.host === 'rinkebysidechain.exokit.org') {
     _handleEthereum(8546)(req, res);
     return;
-  } else if (o.host === 'accounts.webaverse.com' || o.host === 'mainnetsidechain.accounts.webaverse.com') {
+  } else if (o.host === 'accounts.webaverse.com' || o.host === 'mainnetsidechain-accounts.webaverse.com') {
     _handleAccounts(true)(req, res);
     return;
-  } else if (o.host === 'rinkebysidechain.accounts.webaverse.com') {
+  } else if (o.host === 'rinkebysidechain-accounts.webaverse.com') {
     _handleAccounts(false)(req, res);
     return;
   } else if (o.host === 'analytics.webaverse.com') {
@@ -1763,10 +1763,10 @@ try {
   } else if (o.host === 'oauth.exokit.org') {
     _handleOauth(req, res);
     return;
-  } else if (o.host === 'profile.webaverse.com' || o.host === 'mainnetsidechain.profile.webaverse.com') {
+  } else if (o.host === 'profile.webaverse.com' || o.host === 'mainnetsidechain-profile.webaverse.com') {
     _handleProfile(true)(req, res);
     return;
-  } else if (o.host === 'rinkebysidechain.profile.webaverse.com') {
+  } else if (o.host === 'rinkebysidechain-profile.webaverse.com') {
     _handleProfile(false)(req, res);
     return;
   } else if (o.host === 'main.webaverse.com' || o.host === 'test.webaverse.com') {
@@ -1775,28 +1775,28 @@ try {
   } else if (o.host === 'main.app.webaverse.com' || o.host === 'test.app.webaverse.com') {
     _handleProxyApp(req, res);
     return;
-  } else if (o.host === 'tokens.webaverse.com' || o.host === 'mainnet.tokens.webaverse.com') {
+  } else if (o.host === 'tokens.webaverse.com' || o.host === 'mainnet-tokens.webaverse.com') {
     _handleTokens(true, true)(req, res);
     return;
-  } else if (o.host === 'mainnetsidechain.tokens.webaverse.com') {
+  } else if (o.host === 'mainnetsidechain-tokens.webaverse.com') {
     _handleTokens(true, false)(req, res);
     return;
-  } else if (o.host === 'rinkeby.tokens.webaverse.com') {
+  } else if (o.host === 'rinkeby-tokens.webaverse.com') {
     _handleTokens(false, true)(req, res);
     return;
-  } else if (o.host === 'rinkebysidechain.tokens.webaverse.com') {
+  } else if (o.host === 'rinkebysidechain-tokens.webaverse.com') {
     _handleTokens(false, false)(req, res);
     return;
-  } else if (o.host === 'land.webaverse.com' || o.host === 'mainnet.land.webaverse.com') {
+  } else if (o.host === 'land.webaverse.com' || o.host === 'mainnet-land.webaverse.com') {
     _handleLand(true, true)(req, res);
     return;
-  } else if (o.host === 'mainnetsidechain.land.webaverse.com') {
+  } else if (o.host === 'mainnetsidechain-land.webaverse.com') {
     _handleLand(true, false)(req, res);
     return;
-  } else if (o.host === 'rinkeby.land.webaverse.com') {
+  } else if (o.host === 'rinkeby-land.webaverse.com') {
     _handleLand(false, true)(req, res);
     return;
-  } else if (o.host === 'rinkebysidechain.land.webaverse.com') {
+  } else if (o.host === 'rinkebysidechain-land.webaverse.com') {
     _handleLand(false, false)(req, res);
     return;
   } else if (o.host === 'worlds.exokit.org') {
@@ -1805,10 +1805,10 @@ try {
   /* } else if (o.host === 'storage.exokit.org' || o.host === 'storage.webaverse.com') {
     _handleStorageRequest(req, res);
     return; */
-  } else if (o.host === 'store.webaverse.com' || o.host === 'mainnetsidechain.store.webaverse.com') {
+  } else if (o.host === 'store.webaverse.com' || o.host === 'mainnetsidechain-store.webaverse.com') {
     _handleStore(true)(req, res);
     return;
-  } else if (o.host === 'rinkebysidechain.store.webaverse.com') {
+  } else if (o.host === 'rinkebysidechain-store.webaverse.com') {
     _handleStore(false)(req, res);
     return;
   }
