@@ -1174,7 +1174,7 @@ try {
       }
       const balance = await contracts[chainName].FT.methods.balanceOf(address).call();
 
-      const storeEntries = await _getStoreEntries();
+      const storeEntries = await _getStoreEntries(isMainChain);
       const tokens = await Promise.all(tokenIds.map(tokenId => _getSidechainToken(tokenId, storeEntries)));
 
       const tokens2 = [];
@@ -1446,11 +1446,12 @@ const _getChainOwnerNft = contractName => chainName => async (address, i, storeE
 };
 const _getChainOwnerToken = _getChainOwnerNft('NFT');
 const _getChainOwnerLand = _getChainOwnerNft('LAND');
-const _getStoreEntries = async () => {
-  const numStores = await contracts.back.Trade.methods.numStores().call();
+const _getStoreEntries = isMainChain => async () => {
+  const chainName = isMainChain ? 'mainnetsidechain' : 'rinkebysidechain';
+  const numStores = await contracts[chainName].Trade.methods.numStores().call();
   const promises = Array(numStores);
   for (let i = 0; i < numStores; i++) {
-    promises[i] = contracts.back.Trade.methods.getStoreByIndex(i + 1).call()
+    promises[i] = contracts[chainName].Trade.methods.getStoreByIndex(i + 1).call()
       .then(store => {
         if (store.live) {
           const id = parseInt(store.id, 10);
@@ -1485,7 +1486,7 @@ const _handleNft = contractName => (isMainChain, isFront) => async (req, res) =>
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
-  const _maybeGetStoreEntries = () => (contractName === 'NFT' && !isFront) ? _getStoreEntries() : Promise.resolve([]);
+  const _maybeGetStoreEntries = () => (contractName === 'NFT' && !isFront) ? _getStoreEntries(isMainChain) : Promise.resolve([]);
 
 try {
   const {method} = req;
@@ -1661,7 +1662,7 @@ try {
   const {pathname: p} = url.parse(req.url);
 
   const _getBooths = async () => {
-    const storeEntries = await _getStoreEntries();
+    const storeEntries = await _getStoreEntries(isMainChain);
 
     const booths = [];
     for (let i = 0; i < storeEntries.length; i++) {
