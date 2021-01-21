@@ -1471,7 +1471,8 @@ const _getStoreEntries = async () => {
   storeEntries = storeEntries.filter(store => store !== null);
   return storeEntries;
 };
-const _handleNft = contractName => chainName => async (req, res) => {
+const _handleNft = contractName => (isMainChain, isFront) => async (req, res) => {
+  const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -1482,7 +1483,7 @@ const _handleNft = contractName => chainName => async (req, res) => {
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
-  const _maybeGetStoreEntries = () => (contractName === 'NFT' && chainName === 'back') ? _getStoreEntries() : Promise.resolve([]);
+  const _maybeGetStoreEntries = () => (contractName === 'NFT' && !isFront) ? _getStoreEntries() : Promise.resolve([]);
 
 try {
   const {method} = req;
@@ -1766,17 +1767,29 @@ try {
   } else if (o.host === 'main.app.webaverse.com' || o.host === 'test.app.webaverse.com') {
     _handleProxyApp(req, res);
     return;
-  } else if (o.host === 'tokens.webaverse.com' || o.host === 'tokens-side.webaverse.com') {
-    _handleTokens('back')(req, res);
+  } else if (o.host === 'mainnet.tokens.webaverse.com') {
+    _handleTokens(true, true)(req, res);
     return;
-  } else if (o.host === 'tokens-main.webaverse.com') {
-    _handleTokens('front')(req, res);
+  } else if (o.host === 'mainnetsidechain.tokens.webaverse.com') {
+    _handleTokens(true, false)(req, res);
     return;
-  } else if (o.host === 'land.webaverse.com' || o.host === 'land-side.webaverse.com') {
-    _handleLand('back')(req, res);
+  } else if (o.host === 'rinkeby.tokens.webaverse.com') {
+    _handleTokens(false, true)(req, res);
     return;
-  } else if (o.host === 'land-main.webaverse.com') {
-    _handleLand('front')(req, res);
+  } else if (o.host === 'rinkebysidechain.tokens.webaverse.com') {
+    _handleTokens(false, false)(req, res);
+    return;
+  } else if (o.host === 'mainnet.land.webaverse.com') {
+    _handleLand(true, true)(req, res);
+    return;
+  } else if (o.host === 'mainnetsidechain.land.webaverse.com') {
+    _handleLand(true, false)(req, res);
+    return;
+  } else if (o.host === 'rinkeby.land.webaverse.com') {
+    _handleLand(false, true)(req, res);
+    return;
+  } else if (o.host === 'rinkebysidechain.land.webaverse.com') {
+    _handleLand(false, false)(req, res);
     return;
   } else if (o.host === 'worlds.exokit.org') {
     _handleWorldsRequest(req, res);
