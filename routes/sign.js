@@ -8,7 +8,6 @@ const fetch = require('node-fetch');
 const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
-const {isMainnet} = require('../constants.js');
 const {_setCorsHeaders} = require('../utils.js');
 const {mainnetMnemonic, rinkebyMnemonic, infuraProjectId} = require('../config.json');
 
@@ -43,8 +42,10 @@ const loadPromise = (async () => {
     console.log('got addresses', addresses);
     const result = {};
     [
-      (isMainnet ? 'mainnet' : 'rinkeby'),
-      (isMainnet ? 'mainnet' : 'rinkeby') + 'sidechain',
+      'mainnet',
+      'mainnetsidechain',
+      'rinkeby',
+      'rinkebysidechain',
     ].forEach(chainName => {
       [
         'Account',
