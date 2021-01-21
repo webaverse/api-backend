@@ -64,9 +64,10 @@ const loadPromise = (async () => {
     });
     return result;
   })();
-  const mnemonic = isMainnet ? mainnetMnemonic : rinkebyMnemonic;
-  const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
-  const address = wallet.getAddressString();
+  const wallets = {
+    mainnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mainnetMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    rinkeby: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(rinkebyMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+  };
 
   return {
     web3,
@@ -74,15 +75,14 @@ const loadPromise = (async () => {
     abis,
     chainIds,
     contracts,
-    wallet,
-    address,
+    wallets,
   };
 })();
 
 const _handleSignRequest = async (req, res) => {
     console.log('sign request', req.url);
     
-    const {web3, addresses, abis, chainIds, contracts, wallet} = await loadPromise;
+    const {web3, addresses, abis, chainIds, contracts, wallets} = await loadPromise;
     
     const request = url.parse(req.url);
     // const path = request.path.split('/')[1];
@@ -113,16 +113,23 @@ const _handleSignRequest = async (req, res) => {
                         ) || null;
                         // console.log('got log', logs, log);
                         if (log) {
-                          let oppositeChainName;
+                          let isMainChain, oppositeChainName;
                           if (chainName === 'mainnet') {
+                            isMainChain = true;
                             oppositeChainName = 'mainnetsidechain';
                           } else if (chainName === 'mainnetsidechain') {
+                            isMainChain = true;
                             oppositeChainName = 'mainnet';
                           } else if (chainName === 'rinkeby') {
+                            isMainChain = false;
                             oppositeChainName = 'rinkebysidechain';
                           } else if (chainName === 'rinkebysidechain') {
+                            isMainChain = false;
                             oppositeChainName = 'rinkeby';
+                          } else {
+                            throw new Error('cannot look up chain spec');
                           }
+                          const wallet = wallets[isMainChain ? 'mainnet' : 'rinkeby'];
                           const proxyContractAddress = addresses[chainName][proxyContractName];
                           
                           // const {returnValues} = log;
