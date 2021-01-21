@@ -1925,10 +1925,10 @@ const _ws = protocol => (req, socket, head) => {
     mainnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8545')),
     rinkeby: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
     rinkebysidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8546')),
-    front: null,
-    back: null,
+    // front: null,
+    // back: null,
   };
-  let addressFront = null;
+  /* let addressFront = null;
   let addressBack = null;
   function _setMainChain(isMainChain) {
     if (isMainChain) {
@@ -1943,10 +1943,50 @@ const _ws = protocol => (req, socket, head) => {
       addressBack = addresses.rinkebysidechain;
     }
   }
-  _setMainChain(isMainChain);
+  _setMainChain(isMainChain); */
 
   contracts = {
-    front: {
+    mainnet: {
+      Account: new web3.mainnet.eth.Contract(abis.Account, addresses.mainnet.Account),
+      FT: new web3.mainnet.eth.Contract(abis.FT, addresses.mainnet.FT),
+      FTProxy: new web3.mainnet.eth.Contract(abis.FTProxy, addresses.mainnet.FTProxy),
+      NFT: new web3.mainnet.eth.Contract(abis.NFT, addresses.mainnet.NFT),
+      NFTProxy: new web3.mainnet.eth.Contract(abis.NFTProxy, addresses.mainnet.NFTProxy),
+      Trade: new web3.mainnet.eth.Contract(abis.Trade, addresses.mainnet.Trade),
+      LAND: new web3.mainnet.eth.Contract(abis.LAND, addresses.mainnet.LAND),
+      LANDProxy: new web3.mainnet.eth.Contract(abis.LANDProxy, addresses.mainnet.LANDProxy),
+    },
+    mainnetsidechain: {
+      Account: new web3.mainnetsidechain.eth.Contract(abis.Account, addresses.mainnetsidechain.Account),
+      FT: new web3.mainnetsidechain.eth.Contract(abis.FT, addresses.mainnetsidechain.FT),
+      FTProxy: new web3.mainnetsidechain.eth.Contract(abis.FTProxy, addresses.mainnetsidechain.FTProxy),
+      NFT: new web3.mainnetsidechain.eth.Contract(abis.NFT, addresses.mainnetsidechain.NFT),
+      NFTProxy: new web3.mainnetsidechain.eth.Contract(abis.NFTProxy, addresses.mainnetsidechain.NFTProxy),
+      Trade: new web3.mainnetsidechain.eth.Contract(abis.Trade, addresses.mainnetsidechain.Trade),
+      LAND: new web3.mainnetsidechain.eth.Contract(abis.LAND, addresses.mainnetsidechain.LAND),
+      LANDProxy: new web3.mainnetsidechain.eth.Contract(abis.LANDProxy, addresses.mainnetsidechain.LANDProxy),
+    },
+    rinkeby: {
+      Account: new web3.rinkeby.eth.Contract(abis.Account, addresses.rinkeby.Account),
+      FT: new web3.rinkeby.eth.Contract(abis.FT, addresses.rinkeby.FT),
+      FTProxy: new web3.rinkeby.eth.Contract(abis.FTProxy, addresses.rinkeby.FTProxy),
+      NFT: new web3.rinkeby.eth.Contract(abis.NFT, addresses.rinkeby.NFT),
+      NFTProxy: new web3.rinkeby.eth.Contract(abis.NFTProxy, addresses.rinkeby.NFTProxy),
+      Trade: new web3.rinkeby.eth.Contract(abis.Trade, addresses.rinkeby.Trade),
+      LAND: new web3.rinkeby.eth.Contract(abis.LAND, addresses.rinkeby.LAND),
+      LANDProxy: new web3.rinkeby.eth.Contract(abis.LANDProxy, addresses.rinkeby.LANDProxy),
+    },
+    rinkebysidechain: {
+      Account: new web3.rinkebysidechain.eth.Contract(abis.Account, addresses.rinkebysidechain.Account),
+      FT: new web3.rinkebysidechain.eth.Contract(abis.FT, addresses.rinkebysidechain.FT),
+      FTProxy: new web3.rinkebysidechain.eth.Contract(abis.FTProxy, addresses.rinkebysidechain.FTProxy),
+      NFT: new web3.rinkebysidechain.eth.Contract(abis.NFT, addresses.rinkebysidechain.NFT),
+      NFTProxy: new web3.rinkebysidechain.eth.Contract(abis.NFTProxy, addresses.rinkebysidechain.NFTProxy),
+      Trade: new web3.rinkebysidechain.eth.Contract(abis.Trade, addresses.rinkebysidechain.Trade),
+      LAND: new web3.rinkebysidechain.eth.Contract(abis.LAND, addresses.rinkebysidechain.LAND),
+      LANDProxy: new web3.rinkebysidechain.eth.Contract(abis.LANDProxy, addresses.rinkebysidechain.LANDProxy),
+    },
+    /* front: {
       Account: new web3.front.eth.Contract(abis.Account, addressFront.Account),
       FT: new web3.front.eth.Contract(abis.FT, addressFront.FT),
       FTProxy: new web3.front.eth.Contract(abis.FTProxy, addressFront.FTProxy),
@@ -1965,7 +2005,7 @@ const _ws = protocol => (req, socket, head) => {
       Trade: new web3.back.eth.Contract(abis.Trade, addressBack.Trade),
       LAND: new web3.back.eth.Contract(abis.LAND, addressBack.LAND),
       LANDProxy: new web3.back.eth.Contract(abis.LANDProxy, addressBack.LANDProxy),
-    },
+    }, */
   };
 
   /* web3.mainnetsidechain.eth.getPastLogs({
