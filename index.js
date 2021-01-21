@@ -1644,7 +1644,7 @@ try {
 const _handleTokens = _handleNft('NFT');
 const _handleLand = _handleNft('LAND');
 
-const _handleStore = async (req, res) => {
+const _handleStore = isMainChain => async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -1763,7 +1763,7 @@ try {
   } else if (o.host === 'oauth.exokit.org') {
     _handleOauth(req, res);
     return;
-  } else if (o.host === 'mainnetsidechain.profile.webaverse.com') {
+  } else if (o.host === 'profile.webaverse.com' || o.host === 'mainnetsidechain.profile.webaverse.com') {
     _handleProfile(true)(req, res);
     return;
   } else if (o.host === 'rinkebysidechain.profile.webaverse.com') {
@@ -1805,8 +1805,11 @@ try {
   /* } else if (o.host === 'storage.exokit.org' || o.host === 'storage.webaverse.com') {
     _handleStorageRequest(req, res);
     return; */
-  } else if (o.host === 'store.webaverse.com') {
-    _handleStore(req, res);
+  } else if (o.host === 'store.webaverse.com' || o.host === 'mainnetsidechain.store.webaverse.com') {
+    _handleStore(true)(req, res);
+    return;
+  } else if (o.host === 'rinkebysidechain.store.webaverse.com') {
+    _handleStore(false)(req, res);
     return;
   }
 
