@@ -690,7 +690,8 @@ try {
 }
 };
 
-const _handleAccounts = async (req, res) => {
+const _handleAccounts = isMainChain => async (req, res) => {
+  const chainName = isMainChain ? 'mainnetsidechain' : 'rinkebysidechain';
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -719,7 +720,7 @@ const _handleAccounts = async (req, res) => {
         'homeSpacePreview',
         'ftu',
       ].map(key =>
-        contracts.back.Account.methods.getMetadata(address, key).call()
+        contracts[chainName].Account.methods.getMetadata(address, key).call()
           .then(value => {
             result[key] = value;
           })
@@ -741,7 +742,7 @@ try {
     if (p === '/') {
       const addressMap = {};
       await Promise.all([
-        contracts.back.NFT.getPastEvents('Transfer', {
+        contracts[chainName].NFT.getPastEvents('Transfer', {
           fromBlock: 0,
           toBlock: 'latest',
         }).then(entries => {
@@ -750,7 +751,7 @@ try {
             addressMap[address] = true;
           }
         }),
-        contracts.back.FT.getPastEvents('Transfer', {
+        contracts[chainName].FT.getPastEvents('Transfer', {
           fromBlock: 0,
           toBlock: 'latest',
         }).then(entries => {
@@ -1138,7 +1139,8 @@ try {
 }
 };
 
-const _handleProfile = async (req, res) => {
+const _handleProfile = isMainChain => async (req, res) => {
+  const chainName = isMainChain ? 'mainnetsidechain' : 'rinkebysidechain';
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -1160,17 +1162,17 @@ try {
     if (match = p.match(/^\/(0x[a-f0-9]+)$/)) {
       const address = match[1];
 
-      const tokenIds = await contracts.back.NFT.methods.getTokenIdsOf(address).call();
+      const tokenIds = await contracts[chainName].NFT.methods.getTokenIdsOf(address).call();
 
-      let username = await contracts.back.Account.methods.getMetadata(address, 'name').call();
+      let username = await contracts[chainName].Account.methods.getMetadata(address, 'name').call();
       if (!username) {
         username = 'Anonymous';
       }
-      let avatarPreview = await contracts.back.Account.methods.getMetadata(address, 'avatarPreview').call();
+      let avatarPreview = await contracts[chainName].Account.methods.getMetadata(address, 'avatarPreview').call();
       if (!avatarPreview) {
         avatarPreview = defaultAvatarPreview;
       }
-      const balance = await contracts.back.FT.methods.balanceOf(address).call();
+      const balance = await contracts[chainName].FT.methods.balanceOf(address).call();
 
       const storeEntries = await _getStoreEntries();
       const tokens = await Promise.all(tokenIds.map(tokenId => _getSidechainToken(tokenId, storeEntries)));
@@ -1746,8 +1748,11 @@ try {
   } else if (o.host === 'rinkebysidechain.exokit.org') {
     _handleEthereum(8546)(req, res);
     return;
-  } else if (o.host === 'accounts.webaverse.com') {
-    _handleAccounts(req, res);
+  } else if (o.host === 'mainnetsidechain.accounts.webaverse.com') {
+    _handleAccounts(true)(req, res);
+    return;
+  } else if (o.host === 'rinkebysidechain.accounts.webaverse.com') {
+    _handleAccounts(false)(req, res);
     return;
   } else if (o.host === 'analytics.webaverse.com') {
     _handleAnalyticsRequest(req, res);
@@ -1758,8 +1763,11 @@ try {
   } else if (o.host === 'oauth.exokit.org') {
     _handleOauth(req, res);
     return;
-  } else if (o.host === 'profile.webaverse.com') {
-    _handleProfile(req, res);
+  } else if (o.host === 'mainnetsidechain.profile.webaverse.com') {
+    _handleProfile(true)(req, res);
+    return;
+  } else if (o.host === 'rinkebysidechain.profile.webaverse.com') {
+    _handleProfile(false)(req, res);
     return;
   } else if (o.host === 'main.webaverse.com' || o.host === 'test.webaverse.com') {
     _handleProxyRoot(req, res);
