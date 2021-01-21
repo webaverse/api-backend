@@ -1445,7 +1445,7 @@ const _getChainOwnerNft = contractName => (isMainChain, isFront) => async (addre
     return null;
   }
 };
-const _getStoreEntries = isMainChain => async () => {
+const _getStoreEntries = async isMainChain => {
   const chainName = isMainChain ? 'mainnetsidechain' : 'rinkebysidechain';
   const numStores = await contracts[chainName].Trade.methods.numStores().call();
   const promises = Array(numStores);
