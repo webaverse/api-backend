@@ -1175,7 +1175,7 @@ try {
       const balance = await contracts[chainName].FT.methods.balanceOf(address).call();
 
       const storeEntries = await _getStoreEntries(isMainChain);
-      const tokens = await Promise.all(tokenIds.map(tokenId => _getSidechainToken(tokenId, storeEntries)));
+      const tokens = await Promise.all(tokenIds.map(tokenId => _getChainToken(isMainChain, false)(tokenId, storeEntries)));
 
       const tokens2 = [];
       for (const token of tokens) {
@@ -1272,7 +1272,8 @@ const _handleProxyApp = (() => {
   };
 })();
 
-const _formatToken = async (token, storeEntries) => {
+const _formatToken = isMainChain => async (token, storeEntries) => {
+  const chainName = isMainChain ? 'mainnetsidechain' : 'rinkebysidechain';
   const _fetchAccount = async address => {
     const [
       username,
@@ -1280,21 +1281,21 @@ const _formatToken = async (token, storeEntries) => {
       monetizationPointer,
     ] = await Promise.all([
       (async () => {
-        let username = await contracts.back.Account.methods.getMetadata(address, 'name').call();
+        let username = await contracts[chainName].Account.methods.getMetadata(address, 'name').call();
         if (!username) {
           username = 'Anonymous';
         }
         return username;
       })(),
       (async () => {
-        let avatarPreview = await contracts.back.Account.methods.getMetadata(address, 'avatarPreview').call();
+        let avatarPreview = await contracts[chainName].Account.methods.getMetadata(address, 'avatarPreview').call();
         if (!avatarPreview) {
           avatarPreview = defaultAvatarPreview;
         }
         return avatarPreview;
       })(),
       (async () => {
-        let monetizationPointer = await contracts.back.Account.methods.getMetadata(address, 'monetizationPointer').call();
+        let monetizationPointer = await contracts[chainName].Account.methods.getMetadata(address, 'monetizationPointer').call();
         if (!monetizationPointer) {
           monetizationPointer = '';
         }
@@ -1316,7 +1317,7 @@ const _formatToken = async (token, storeEntries) => {
 
   const id = parseInt(token.id, 10);
   const {name, ext, hash} = token;
-  const description = await contracts.back.NFT.methods.getMetadata(hash, 'description').call();
+  const description = await contracts[chainName].NFT.methods.getMetadata(hash, 'description').call();
   const storeEntry = storeEntries.find(entry => entry.tokenId === id);
   const buyPrice = storeEntry ? storeEntry.price : null;
   const storeId = storeEntry ? storeEntry.id : null;
@@ -1340,7 +1341,8 @@ const _formatToken = async (token, storeEntries) => {
     storeId,
   };
 };
-const _formatLand = async (token, storeEntries) => {
+const _formatLand = isMainChain => async (token, storeEntries) => {
+  const chainName = isMainChain ? 'mainnetsidechain' : 'rinkebysidechain';
   const _fetchAccount = async address => {
     const [
       username,
@@ -1348,21 +1350,21 @@ const _formatLand = async (token, storeEntries) => {
       monetizationPointer,
     ] = await Promise.all([
       (async () => {
-        let username = await contracts.back.Account.methods.getMetadata(address, 'name').call();
+        let username = await contracts[chainName].Account.methods.getMetadata(address, 'name').call();
         if (!username) {
           username = 'Anonymous';
         }
         return username;
       })(),
       (async () => {
-        let avatarPreview = await contracts.back.Account.methods.getMetadata(address, 'avatarPreview').call();
+        let avatarPreview = await contracts[chainName].Account.methods.getMetadata(address, 'avatarPreview').call();
         if (!avatarPreview) {
           avatarPreview = defaultAvatarPreview;
         }
         return avatarPreview;
       })(),
       (async () => {
-        let monetizationPointer = await contracts.back.Account.methods.getMetadata(address, 'monetizationPointer').call();
+        let monetizationPointer = await contracts[chainName].Account.methods.getMetadata(address, 'monetizationPointer').call();
         if (!monetizationPointer) {
           monetizationPointer = '';
         }
@@ -1387,9 +1389,9 @@ const _formatLand = async (token, storeEntries) => {
     rarity,
     extents,
   ] = await Promise.all([
-    contracts.back.LAND.methods.getSingleMetadata(id, 'description').call(),
-    contracts.back.LAND.methods.getMetadata(name, 'rarity').call(),
-    contracts.back.LAND.methods.getMetadata(name, 'extents').call(),
+    contracts[chainName].LAND.methods.getSingleMetadata(id, 'description').call(),
+    contracts[chainName].LAND.methods.getMetadata(name, 'rarity').call(),
+    contracts[chainName].LAND.methods.getMetadata(name, 'extents').call(),
   ]);
   const extentsJson = _jsonParse(extents);
   const coord = (
@@ -1420,32 +1422,30 @@ const _formatLand = async (token, storeEntries) => {
     totalSupply: parseInt(token.totalSupply, 10)
   };
 };
-const _getChainNft = contractName => chainName => async (tokenId, storeEntries) => {
+const _getChainNft = contractName => (isMainChain, isFront) => async (tokenId, storeEntries) => {
+  const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
   const token = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
   if (contractName === 'NFT') {
-    return await _formatToken(token, storeEntries);
+    return await _formatToken(isMainChain)(token, storeEntries);
   } else if (contractName === 'LAND') {
-    return await _formatLand(token, storeEntries);
+    return await _formatLand(isMainChain)(token, storeEntries);
   } else {
     return null;
   }
 };
 const _getChainToken = _getChainNft('NFT');
 const _getChainLand = _getChainNft('LAND');
-const _getSidechainToken = _getChainToken('back');
-const _getSidechainLand = _getChainLand('back');
-const _getChainOwnerNft = contractName => chainName => async (address, i, storeEntries) => {
+const _getChainOwnerNft = contractName => (isMainChain, isFront) => async (address, i, storeEntries) => {
+  const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
   const token = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
   if (contractName === 'NFT') {
-    return await _formatToken(token, storeEntries);
+    return await _formatToken(isMainChain)(token, storeEntries);
   } else if (contractName === 'LAND') {
-    return await _formatLand(token, storeEntries);
+    return await _formatLand(isMainChain)(token, storeEntries);
   } else {
     return null;
   }
 };
-const _getChainOwnerToken = _getChainOwnerNft('NFT');
-const _getChainOwnerLand = _getChainOwnerNft('LAND');
 const _getStoreEntries = isMainChain => async () => {
   const chainName = isMainChain ? 'mainnetsidechain' : 'rinkebysidechain';
   const numStores = await contracts[chainName].Trade.methods.numStores().call();
@@ -1498,7 +1498,7 @@ try {
       const tokenId = parseInt(match[1], 10);
 
       const storeEntries = await _maybeGetStoreEntries();
-      const token = await _getChainNft(contractName)(chainName)(tokenId, storeEntries);
+      const token = await _getChainNft(contractName)(isMainChain, isFront)(tokenId, storeEntries);
 
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
@@ -1543,7 +1543,7 @@ try {
         const numTokens = endTokenId - startTokenId;
         const promises = Array(numTokens);
         for (let i = 0; i < numTokens; i++) {
-          promises[i] = _getChainNft(contractName)(chainName)(startTokenId + i, storeEntries);
+          promises[i] = _getChainNft(contractName)(isMainChain, isFront)(startTokenId + i, storeEntries);
         }
         let tokens = await Promise.all(promises);
         tokens = tokens.filter(token => token !== null);
@@ -1610,7 +1610,7 @@ try {
 
       const promises = Array(nftBalance);
       for (let i = 0; i < nftBalance; i++) {
-        promises[i] = _getChainOwnerNft(contractName)(chainName)(address, i, storeEntries);
+        promises[i] = _getChainOwnerNft(contractName)(isMainChain, isFront)(address, i, storeEntries);
       }
       let tokens = await Promise.all(promises);
       // tokens = tokens.filter(token => token !== null);
@@ -1669,7 +1669,7 @@ try {
       const store = storeEntries[i]
       const {tokenId, seller} = store;
       
-      const token = await _getSidechainToken(tokenId, storeEntries);
+      const token = await _getChainToken(isMainChain, false)(tokenId, storeEntries);
       
       let booth = booths.find(booth => booth.seller === seller);
       if (!booth) {
