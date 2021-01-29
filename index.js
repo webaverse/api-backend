@@ -78,6 +78,7 @@ const PRIVKEY = fs.readFileSync('./certs/privkey.pem');
 const PORT = parseInt(process.env.PORT, 10) || 80;
 // const filterTopic = 'webxr-site';
 const tableName = 'users';
+
 const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
 
 let web3, addresses, abis, contracts, gethNodeUrl;
@@ -87,6 +88,8 @@ Error.stackTraceLimit = 300;
 const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 const codeTestRegex = /^[0-9]{6}$/;
 const discordIdTestRegex = /^[0-9]+$/;
+const twitterIdTestRegex = /^@?(\w){1,15}$/;
+
 function _randomString() {
   return Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
 }
@@ -144,7 +147,7 @@ try {
     console.log('got login', {method, p, query});
 
     if (method === 'POST') {
-      let {email, code, token, discordcode, discordid, autoip, mnemonic} = query;
+      let {email, code, token, discordcode, discordid, twittercode, twitterid, autoip, mnemonic} = query;
       if (email && emailRegex.test(email)) {
         if (token) {
           const tokenItem = await ddb.getItem({
@@ -500,6 +503,75 @@ try {
               error: err.stack,
             }));
           });
+        }
+      } else if (twittercode) {
+        if (twitterIdTestRegex.test(twitterid)) {
+          const codeItem = await ddb.getItem({
+            TableName: tableName,
+            Key: {
+              email: {S: twitterid + '.code'},
+            }
+          }).promise();
+          
+          console.log('check item', twitterid, JSON.stringify(codeItem.Item, null, 2));
+          
+          if (codeItem.Item && codeItem.Item.code.S === twittercode) {
+            await ddb.deleteItem({
+              TableName: tableName,
+              Key: {
+                email: {S: twitterid + '.code'},
+              }
+            }).promise();
+
+            // generate        
+            const tokenItem = await ddb.getItem({
+              TableName: tableName,
+              Key: {
+                email: {S: twitterid + '.twittertoken'},
+              },
+            }).promise();
+            const tokens = (tokenItem.Item && tokenItem.Item.tokens) ? JSON.parse(tokenItem.Item.tokens.S) : [];
+            let name = (tokenItem.Item && tokenItem.Item.name) ? tokenItem.Item.name.S : null;
+            let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
+            // let addr = (tokenItem.Item && tokenItem.Item.address) ? tokenItem.Item.address.S : null;
+            
+            // console.log('old item', tokenItem, {tokens, mnemonic});
+
+            const token = crypto.randomBytes(32).toString('base64');
+            tokens.push(token);
+            while (tokens.length > 10) {
+              tokens.shift();
+            }
+            if (!name) {
+              name = namegen(2).join('-');
+            }
+            if (!mnemonic) {
+              mnemonic = bip39.generateMnemonic();
+              /* const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
+              addr = wallet.getAddressString(); */
+            }
+
+            await ddb.putItem({
+              TableName: tableName,
+              Item: {
+                email: {S: twitterid + '.twittertoken'},
+                mnemonic: {S: mnemonic},
+                // address: {S: addr},
+              }
+            }).promise();
+
+            // respond
+            _setCorsHeaders(res);
+            res.end(JSON.stringify({mnemonic}));
+          } else {
+            _respond(403, JSON.stringify({
+              error: 'Invalid code',
+            }));
+          }
+        } else {
+          _respond(403, JSON.stringify({
+            error: 'Invalid Twitter ID',
+          }));
         }
       } else if (autoip) {
         const ip = req.connection.remoteAddress;
