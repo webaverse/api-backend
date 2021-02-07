@@ -790,6 +790,7 @@ const _handleAccounts = isMainChain => async (req, res) => {
         'homeSpaceExt',
         'homeSpacePreview',
         'ftu',
+        'mainnetAddress',
       ].map(key =>
         contracts[chainName].Account.methods.getMetadata(address, key).call()
           .then(value => {
