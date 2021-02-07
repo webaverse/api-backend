@@ -1623,7 +1623,7 @@ try {
         if (contractName === 'NFT') {
           tokens = tokens.filter((token, i) => { // filter unique hashes
             for (let j = 0; j < i; j++) {
-              if (tokens[j].properties.hash === token.properties.hash) {
+              if (tokens[j].properties.hash === token.properties.hash && token.properties.hash !== "") {
                 return false;
               }
             }
