@@ -1521,7 +1521,6 @@ const _getChainLand = _getChainNft('LAND');
 const _getChainOwnerNft = contractName => (isMainChain, isFront) => async (address, i, storeEntries) => {
   const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
   const token = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
-  console.log("got token", token.id);
   let mainnetToken;
   if (!isFront) {
     mainnetToken = await contracts[isMainChain ? 'mainnet' : 'rinkeby'][contractName].methods.tokenByIdFull(token.id).call();
