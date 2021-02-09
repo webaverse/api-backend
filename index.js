@@ -1638,6 +1638,9 @@ try {
         tokens.sort((a, b) => a.id - b.id);
         if (contractName === 'NFT') {
           tokens = tokens.filter((token, i) => { // filter unique hashes
+            if (token.properties.hash === "" && token.owner.address === "0x0000000000000000000000000000000000000000") {
+                return false;
+            }
             for (let j = 0; j < i; j++) {
               if (tokens[j].properties.hash === token.properties.hash && token.properties.hash !== "") {
                 return false;
@@ -1718,8 +1721,11 @@ try {
       tokens.sort((a, b) => a.id - b.id);
       if (contractName === 'NFT') {
         tokens = tokens.filter((token, i) => { // filter unique hashes
+          if (token.properties.hash === "" && token.owner.address === "0x0000000000000000000000000000000000000000") {
+              return false;
+          }
           for (let j = 0; j < i; j++) {
-            if (tokens[j].properties.hash === token.properties.hash && token.properties.hash !== '') {
+            if (tokens[j].properties.hash === token.properties.hash && token.properties.hash !== "") {
               return false;
             }
           }
