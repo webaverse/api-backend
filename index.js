@@ -1586,7 +1586,7 @@ try {
       const tokenId = parseInt(match[1], 10);
 
       const storeEntries = await _maybeGetStoreEntries();
-      const token = await _getChainNft(contractName)(isMainChain, isFront)(tokenId, storeEntries);
+      const token = await _getChainNft(contractName)(isMainChain, isFront, isAll)(tokenId, storeEntries);
 
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
@@ -1631,7 +1631,7 @@ try {
         const numTokens = endTokenId - startTokenId;
         const promises = Array(numTokens);
         for (let i = 0; i < numTokens; i++) {
-          promises[i] = _getChainNft(contractName)(isMainChain, isFront)(startTokenId + i, storeEntries);
+          promises[i] = _getChainNft(contractName)(isMainChain, isFront, isAll)(startTokenId + i, storeEntries);
         }
         let tokens = await Promise.all(promises);
         tokens = tokens.filter(token => token !== null);
