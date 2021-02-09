@@ -1501,11 +1501,11 @@ const _formatLand = isMainChain => async (token, storeEntries) => {
     totalSupply: parseInt(token.totalSupply, 10)
   };
 };
-const _getChainNft = contractName => (isMainChain, isFront) => async (tokenId, storeEntries) => {
+const _getChainNft = contractName => (isMainChain, isFront, isAll) => async (tokenId, storeEntries) => {
   const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
   const token = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
   let mainnetToken;
-  if (!isFront) {
+  if (!isFront && isAll) {
     mainnetToken = await contracts[isMainChain ? 'mainnet' : 'rinkeby'][contractName].methods.tokenByIdFull(tokenId).call();
   }
   if (contractName === 'NFT') {
@@ -1518,11 +1518,11 @@ const _getChainNft = contractName => (isMainChain, isFront) => async (tokenId, s
 };
 const _getChainToken = _getChainNft('NFT');
 const _getChainLand = _getChainNft('LAND');
-const _getChainOwnerNft = contractName => (isMainChain, isFront) => async (address, i, storeEntries) => {
+const _getChainOwnerNft = contractName => (isMainChain, isFront, isAll) => async (address, i, storeEntries) => {
   const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
   const token = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
   let mainnetToken;
-  if (!isFront) {
+  if (!isFront && isAll) {
     mainnetToken = await contracts[isMainChain ? 'mainnet' : 'rinkeby'][contractName].methods.tokenByIdFull(token.id).call();
   }
   if (contractName === 'NFT') {
@@ -1561,7 +1561,7 @@ const _getStoreEntries = async isMainChain => {
   storeEntries = storeEntries.filter(store => store !== null);
   return storeEntries;
 };
-const _handleNft = contractName => (isMainChain, isFront) => async (req, res) => {
+const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, res) => {
   const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
   const otherChainName = (isMainChain ? 'mainnet' : 'rinkeby');
   const _respond = (statusCode, body) => {
@@ -1709,14 +1709,16 @@ try {
       }
       let tokens = await Promise.all(promises);
 
-      const mainnetPromises = Array(nftMainnetBalance);
-      for (let i = 0; i < nftMainnetBalance; i++) {
-        let id = await _getChainOwnerNft(contractName)(isMainChain, true)(address, i, storeEntries);
-        mainnetPromises[i] = _getChainNft(contractName)(isMainChain, isFront)(id.id, storeEntries);
-      }
-      let mainnetTokens = await Promise.all(mainnetPromises);
+      if (isAll) {
+        const mainnetPromises = Array(nftMainnetBalance);
+        for (let i = 0; i < nftMainnetBalance; i++) {
+          let id = await _getChainOwnerNft(contractName)(isMainChain, true, isAll)(address, i, storeEntries);
+          mainnetPromises[i] = _getChainNft(contractName)(isMainChain, isFront, isAll)(id.id, storeEntries);
+        }
+        let mainnetTokens = await Promise.all(mainnetPromises);
 
-      tokens = tokens.concat(mainnetTokens);
+        tokens = tokens.concat(mainnetTokens);
+      }
       // tokens = tokens.filter(token => token !== null);
       tokens.sort((a, b) => a.id - b.id);
       if (contractName === 'NFT') {
@@ -1885,6 +1887,12 @@ try {
     return;
   } else if (o.host === 'mainnet-tokens.webaverse.com') {
     _handleTokens(true, true)(req, res);
+    return;
+  } else if (o.host === 'tokens.webaverse.com' || o.host === 'mainnetall-tokens.webaverse.com') {
+    _handleTokens(true, false, true)(req, res);
+    return;
+  } else if (o.host === 'rinkebyall-tokens.webaverse.com') {
+    _handleTokens(false, false, true)(req, res);
     return;
   } else if (o.host === 'tokens.webaverse.com' || o.host === 'mainnetsidechain-tokens.webaverse.com') {
     _handleTokens(true, false)(req, res);
