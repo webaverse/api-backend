@@ -1695,11 +1695,9 @@ try {
 
       const [
         nftBalance,
-        nftMainnetBalance,
         storeEntries,
       ] = await Promise.all([
         contracts[chainName][contractName].methods.balanceOf(address).call(),
-        contracts[otherChainName][contractName].methods.balanceOf(mainnetAddress).call(),
         _maybeGetStoreEntries(),
       ]);
 
@@ -1709,7 +1707,8 @@ try {
       }
       let tokens = await Promise.all(promises);
 
-      if (isAll) {
+      if (isAll && mainnetAddress) {
+        const nftMainnetBalance = await contracts[otherChainName][contractName].methods.balanceOf(mainnetAddress).call();
         const mainnetPromises = Array(nftMainnetBalance);
         for (let i = 0; i < nftMainnetBalance; i++) {
           let id = await _getChainOwnerNft(contractName)(isMainChain, true, isAll)(address, i, storeEntries);
