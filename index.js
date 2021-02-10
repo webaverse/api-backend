@@ -1692,7 +1692,7 @@ try {
       const address = match[1];
 
       const signature = await contracts[otherchainname + 'sidechain'].account.methods.getmetadata(address, "mainnetaddress").call();
-      const mainnetaddress = await web3.eth.personal.ecrecover("connecting mainnet address.", signature);
+      const mainnetaddress = await web3.rinkeby.eth.personal.ecrecover("connecting mainnet address.", signature);
 
       const [
         nftBalance,
