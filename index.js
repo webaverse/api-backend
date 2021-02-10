@@ -1691,7 +1691,8 @@ try {
     } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
       const address = match[1];
 
-      const mainnetAddress = await contracts[otherChainName + 'sidechain'].Account.methods.getMetadata(address, "mainnetAddress").call();
+      const signature = await contracts[otherchainname + 'sidechain'].account.methods.getmetadata(address, "mainnetaddress").call();
+      const mainnetaddress = await web3.eth.personal.ecrecover("connecting mainnet address.", signature);
 
       const [
         nftBalance,
