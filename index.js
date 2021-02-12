@@ -793,8 +793,13 @@ const _handleAccounts = isMainChain => async (req, res) => {
         'mainnetAddress',
       ].map(key =>
         contracts[chainName].Account.methods.getMetadata(address, key).call()
-          .then(value => {
-            result[key] = value;
+          .then(async value => {
+            if (key === 'mainnetAddress') {
+              value = await web3.rinkeby.eth.accounts.recover("Connecting mainnet address.", value);
+              result[key] = value;
+            } else {
+              result[key] = value;
+            }
           })
       )
     );
