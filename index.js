@@ -794,7 +794,7 @@ const _handleAccounts = isMainChain => async (req, res) => {
       ].map(key =>
         contracts[chainName].Account.methods.getMetadata(address, key).call()
           .then(async value => {
-            if (key === 'mainnetAddress') {
+            if (key === 'mainnetAddress' && value !== "") {
               value = await web3.rinkeby.eth.accounts.recover("Connecting mainnet address.", value);
               result[key] = value;
             } else {
@@ -1732,8 +1732,8 @@ try {
       tokens.sort((a, b) => a.id - b.id);
       if (contractName === 'NFT') {
         tokens = tokens.filter((token, i) => { // filter unique hashes
-          if (token.properties.hash === "" && token.owner.address === "0x0000000000000000000000000000000000000000") {
-              return false;
+          if (token === "0" || (token.properties.hash === "" && token.owner.address === "0x0000000000000000000000000000000000000000")) {
+            return false;
           }
           for (let j = 0; j < i; j++) {
             if (tokens[j].properties.hash === token.properties.hash && token.properties.hash !== "") {
