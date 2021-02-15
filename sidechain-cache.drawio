@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2021-02-15T03:14:09.069Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.152 Safari/537.36" etag="aNHiaRo3ueTX7GzEXuCl" version="14.3.1" type="github">
+<mxfile host="app.diagrams.net" modified="2021-02-15T03:17:29.417Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.152 Safari/537.36" etag="1fQWHWydVvNgkefcsFy2" version="14.3.1" type="github">
   <diagram id="9v1e7nA_9eBDx_07Och-" name="Backfill">
     <mxGraphModel dx="2727" dy="1126" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
@@ -95,6 +95,9 @@
         </mxCell>
         <mxCell id="zOqTyJgDZ62oZVEmTMjh-31" value="END LOOP" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.loop_limit;whiteSpace=wrap;direction=west;" vertex="1" parent="1">
           <mxGeometry x="-480" y="980" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="zOqTyJgDZ62oZVEmTMjh-44" value="What / Where&amp;nbsp;is the&lt;br&gt;&quot;Metadata&quot;?&lt;br&gt;Let&#39;s document this&lt;br&gt;&amp;nbsp;and establish a schema." style="ellipse;shape=cloud;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-370" y="565" width="180" height="145" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
