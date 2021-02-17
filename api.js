@@ -86,7 +86,7 @@ async function _execute(spec) {
     default: throw new Error(`unknown execute method ${method}`);
   }
 } 
-const makeWeb3 = () => {
+/* const makeWeb3 = () => {
   const rpcUrl = `https://${network}.infura.io/v3/${infuraApiKey}`;
 
   const web3 = new Web3(new Web3.providers.HttpProvider(rpcUrl));
@@ -99,5 +99,4 @@ const makeWeb3 = () => {
   web3.execute = _execute;
   return web3;
 };
-
-module.exports = makeWeb3();
+module.exports = makeWeb3(); */
