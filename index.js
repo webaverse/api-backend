@@ -1696,7 +1696,7 @@ try {
     } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
       const address = match[1];
 
-      const signature = await contracts['rinkebysidechain'].Account.methods.getMetadata(address, "mainnetAddress").call();
+      const signature = await contracts['mainnetsidechain'].Account.methods.getMetadata(address, "mainnetAddress").call();
 
       let mainnetAddress = null;
       if (signature !== "") {
@@ -1787,17 +1787,19 @@ try {
       const store = storeEntries[i]
       const {tokenId, seller} = store;
       
-      const token = await _getChainToken(isMainChain, false)(tokenId, storeEntries);
-      
-      let booth = booths.find(booth => booth.seller === seller);
-      if (!booth) {
-        booth = {
-          seller,
-          entries: [],
-        };
-        booths.push(booth);
+      if (tokenId) {
+        const token = await _getChainToken(isMainChain, false)(tokenId, storeEntries);
+
+        let booth = booths.find(booth => booth.seller === seller);
+        if (!booth) {
+          booth = {
+            seller,
+            entries: [],
+          };
+          booths.push(booth);
+        }
+        booth.entries.push(token);
       }
-      booth.entries.push(token);
     }
 
     return booths;
