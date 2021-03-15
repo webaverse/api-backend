@@ -6,8 +6,8 @@ const ids = {
 };
 
 async function initCache({addresses, contracts, wsContracts, sockets}) {
-  const contract = wsContracts.rinkeby;
-  const socket = sockets.rinkeby;
+  const contract = wsContracts.mainnetsidechain;
+  const socket = sockets.mainnet;
 
   const currentBlockNumber = await socket.eth.getBlockNumber();
   const lastBlockNumber =
@@ -15,7 +15,7 @@ async function initCache({addresses, contracts, wsContracts, sockets}) {
 
   // Catch up on missing blocks.
   if (currentBlockNumber !== lastBlockNumber) {
-    const events = await getPastEvents(contract, lastBlockNumber);
+    const events = await getPastEvents(contracts.mainnetsidechain, lastBlockNumber);
     if (events.length) await processEvents({addresses, contract, contracts, wsContracts, events});
 
     // Set last block number.
@@ -24,9 +24,10 @@ async function initCache({addresses, contracts, wsContracts, sockets}) {
   }
 
   // Watch for new events.
-  contract.NFT.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
+  wsContracts.mainnet.NFT.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
+    console.debug( 'EVENT:', event )
     if (error) console.log('Error getting event: ' + error);
-    else await processEvent({addresses, contract, event});
+    else await processEvent({addresses, contract: wsContracts.mainnetsidechain, event});
   })
 }
 
@@ -74,7 +75,7 @@ async function processEvents({addresses, contracts, events}) {
     // Map each response to a token.
     const token = await getChainNft({
       addresses,
-      contract: contracts.rinkeby,
+      contract: contracts.mainnetsidechain,
       tokenId: entry[0],
     })
 
