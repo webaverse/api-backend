@@ -1,38 +1,18 @@
-const path = require('path');
-const stream = require('stream');
 const fs = require('fs');
 const url = require('url');
-const querystring = require('querystring');
 const http = require('http');
 const https = require('https');
 const dns = require('dns');
 const crypto = require('crypto');
-const zlib = require('zlib');
-const os = require('os');
-const child_process = require('child_process');
-const mkdirp = require('mkdirp');
-const FormData = require('form-data');
-// const express = require('express');
 const httpProxy = require('http-proxy');
 const ws = require('ws');
-// const LRU = require('lru');
-const request = require('request');
-const mime = require('mime');
 const AWS = require('aws-sdk');
-const Stripe = require('stripe');
-// const puppeteer = require('puppeteer');
 const namegen = require('./namegen.js');
-const Base64Encoder = require('./encoder.js').Encoder;
-// const {JSONServer, CustomEvent} = require('./dist/sync-server.js');
 const fetch = require('node-fetch');
-const {SHA3} = require('sha3');
 const {default: formurlencoded} = require('form-urlencoded');
 const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
-// const blockchain = require('./blockchain.js');
-const {getExt, makePromise} = require('./utils.js');
-// const browserManager = require('./browser-manager.js');
 const config = require('./config.json');
 const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, discordClientId, discordClientSecret, stripeClientId, stripeClientSecret, infuraNetwork, infuraProjectId} = config;
 const awsConfig = new AWS.Config({
@@ -43,8 +23,6 @@ const awsConfig = new AWS.Config({
   region: 'us-west-1',
 });
 const ddb = new AWS.DynamoDB(awsConfig);
-const ddbd = new AWS.DynamoDB.DocumentClient(awsConfig);
-const s3 = new AWS.S3(awsConfig);
 const ses = new AWS.SES(new AWS.Config({
   credentials: new AWS.Credentials({
     accessKeyId,
@@ -52,22 +30,9 @@ const ses = new AWS.SES(new AWS.Config({
   }),
   region: 'us-west-2',
 }));
-/* const apiKeyCache = new LRU({
-  max: 1024,
-  maxAge: 60 * 1000,
-}); */
-const stripe = Stripe(stripeClientSecret);
-// const accountManager = require('./account-manager.js');
-// const eventsManager = require('./events-manager.js');
 const storageHost = 'https://ipfs.exokit.org';
 const ethereumHost = 'ethereum.exokit.org';
 
-const Discord = require('discord.js');
-
-const api = require('./api.js');
-// const { _handleStorageRequest } = require('./routes/storage.js');
-// const { _handleAccountsRequest } = require('./routes/accounts.js');
-// const { _handlePreviewRequest } = require('./routes/preview.js')
 const { worldManager, _handleWorldsRequest, _startWorldsRoute } = require('./routes/worlds.js');
 const { _handleSignRequest } = require('./routes/sign.js');
 const { _handleAnalyticsRequest } = require('./routes/analytics.js');
@@ -76,7 +41,6 @@ const CERT = fs.readFileSync('./certs/fullchain.pem');
 const PRIVKEY = fs.readFileSync('./certs/privkey.pem');
 
 const PORT = parseInt(process.env.PORT, 10) || 80;
-// const filterTopic = 'webxr-site';
 const tableName = 'users';
 
 const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
@@ -89,6 +53,29 @@ const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}
 const codeTestRegex = /^[0-9]{6}$/;
 const discordIdTestRegex = /^[0-9]+$/;
 const twitterIdTestRegex = /^@?(\w){1,15}$/;
+
+const Networks = {
+  mainnet: {
+      displayName: "Mainnet",
+      transferOptions: ["mainnetsidechain"]
+  },
+  mainnetsidechain: {
+      displayName: "Webaverse",
+      transferOptions: ["mainnet", "matic"]
+  },
+  rinkeby: {
+    displayName: "Rinkeby",
+    transferOptions: ["rinkebysidechain"]
+  },
+  rinkebysidechain: {
+    displayName: "Webaverse",
+    transferOptions: ["rinkeby"]
+  },
+  matic: {
+      displayName: "Matic/Polygon",
+      transferOptions: ["mainnetsidechain"]
+  }
+}
 
 function _randomString() {
   return Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
@@ -104,29 +91,6 @@ function _jsonParse(s) {
 (async () => {
 
 await worldManager.waitForLoad();
-
-/* const ipfsRepoLockPath = path.join(os.homedir(), '.ipfs', 'repo.lock');
-try {
-  fs.unlinkSync(ipfsRepoLockPath);
-} catch (err) {
-  if (err.code === 'ENOENT') {
-    // nothing
-  } else {
-    console.warn(err.stack);
-  }
-}
-const ipfsProcess = child_process.spawn('ipfs', [
-  'daemon',
-  '--writable',
-]);
-ipfsProcess.stdout.pipe(process.stdout);
-ipfsProcess.stderr.pipe(process.stderr);
-ipfsProcess.on('exit', code => {
-  console.warn('ipfs exited', code);
-});
-process.on('exit', () => {
-  ipfsProcess.kill(9);
-}); */
 
 const _handleLogin = async (req, res) => {
   const _respond = (statusCode, body) => {
@@ -280,16 +244,6 @@ try {
             }));
           }
         } else {
-          /* const tokenItem = await ddb.getItem({
-            TableName: tableName,
-            Key: {
-              email: {S: email + '.token'},
-            }
-          }).promise();
-          const whitelisted = tokenItem.Item ? tokenItem.Item.whitelisted.BOOL : false;
-          console.log('whitelist', {email, whitelisted});
-
-          if (whitelisted) { */
             const code = new Uint32Array(crypto.randomBytes(4).buffer, 0, 1).toString(10).slice(-6);
             
             console.log('verification', {email, code});
@@ -761,8 +715,7 @@ try {
 }
 };
 
-const _handleAccounts = isMainChain => async (req, res) => {
-  const chainName = isMainChain ? 'mainnetsidechain' : 'rinkebysidechain';
+const _handleAccounts = chainName => async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -1210,8 +1163,7 @@ try {
 }
 };
 
-const _handleProfile = isMainChain => async (req, res) => {
-  const chainName = isMainChain ? 'mainnetsidechain' : 'rinkebysidechain';
+const _handleProfile = chainName => async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -1245,8 +1197,8 @@ try {
       }
       const balance = await contracts[chainName].FT.methods.balanceOf(address).call();
 
-      const storeEntries = await _getStoreEntries(isMainChain);
-      const tokens = await Promise.all(tokenIds.map(tokenId => _getChainToken(isMainChain, false)(tokenId, storeEntries)));
+      const storeEntries = await _getStoreEntries(chainName);
+      const tokens = await Promise.all(tokenIds.map(tokenId => _getChainToken(chainName)(tokenId, storeEntries)));
 
       const tokens2 = [];
       for (const token of tokens) {
@@ -1343,8 +1295,7 @@ const _handleProxyApp = (() => {
   };
 })();
 
-const _formatToken = isMainChain => async (token, storeEntries) => {
-  const chainName = isMainChain ? 'mainnetsidechain' : 'rinkebysidechain';
+const _formatToken = chainName => async (token, storeEntries) => {
   const _fetchAccount = async address => {
     const [
       username,
@@ -1412,8 +1363,7 @@ const _formatToken = isMainChain => async (token, storeEntries) => {
     storeId,
   };
 };
-const _formatLand = isMainChain => async (token, storeEntries) => {
-  const chainName = isMainChain ? 'mainnetsidechain' : 'rinkebysidechain';
+const _formatLand = chainName => async (token, storeEntries) => {
   const _fetchAccount = async address => {
     const [
       username,
@@ -1493,32 +1443,29 @@ const _formatLand = isMainChain => async (token, storeEntries) => {
     totalSupply: parseInt(token.totalSupply, 10)
   };
 };
-const _getChainNft = contractName => (isMainChain, isFront) => async (tokenId, storeEntries) => {
-  const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
+const _getChainNft = contractName => (chainName) => async (tokenId, storeEntries) => {
   const token = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
   if (contractName === 'NFT') {
-    return await _formatToken(isMainChain)(token, storeEntries);
+    return await _formatToken(chainName)(token, storeEntries);
   } else if (contractName === 'LAND') {
-    return await _formatLand(isMainChain)(token, storeEntries);
+    return await _formatLand(chainName)(token, storeEntries);
   } else {
     return null;
   }
 };
 const _getChainToken = _getChainNft('NFT');
 const _getChainLand = _getChainNft('LAND');
-const _getChainOwnerNft = contractName => (isMainChain, isFront) => async (address, i, storeEntries) => {
-  const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
+const _getChainOwnerNft = contractName => (chainName) => async (address, i, storeEntries) => {
   const token = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
   if (contractName === 'NFT') {
-    return await _formatToken(isMainChain)(token, storeEntries);
+    return await _formatToken(chainName)(token, storeEntries);
   } else if (contractName === 'LAND') {
-    return await _formatLand(isMainChain)(token, storeEntries);
+    return await _formatLand(chainName)(token, storeEntries);
   } else {
     return null;
   }
 };
-const _getStoreEntries = async isMainChain => {
-  const chainName = isMainChain ? 'mainnetsidechain' : 'rinkebysidechain';
+const _getStoreEntries = async chainName => {
   const numStores = await contracts[chainName].Trade.methods.numStores().call();
   const promises = Array(numStores);
   for (let i = 0; i < numStores; i++) {
@@ -1545,8 +1492,7 @@ const _getStoreEntries = async isMainChain => {
   storeEntries = storeEntries.filter(store => store !== null);
   return storeEntries;
 };
-const _handleNft = contractName => (isMainChain, isFront) => async (req, res) => {
-  const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
+const _handleNft = contractName => (chainName) => async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -1557,7 +1503,8 @@ const _handleNft = contractName => (isMainChain, isFront) => async (req, res) =>
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
-  const _maybeGetStoreEntries = () => (contractName === 'NFT' && !isFront) ? _getStoreEntries(isMainChain) : Promise.resolve([]);
+  
+  const _maybeGetStoreEntries = () => (contractName === 'NFT' && chainName === Networks.mainnetsidechain) ? _getStoreEntries(chainName) : Promise.resolve([]);
 
 try {
   const {method} = req;
@@ -1569,7 +1516,7 @@ try {
       const tokenId = parseInt(match[1], 10);
 
       const storeEntries = await _maybeGetStoreEntries();
-      const token = await _getChainNft(contractName)(isMainChain, isFront)(tokenId, storeEntries);
+      const token = await _getChainNft(contractName)(chainName)(tokenId, storeEntries);
 
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
@@ -1614,7 +1561,7 @@ try {
         const numTokens = endTokenId - startTokenId;
         const promises = Array(numTokens);
         for (let i = 0; i < numTokens; i++) {
-          promises[i] = _getChainNft(contractName)(isMainChain, isFront)(startTokenId + i, storeEntries);
+          promises[i] = _getChainNft(contractName)(chainName)(startTokenId + i, storeEntries);
         }
         let tokens = await Promise.all(promises);
         tokens = tokens.filter(token => token !== null);
@@ -1681,7 +1628,7 @@ try {
 
       const promises = Array(nftBalance);
       for (let i = 0; i < nftBalance; i++) {
-        promises[i] = _getChainOwnerNft(contractName)(isMainChain, isFront)(address, i, storeEntries);
+        promises[i] = _getChainOwnerNft(contractName)(chainName)(address, i, storeEntries);
       }
       let tokens = await Promise.all(promises);
       // tokens = tokens.filter(token => token !== null);
@@ -1716,7 +1663,7 @@ try {
 const _handleTokens = _handleNft('NFT');
 const _handleLand = _handleNft('LAND');
 
-const _handleStore = isMainChain => async (req, res) => {
+const _handleStore = chainName => async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -1733,14 +1680,14 @@ try {
   const {pathname: p} = url.parse(req.url);
 
   const _getBooths = async () => {
-    const storeEntries = await _getStoreEntries(isMainChain);
+    const storeEntries = await _getStoreEntries(chainName);
 
     const booths = [];
     for (let i = 0; i < storeEntries.length; i++) {
       const store = storeEntries[i]
       const {tokenId, seller} = store;
       
-      const token = await _getChainToken(isMainChain, false)(tokenId, storeEntries);
+      const token = await _getChainToken(chainName, false)(tokenId, storeEntries);
       
       let booth = booths.find(booth => booth.seller === seller);
       if (!booth) {
@@ -1821,10 +1768,10 @@ try {
     _handleEthereum(8546)(req, res);
     return;
   } else if (o.host === 'accounts.webaverse.com' || o.host === 'mainnetsidechain-accounts.webaverse.com') {
-    _handleAccounts(true)(req, res);
+    _handleAccounts(Networks.mainnetsidechain)(req, res);
     return;
   } else if (o.host === 'rinkebysidechain-accounts.webaverse.com') {
-    _handleAccounts(false)(req, res);
+    _handleAccounts(Networks.rinkebysidechain)(req, res);
     return;
   } else if (o.host === 'analytics.webaverse.com') {
     _handleAnalyticsRequest(req, res);
@@ -1836,10 +1783,10 @@ try {
     _handleOauth(req, res);
     return;
   } else if (o.host === 'profile.webaverse.com' || o.host === 'mainnetsidechain-profile.webaverse.com') {
-    _handleProfile(true)(req, res);
+    _handleProfile(Networks.mainnetsidechain)(req, res);
     return;
   } else if (o.host === 'rinkebysidechain-profile.webaverse.com') {
-    _handleProfile(false)(req, res);
+    _handleProfile(Networks.rinkebysidechain)(req, res);
     return;
   } else if (o.host === 'main.webaverse.com' || o.host === 'test.webaverse.com') {
     _handleProxyRoot(req, res);
@@ -1848,28 +1795,31 @@ try {
     _handleProxyApp(req, res);
     return;
   } else if (o.host === 'mainnet-tokens.webaverse.com') {
-    _handleTokens(true, true)(req, res);
+    _handleTokens(Networks.mainnet)(req, res);
     return;
   } else if (o.host === 'tokens.webaverse.com' || o.host === 'mainnetsidechain-tokens.webaverse.com') {
-    _handleTokens(true, false)(req, res);
+    _handleTokens(Networks.mainnetsidechain)(req, res);
     return;
   } else if (o.host === 'rinkeby-tokens.webaverse.com') {
-    _handleTokens(false, true)(req, res);
+    _handleTokens(Networks.rinkeby)(req, res);
     return;
   } else if (o.host === 'rinkebysidechain-tokens.webaverse.com') {
-    _handleTokens(false, false)(req, res);
+    _handleTokens(Networks.rinkebysidechain)(req, res);
+    return;
+  } else if (o.host === 'matic-tokens.webaverse.com') {
+    _handleTokens(Networks.matic)(req, res);
     return;
   } else if (o.host === 'mainnet-land.webaverse.com') {
-    _handleLand(true, true)(req, res);
+    _handleLand(Networks.mainnet)(req, res);
     return;
   } else if (o.host === 'land.webaverse.com' || o.host === 'mainnetsidechain-land.webaverse.com') {
-    _handleLand(true, false)(req, res);
+    _handleLand(Networks.mainnetsidechain)(req, res);
     return;
   } else if (o.host === 'rinkeby-land.webaverse.com') {
-    _handleLand(false, true)(req, res);
+    _handleLand(Networks.rinkeby)(req, res);
     return;
   } else if (o.host === 'rinkebysidechain-land.webaverse.com') {
-    _handleLand(false, false)(req, res);
+    _handleLand(Networks.rinkebysidechain)(req, res);
     return;
   } else if (o.host === 'worlds.exokit.org') {
     _handleWorldsRequest(req, res);
@@ -2003,11 +1953,14 @@ const _ws = protocol => (req, socket, head) => {
   });
   gethNodeUrl = `http://${ethereumHostAddress}`;
   
+  const vigilKey = "d6f4dcc3e1dde11145ba107930982b27b58f50e2";
+  
   web3 = {
     mainnet: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`)),
     mainnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8545')),
     rinkeby: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
     rinkebysidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8546')),
+    matic: new Web3(new Web3.providers.HttpProvider(`https://rpc-mainnet.maticvigil.com/v1/${maticVigilKey}`))
   };
 
   contracts = {
@@ -2051,6 +2004,16 @@ const _ws = protocol => (req, socket, head) => {
       LAND: new web3.rinkebysidechain.eth.Contract(abis.LAND, addresses.rinkebysidechain.LAND),
       LANDProxy: new web3.rinkebysidechain.eth.Contract(abis.LANDProxy, addresses.rinkebysidechain.LANDProxy),
     },
+    matic: {
+      Account: new web3.matic.eth.Contract(abis.Account, addresses.matic.Account),
+      FT: new web3.matic.eth.Contract(abis.FT, addresses.matic.FT),
+      FTProxy: new web3.matic.eth.Contract(abis.FTProxy, addresses.matic.FTProxy),
+      NFT: new web3.matic.eth.Contract(abis.NFT, addresses.matic.NFT),
+      NFTProxy: new web3.matic.eth.Contract(abis.NFTProxy, addresses.matic.NFTProxy),
+      Trade: new web3.matic.eth.Contract(abis.Trade, addresses.matic.Trade),
+      LAND: new web3.matic.eth.Contract(abis.LAND, addresses.matic.LAND),
+      LANDProxy: new web3.matic.eth.Contract(abis.LANDProxy, addresses.matic.LANDProxy),
+    }
   };
 
   /* web3.mainnetsidechain.eth.getPastLogs({
