@@ -1,4 +1,4 @@
-# exokit-backend
+# Webaverse API backend
 
 Node server hosted on AWS, mainly used for REST endpoints.
 

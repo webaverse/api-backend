@@ -9,7 +9,7 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {_setCorsHeaders} = require('../utils.js');
-const {mainnetMnemonic, rinkebyMnemonic, infuraProjectId} = require('../config.json');
+const {mainnetMnemonic, /* rinkebyMnemonic, */ infuraProjectId} = require('../config.json');
 
 const loadPromise = (async () => {
   const ethereumHost = 'ethereum.exokit.org';
@@ -32,8 +32,8 @@ const loadPromise = (async () => {
   const web3 = {
     mainnet: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`)),
     mainnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8545')),
-    rinkeby: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
-    rinkebysidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8546')),
+    // rinkeby: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
+    // rinkebysidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8546')),
   };
   const addresses = await fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
@@ -44,8 +44,8 @@ const loadPromise = (async () => {
     [
       'mainnet',
       'mainnetsidechain',
-      'rinkeby',
-      'rinkebysidechain',
+      /* 'rinkeby',
+      'rinkebysidechain', */
     ].forEach(chainName => {
       [
         'Account',
@@ -66,7 +66,7 @@ const loadPromise = (async () => {
   })();
   const wallets = {
     mainnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mainnetMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
-    rinkeby: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(rinkebyMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    // rinkeby: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(rinkebyMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
   };
 
   return {
