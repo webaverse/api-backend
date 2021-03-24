@@ -9,7 +9,53 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {_setCorsHeaders} = require('../utils.js');
+const ddb = new AWS.DynamoDB(awsConfig);
 const {mainnetMnemonic, /* rinkebyMnemonic, */ infuraProjectId} = require('../config.json');
+
+const {pipeline, PassThrough} = require('stream');
+const {randomBytes, createCipheriv, createDecipheriv} = require('crypto');
+
+const tableName = 'users';
+const unlockableKey = 'unlockable';
+const nonce = Buffer.alloc(12);
+const encodeSecret = (mnemonic, secret) => {
+  const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
+  const privateKey = wallet.privateKey;
+
+  const key = privateKey.slice(0, 24);
+  // const aad = Buffer.from('0123456789', 'hex');
+
+  const cipher = createCipheriv('aes-192-ccm', key, nonce, {
+    authTagLength: 16
+  });
+  /* cipher.setAAD(aad, {
+    plaintextLength: Buffer.byteLength(secret)
+  }); */
+  const ciphertext = cipher.update(secret, 'utf8');
+  cipher.final();
+  const tag = cipher.getAuthTag();
+  return {
+    ciphertext,
+    tag,
+  };
+};
+const decodeSecret = (mnemonic, {ciphertext, tag}) => {
+  const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
+  const privateKey = wallet.privateKey;
+
+  const key = privateKey.slice(0, 24);
+  // const aad = Buffer.from('0123456789', 'hex');
+
+  const decipher = createDecipheriv('aes-192-ccm', key, nonce, {
+    authTagLength: 16
+  });
+  decipher.setAuthTag(tag);
+  /* decipher.setAAD(aad, {
+    plaintextLength: ciphertext.length
+  }); */
+  const receivedPlaintext = decipher.update(ciphertext, null, 'utf8');
+  return receivedPlaintext;
+};
 
 const loadPromise = (async () => {
   const ethereumHost = 'ethereum.exokit.org';
@@ -106,7 +152,7 @@ const _handleUnlockRequest = async (req, res) => {
               });
               req.on('error', reject);
             });
-            const {signature} = j;
+            const {signature, ciphertext, tag} = j;
             let address = null;
             try {
               address = await web3.mainnet.eth.accounts.recover(proofOfAddressMessage, signature);
@@ -115,13 +161,52 @@ const _handleUnlockRequest = async (req, res) => {
             }
             
             if (address !== null) {
+              const _getUser = async id => {
+                const tokenItem = await ddb.getItem({
+                  TableName: tableName,
+                  Key: {
+                    email: {S: id + '.discordtoken'},
+                  }
+                }).promise();
+
+                let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
+                return {mnemonic};
+              };
+              
+              const _findUser = async address => {
+                const o = await ddb.query({
+                  TableName: tableName,
+                  FilterExpression: "address = :address",
+                  ExpressionAttributeValues: {
+                    ':address' : {S: address}
+                  },
+                }).promise();
+                /* ({
+                  TableName: tableName,
+                  Item: {
+                    email: {S: id + '.discordtoken'},
+                    mnemonic: {S: mnemonic},
+                    address: {S: address},
+                  }
+                }).promise(); */
+                return o;
+              };
+              
+              console.log('get user 1', address);
+              const user = await _findUser(address);
+              console.log('get user 2', address, user);
+              const {mnemonic} = user;
+              const result = decodeSecret(mnemonic, {ciphertext, tag});
+              
               res.end(JSON.stringify({
                 ok: true,
+                result,
               }));
             } else {
               res.statusCode = 400;
               res.end(JSON.stringify({
                 ok: false,
+                result: null,
               }));
             }
         } else {
