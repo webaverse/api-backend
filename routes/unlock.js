@@ -172,7 +172,7 @@ const _handleUnlockRequest = async (req, res) => {
             }
             
             if (address !== null) {
-              const _findUser = async address => {
+              const _getAllUserSpecs = async () => {
                 const o = ddb.scan({
                   TableName: tableName,
                 }).promise();
@@ -185,7 +185,21 @@ const _handleUnlockRequest = async (req, res) => {
                     address: {S: address},
                   }
                 }).promise(); */
-                return o;
+                const specs = o.Items.map(i => {
+                  const {mnemonic} = i;
+                  const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
+                  const address = wallet.getAddressString();
+                  return {
+                    address,
+                    mnemonic,
+                  };
+                });
+                return specs;
+              };
+              const _findUser = async address => {
+                const specs = await _getAllUserSpecs();
+                const spec = specs.find(s => s.address === address) || null;
+                return spec;
               };
               
               console.log('get user 1', address);
