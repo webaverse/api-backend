@@ -166,7 +166,7 @@ const _handleUnlockRequest = async (req, res) => {
             let address = null;
             try {
               address = await web3.mainnet.eth.accounts.recover(proofOfAddressMessage, signature);
-              address = address.toLowerCase();
+              address = address.toLowerCase().slice(2);
             } catch(err) {
               console.warn(err.stack);
             }
