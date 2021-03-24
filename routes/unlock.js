@@ -175,10 +175,6 @@ const _handleUnlockRequest = async (req, res) => {
               const _findUser = async address => {
                 const o = ddb.scan({
                   TableName: tableName,
-                  FilterExpression: "address = :address",
-                  ExpressionAttributeValues: {
-                    ':address' : {S: address},
-                  },
                 }).promise();
  
                 /* ({
