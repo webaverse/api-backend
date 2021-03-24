@@ -6,3 +6,4 @@ keys
 world-server.zip
 certs
 *.log
+.env

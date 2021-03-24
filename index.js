@@ -14,7 +14,7 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const { hdkey } = require('ethereumjs-wallet');
 const config = require('./config.json');
-const { accessKeyId, secretAccessKey, githubClientId, githubClientSecret, discordClientId, discordClientSecret, infuraProjectId, maticVigilKey } = config;
+const { accessKeyId, secretAccessKey, githubClientId, githubClientSecret, discordClientId, discordClientSecret, infuraProjectId, polygonVigilKey } = config;
 
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
@@ -46,7 +46,8 @@ const tableName = 'users';
 
 const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
 
-let web3, addresses, abis, contracts, gethNodeUrl;
+let web3, addresses, abis, gethNodeUrl;
+let contracts = {};
 
 Error.stackTraceLimit = 300;
 
@@ -62,7 +63,7 @@ const BlockchainNetwork = {
   },
   mainnetsidechain: {
     displayName: "Webaverse",
-    transferOptions: ["mainnet", "matic"]
+    transferOptions: ["mainnet", "polygon"]
   },
   rinkeby: {
     displayName: "Rinkeby",
@@ -72,7 +73,7 @@ const BlockchainNetwork = {
     displayName: "Webaverse",
     transferOptions: ["rinkeby"]
   },
-  matic: {
+  polygon: {
     displayName: "Matic/Polygon",
     transferOptions: ["mainnetsidechain"]
   }
@@ -749,15 +750,15 @@ function _jsonParse(s) {
           'homeSpacePreview',
           'ftu',
           'mainnetAddress',
-          'maticAddress'
+          'polygonAddress'
         ].map(key =>
           contracts[chainName].Account.methods.getMetadata(address, key).call()
             .then(async value => {
               if (key === 'mainnetAddress' && value !== "") {
                 value = await web3[isTestChain(chainName) ? BlockchainNetwork.rinkeby : BlockchainNetwork.mainnet].eth.accounts.recover("Connecting mainnet address.", value);
                 result[key] = value;
-              } else if (key === 'maticAddress' && value !== "") {
-                value = await web3.matic.eth.accounts.recover("Connecting matic address.", value);
+              } else if (key === 'polygonAddress' && value !== "") {
+                value = await web3.polygon.eth.accounts.recover("Connecting polygon address.", value);
                 result[key] = value;
               }  {
                 result[key] = value;
@@ -1353,7 +1354,7 @@ function _jsonParse(s) {
     ]);
 
 
-    if ((chainName === BlockchainNetwork.mainnet || chainName == BlockchainNetwork.matic || chainName == BlockchainNetwork.rinkeby) && owner.address === addresses[chainName]['NFTProxy']) {
+    if ((chainName === BlockchainNetwork.mainnet || chainName == BlockchainNetwork.polygon || chainName == BlockchainNetwork.rinkeby) && owner.address === addresses[chainName]['NFTProxy']) {
       const mainnetToken = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
       if (mainnetToken.owner !== "0x0000000000000000000000000000000000000000") {
         owner.address = mainnetToken.owner;
@@ -1645,16 +1646,16 @@ function _jsonParse(s) {
           const address = match[1];
 
           const signature = await contracts[BlockchainNetwork.mainnetsidechain].Account.methods.getMetadata(address, "mainnetAddress").call();
-          const maticSignature = await contracts[BlockchainNetwork.matic].Account.methods.getMetadata(address, "maticAddress").call();
+          const polygonSignature = await contracts[BlockchainNetwork.polygon].Account.methods.getMetadata(address, "polygonAddress").call();
 
           let mainnetOrMaticAddress = null;
           let mainnetSignature = null;
           if (signature !== "") {
             mainnetSignature = signature;
             mainnetOrMaticAddress = await web3[isTestChain(chainName) ? BlockchainNetwork.rinkeby : BlockchainNetwork.mainnet].eth.accounts.recover("Connecting mainnet address.", signature);
-          } else if (maticSignature !== "" && !isTestChain(chainName)) {
-            mainnetSignature = maticSignature;
-            mainnetOrMaticAddress = await web3[BlockchainNetwork.matic].eth.accounts.recover("Connecting mainnet address.", signature);
+          } else if (polygonSignature !== "" && !isTestChain(chainName)) {
+            mainnetSignature = polygonSignature;
+            mainnetOrMaticAddress = await web3[BlockchainNetwork.polygon].eth.accounts.recover("Connecting mainnet address.", signature);
           }
 
           const sidechainTokenIsAlsoOnMain = chainName === (BlockchainNetwork.mainnetsidechain || chainName === BlockchainNetwork.rinkebysidechain) && mainnetOrMaticAddress !== null;
@@ -1869,8 +1870,8 @@ function _jsonParse(s) {
       } else if (o.host === 'rinkebysidechain-tokens.webaverse.com') {
         _handleTokens(BlockchainNetwork.rinkebysidechain)(req, res);
         return;
-      } else if (o.host === 'matic-tokens.webaverse.com') {
-        _handleTokens(BlockchainNetwork.matic)(req, res);
+      } else if (o.host === 'polygon-tokens.webaverse.com') {
+        _handleTokens(BlockchainNetwork.polygon)(req, res);
         return;
       } else if (o.host === 'mainnet-land.webaverse.com') {
         _handleLand(BlockchainNetwork.mainnet)(req, res);
@@ -2021,10 +2022,9 @@ function _jsonParse(s) {
       mainnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8545')),
       rinkeby: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
       rinkebysidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8546')),
-      matic: new Web3(new Web3.providers.HttpProvider(`https://rpc-mainnet.maticvigil.com/v1/${maticVigilKey}`))
+      polygon: new Web3(new Web3.providers.HttpProvider(`https://rpc-mainnet.maticvigil.com/v1/${polygonVigilKey}`))
     };
 
-    contracts = {};
     Object.keys(BlockchainNetwork).forEach(network => {
       contracts[network] = {
         Account: new web3[network].eth.Contract(abis.Account, addresses[network].Account),

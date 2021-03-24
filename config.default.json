@@ -6,7 +6,7 @@
   "discordClientId": "",
   "discordClientSecret": "",
   "infuraProjectId": "",
-  "maticVigilKey": "",
+  "polygonVigilKey": "",
   "infuraProjectSecret": "",
   "mainnetMnemonic": "",
   "network": "kovan",
