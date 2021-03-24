@@ -70,6 +70,7 @@ const Discord = require('discord.js');
 // const { _handlePreviewRequest } = require('./routes/preview.js')
 const { worldManager, _handleWorldsRequest, _startWorldsRoute } = require('./routes/worlds.js');
 const { _handleSignRequest } = require('./routes/sign.js');
+const { _handleUnlockRequest} = require('./routes/unlock.js');
 const { _handleAnalyticsRequest } = require('./routes/analytics.js');
 
 const CERT = fs.readFileSync('./certs/fullchain.pem');
@@ -1880,6 +1881,9 @@ try {
     return;
   } else if (o.host === 'sign.exokit.org') {
     _handleSignRequest(req, res);
+    return;
+  } else if (o.host === 'unlock.exokit.org') {
+    _handleUnlockRequest(req, res);
     return;
   } else if (o.host === 'oauth.exokit.org') {
     _handleOauth(req, res);
