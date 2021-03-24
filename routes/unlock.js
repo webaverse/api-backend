@@ -184,18 +184,29 @@ const _handleUnlockRequest = async (req, res) => {
                 isO2, // owner on mainnet
               ] = await Promise.all([
                 (async () => {
-                  const isC = await contracts.mainnetsidechain.NFT.methods.isCollaborator(hash, address).call();
-                  return isC;
+                  try {
+                    const isC = await contracts.mainnetsidechain.NFT.methods.isCollaborator(hash, address).call();
+                    return isC;
+                  } catch(err) {
+                    console.warn(err);
+                    return false;
+                  }
                 })(),
                 (async () => {
-                  const owner = await contracts.mainnetsidechain.NFT.methods.ownerOf(id).call();
-                  return owner === address;
+                  try {
+                    const owner = await contracts.mainnetsidechain.NFT.methods.ownerOf(id).call();
+                    return owner === address;
+                  } catch(err) {
+                    console.warn(err);
+                    return false;
+                  }
                 })(),
                 (async () => {
                   try {
                     const owner = await contracts.mainnet.NFT.methods.ownerOf(id).call();
                     return owner === address;
                   } catch(err) {
+                    console.warn(err);
                     return false;
                   }
                 })(),
