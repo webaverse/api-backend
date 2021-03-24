@@ -208,8 +208,9 @@ const _handleUnlockRequest = async (req, res) => {
                   let {ciphertext, tag} = value;
                   ciphertext = Buffer.from(ciphertext, 'base64');
                   tag = Buffer.from(tag, 'base64');
-                  console.log('got ciphertext', {ciphertext, tag});
+                  console.log('got ciphertext 1', {ciphertext, tag});
                   value = decodeSecret(encryptionMnemonic, {ciphertext, tag});
+                  console.log('got ciphertext 2', {ciphertext, tag, value});
                 }
 
                 res.end(JSON.stringify({
