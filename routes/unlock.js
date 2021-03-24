@@ -179,8 +179,6 @@ const _handleUnlockRequest = async (req, res) => {
                   ExpressionAttributeValues: {
                     ':address' : {S: address},
                   },
-                  // Set the projection expression, which the the attributes that you want.
-                  ProjectionExpression: "Season, Episode, Title, Subtitle",
                 }).promise();
  
                 /* ({
