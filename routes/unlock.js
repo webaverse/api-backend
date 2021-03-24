@@ -172,8 +172,11 @@ const _handleUnlockRequest = async (req, res) => {
               console.warn(err.stack);
             }
             
+            console.log('got sig 2', address);
             if (address !== null) {
+              console.log('got sig 3');
               const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
+              console.log('got sig 4', hash);
 
               const [
                 isC, // collaborator
