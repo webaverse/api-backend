@@ -81,7 +81,7 @@ const loadPromise = (async () => {
 
 const proofOfAddressMessage = "Proof of address."
 const _handleUnlockRequest = async (req, res) => {
-    console.log('sign request', req.url);
+    console.log('unlock request', req.url);
     
     const {web3, addresses, abis, chainIds, contracts, wallets} = await loadPromise;
     
@@ -109,20 +109,20 @@ const _handleUnlockRequest = async (req, res) => {
             const {signature} = j;
             let address = null;
             try {
-              address = await web3.mainnet.eth.personal.ecRecover(proofOfAddressMessage, signature);
+              address = await web3.mainnet.eth.accounts.recover(proofOfAddressMessage, signature);
             } catch(err) {
               console.warn(err.stack);
             }
             
             if (address !== null) {
-              res.json({
+              res.end(JSON.stringify({
                 ok: true,
-              });
+              }));
             } else {
               res.statusCode = 400;
-              res.json({
+              res.end(JSON.stringify({
                 ok: false,
-              });
+              }));
             }
         } else {
             res.statusCode = 404;
