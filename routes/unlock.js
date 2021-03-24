@@ -161,7 +161,7 @@ const _handleUnlockRequest = async (req, res) => {
               });
               req.on('error', reject);
             });
-            const {signature, ciphertext, tag} = j;
+            const {signature, id, key} = j;
             // console.log('got sig', {signature, ciphertext, tag});
             let address = null;
             try {
@@ -205,14 +205,44 @@ const _handleUnlockRequest = async (req, res) => {
 
               const user = await _findUser(address);
               const address = user && user.address;
-              const mnemonic = user && user.mnemonic;
-              // const {mnemonic} = user;
-              const result = decodeSecret(encryptionMnemonic, {ciphertext, tag});
-              
-              res.end(JSON.stringify({
-                ok: true,
-                result,
-              }));
+
+              const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
+
+              const [
+                isC, // collaborator
+                isO, // owner
+              ] = await Promise.all([
+                (async () => {
+                  const isC = await contracts.mainnetsidechain.NFT.methods.isCollaborator(hash, address).call();
+                  return isC;
+                })(),
+                (async () => {
+                  const owner = await contracts.mainnetsidechain.NFT.methods.ownerOf(id).call();
+                  return owner === address;
+                })(),
+              ]);
+
+              if (isC || isO) {
+                let value = await contracts.mainnetsidechain.NFT.methods.getMetadata(hash, key).call();
+                value = jsonParse(value);
+                if (value !== null) {
+                  let {ciphertext, tag} = value;
+                  ciphertext = Buffer.from(ciphertext, 'base64');
+                  tag = Buffer.from(tag, 'base64');
+                  value = decodeSecret(encryptionMnemonic, {ciphertext, tag});
+                }
+
+                res.end(JSON.stringify({
+                  ok: true,
+                  result: value,
+                }));
+              } else {
+                res.statusCode = 401;
+                res.end(JSON.stringify({
+                  ok: false,
+                  result: null,
+                }));
+              }
             } else {
               res.statusCode = 400;
               res.end(JSON.stringify({
