@@ -172,18 +172,6 @@ const _handleUnlockRequest = async (req, res) => {
             }
             
             if (address !== null) {
-              const _getUser = async id => {
-                const tokenItem = await ddb.getItem({
-                  TableName: tableName,
-                  Key: {
-                    email: {S: id + '.discordtoken'},
-                  }
-                }).promise();
-
-                let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
-                return {mnemonic};
-              };
-              
               const _findUser = async address => {
                 const o = ddb.scan({
                   TableName: tableName,
