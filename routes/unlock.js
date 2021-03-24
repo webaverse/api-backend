@@ -186,7 +186,7 @@ const _handleUnlockRequest = async (req, res) => {
                   }
                 }).promise(); */
                 const specs = o.Items.map(i => {
-                  console.log('got i', i);
+                  // console.log('got i', i);
                   const mnemonic = i && i.mnemonic && i.mnemonic.S;
                   const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
                   const address = wallet.getAddressString();
@@ -205,7 +205,9 @@ const _handleUnlockRequest = async (req, res) => {
               
               console.log('get user 1', address);
               const user = await _findUser(address);
-              console.log('get user 2', address, user);
+              const address = user && user.address;
+              const mnemonic = user && user.mnemonic;
+              console.log('get user 2', address);
               // const {mnemonic} = user;
               const result = decodeSecret(encryptionMnemonic, {ciphertext, tag});
               
