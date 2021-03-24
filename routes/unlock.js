@@ -207,7 +207,7 @@ const _handleUnlockRequest = async (req, res) => {
               const address = user && user.address;
               const mnemonic = user && user.mnemonic;
               // const {mnemonic} = user;
-              const result = decodeSecret(mnemonic, {ciphertext, tag});
+              const result = decodeSecret(encryptionMnemonic, {ciphertext, tag});
               
               res.end(JSON.stringify({
                 ok: true,
