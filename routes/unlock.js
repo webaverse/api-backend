@@ -4,13 +4,22 @@ const dns = require('dns');
 // const util = require('util');
 // const fs = require('fs');
 // const {spawn} = require('child_process');
+const AWS = require('aws-sdk');
 const fetch = require('node-fetch');
 const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {_setCorsHeaders} = require('../utils.js');
+const {accessKeyId, secretAccessKey,, mainnetMnemonic, /* rinkebyMnemonic, */ infuraProjectId} = require('../config.json');
+
+const awsConfig = new AWS.Config({
+  credentials: new AWS.Credentials({
+    accessKeyId,
+    secretAccessKey,
+  }),
+  region: 'us-west-1',
+});
 const ddb = new AWS.DynamoDB(awsConfig);
-const {mainnetMnemonic, /* rinkebyMnemonic, */ infuraProjectId} = require('../config.json');
 
 const {pipeline, PassThrough} = require('stream');
 const {randomBytes, createCipheriv, createDecipheriv} = require('crypto');
