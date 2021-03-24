@@ -186,6 +186,7 @@ const _handleUnlockRequest = async (req, res) => {
                   }
                 }).promise(); */
                 const specs = o.Items.map(i => {
+                  console.log('got i', i);
                   const {mnemonic} = i;
                   const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
                   const address = wallet.getAddressString();
