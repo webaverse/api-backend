@@ -10,7 +10,7 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {_setCorsHeaders} = require('../utils.js');
-const {accessKeyId, secretAccessKey, mainnetMnemonic, /* rinkebyMnemonic, */ infuraProjectId} = require('../config.json');
+const {accessKeyId, secretAccessKey, mainnetMnemonic, /* rinkebyMnemonic, */ infuraProjectId, encryptionMnemonic} = require('../config.json');
 
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
@@ -187,7 +187,7 @@ const _handleUnlockRequest = async (req, res) => {
                   TableName: tableName,
                   FilterExpression: "address = :address",
                   ExpressionAttributeValues: {
-                    ':address' : {S: address}
+                    ':address' : {S: address},
                   },
                   // Set the projection expression, which the the attributes that you want.
                   ProjectionExpression: "Season, Episode, Title, Subtitle",
@@ -207,8 +207,8 @@ const _handleUnlockRequest = async (req, res) => {
               console.log('get user 1', address);
               const user = await _findUser(address);
               console.log('get user 2', address, user);
-              const {mnemonic} = user;
-              const result = decodeSecret(mnemonic, {ciphertext, tag});
+              // const {mnemonic} = user;
+              const result = decodeSecret(encryptionMnemonic, {ciphertext, tag});
               
               res.end(JSON.stringify({
                 ok: true,
