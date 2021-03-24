@@ -10,7 +10,7 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {_setCorsHeaders} = require('../utils.js');
-const {accessKeyId, secretAccessKey,, mainnetMnemonic, /* rinkebyMnemonic, */ infuraProjectId} = require('../config.json');
+const {accessKeyId, secretAccessKey, mainnetMnemonic, /* rinkebyMnemonic, */ infuraProjectId} = require('../config.json');
 
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
