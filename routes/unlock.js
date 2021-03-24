@@ -163,7 +163,7 @@ const _handleUnlockRequest = async (req, res) => {
             });
             const {signature, id} = j;
             const key = unlockableKey;
-            // console.log('got sig', {signature, ciphertext, tag});
+            console.log('got sig', {signature, id});
             let address = null;
             try {
               address = await web3.mainnet.eth.accounts.recover(proofOfAddressMessage, signature);
