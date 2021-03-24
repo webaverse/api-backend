@@ -183,14 +183,16 @@ const _handleUnlockRequest = async (req, res) => {
               };
               
               const _findUser = async address => {
-                const o = await ddb.query({
+                const o = ddb.scan({
                   TableName: tableName,
-                  KeyConditionExpression: 'address = :address',
                   FilterExpression: "address = :address",
                   ExpressionAttributeValues: {
                     ':address' : {S: address}
                   },
+                  // Set the projection expression, which the the attributes that you want.
+                  ProjectionExpression: "Season, Episode, Title, Subtitle",
                 }).promise();
+ 
                 /* ({
                   TableName: tableName,
                   Item: {
