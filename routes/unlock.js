@@ -161,7 +161,8 @@ const _handleUnlockRequest = async (req, res) => {
               });
               req.on('error', reject);
             });
-            const {signature, id, key} = j;
+            const {signature, id} = j;
+            const key = unlockableKey;
             // console.log('got sig', {signature, ciphertext, tag});
             let address = null;
             try {
@@ -172,45 +173,12 @@ const _handleUnlockRequest = async (req, res) => {
             }
             
             if (address !== null) {
-              const _getAllUserSpecs = async () => {
-                const o = await ddb.scan({
-                  TableName: tableName,
-                }).promise();
- 
-                /* ({
-                  TableName: tableName,
-                  Item: {
-                    email: {S: id + '.discordtoken'},
-                    mnemonic: {S: mnemonic},
-                    address: {S: address},
-                  }
-                }).promise(); */
-                const specs = o.Items.map(i => {
-                  // console.log('got i', i);
-                  const mnemonic = i && i.mnemonic && i.mnemonic.S;
-                  const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
-                  const address = wallet.getAddressString();
-                  return {
-                    address,
-                    mnemonic,
-                  };
-                });
-                return specs;
-              };
-              const _findUser = async address => {
-                const specs = await _getAllUserSpecs();
-                const spec = specs.find(s => s.address === address) || null;
-                return spec;
-              };
-
-              const user = await _findUser(address);
-              const address = user && user.address;
-
               const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
 
               const [
                 isC, // collaborator
-                isO, // owner
+                isO1, // owner on sidechain
+                isO2, // owner on mainnet
               ] = await Promise.all([
                 (async () => {
                   const isC = await contracts.mainnetsidechain.NFT.methods.isCollaborator(hash, address).call();
@@ -220,10 +188,13 @@ const _handleUnlockRequest = async (req, res) => {
                   const owner = await contracts.mainnetsidechain.NFT.methods.ownerOf(id).call();
                   return owner === address;
                 })(),
-                // XXX
+                (async () => {
+                  const owner = await contracts.mainnet.NFT.methods.ownerOf(id).call();
+                  return owner === address;
+                })(),
               ]);
 
-              if (isC || isO) {
+              if (isC || isO1 || isO2) {
                 let value = await contracts.mainnetsidechain.NFT.methods.getMetadata(hash, key).call();
                 value = jsonParse(value);
                 if (value !== null) {
