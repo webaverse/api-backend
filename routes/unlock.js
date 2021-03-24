@@ -162,7 +162,7 @@ const _handleUnlockRequest = async (req, res) => {
               req.on('error', reject);
             });
             const {signature, ciphertext, tag} = j;
-            console.log('got sig', {signature, ciphertext, tag});
+            // console.log('got sig', {signature, ciphertext, tag});
             let address = null;
             try {
               address = await web3.mainnet.eth.accounts.recover(proofOfAddressMessage, signature);
@@ -202,14 +202,12 @@ const _handleUnlockRequest = async (req, res) => {
                 const spec = specs.find(s => s.address === address) || null;
                 return spec;
               };
-              
-              console.log('get user 1', address);
+
               const user = await _findUser(address);
               const address = user && user.address;
               const mnemonic = user && user.mnemonic;
-              console.log('get user 2', address);
               // const {mnemonic} = user;
-              const result = decodeSecret(encryptionMnemonic, {ciphertext, tag});
+              const result = decodeSecret(mnemonic, {ciphertext, tag});
               
               res.end(JSON.stringify({
                 ok: true,
