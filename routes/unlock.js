@@ -163,7 +163,7 @@ const _handleUnlockRequest = async (req, res) => {
             });
             const {signature, id} = j;
             const key = unlockableKey;
-            console.log('got sig', {signature, id});
+            // console.log('got sig', {signature, id});
             let address = null;
             try {
               address = await web3.mainnet.eth.accounts.recover(proofOfAddressMessage, signature);
@@ -172,11 +172,11 @@ const _handleUnlockRequest = async (req, res) => {
               console.warn(err.stack);
             }
             
-            console.log('got sig 2', address);
+            // console.log('got sig 2', address);
             if (address !== null) {
-              console.log('got sig 3');
+              // console.log('got sig 3');
               const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
-              console.log('got sig 4', hash);
+              // console.log('got sig 4', hash);
 
               const [
                 isC, // collaborator
@@ -219,9 +219,9 @@ const _handleUnlockRequest = async (req, res) => {
                   let {ciphertext, tag} = value;
                   ciphertext = Buffer.from(ciphertext, 'base64');
                   tag = Buffer.from(tag, 'base64');
-                  console.log('got ciphertext 1', {ciphertext, tag});
+                  // console.log('got ciphertext 1', {ciphertext, tag});
                   value = decodeSecret(encryptionMnemonic, {ciphertext, tag});
-                  console.log('got ciphertext 2', {ciphertext, tag, value});
+                  // console.log('got ciphertext 2', {ciphertext, tag, value});
                 }
 
                 res.end(JSON.stringify({
