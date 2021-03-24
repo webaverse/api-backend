@@ -185,6 +185,7 @@ const _handleUnlockRequest = async (req, res) => {
               const _findUser = async address => {
                 const o = await ddb.query({
                   TableName: tableName,
+                  KeyConditionExpression: 'address = :address',
                   FilterExpression: "address = :address",
                   ExpressionAttributeValues: {
                     ':address' : {S: address}
