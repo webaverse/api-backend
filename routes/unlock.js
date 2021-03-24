@@ -192,8 +192,12 @@ const _handleUnlockRequest = async (req, res) => {
                   return owner === address;
                 })(),
                 (async () => {
-                  const owner = await contracts.mainnet.NFT.methods.ownerOf(id).call();
-                  return owner === address;
+                  try {
+                    const owner = await contracts.mainnet.NFT.methods.ownerOf(id).call();
+                    return owner === address;
+                  } catch(err) {
+                    return false;
+                  }
                 })(),
               ]);
 
