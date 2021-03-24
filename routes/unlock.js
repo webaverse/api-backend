@@ -9,7 +9,7 @@ const fetch = require('node-fetch');
 const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
-const {_setCorsHeaders} = require('../utils.js');
+const {jsonParse, _setCorsHeaders} = require('../utils.js');
 const {accessKeyId, secretAccessKey, mainnetMnemonic, /* rinkebyMnemonic, */ infuraProjectId, encryptionMnemonic} = require('../config.json');
 
 const awsConfig = new AWS.Config({
@@ -220,6 +220,7 @@ const _handleUnlockRequest = async (req, res) => {
                   const owner = await contracts.mainnetsidechain.NFT.methods.ownerOf(id).call();
                   return owner === address;
                 })(),
+                // XXX
               ]);
 
               if (isC || isO) {
