@@ -173,7 +173,7 @@ const _handleUnlockRequest = async (req, res) => {
             
             if (address !== null) {
               const _getAllUserSpecs = async () => {
-                const o = ddb.scan({
+                const o = await ddb.scan({
                   TableName: tableName,
                 }).promise();
  
