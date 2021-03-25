@@ -196,6 +196,7 @@ const _handleUnlockRequest = async (req, res) => {
                   (async () => {
                     try {
                       const isC = await contracts.mainnetsidechain.NFT.methods.isCollaborator(hash, address).call();
+                      console.log('got mainnetsidechain is c', {hash, address});
                       return isC;
                     } catch(err) {
                       // console.warn(err);
@@ -205,6 +206,7 @@ const _handleUnlockRequest = async (req, res) => {
                   (async () => {
                     try {
                       const owner = await contracts.mainnetsidechain.NFT.methods.ownerOf(id).call();
+                      console.log('got mainnetsidechain owner', {owner, id});
                       return owner === address;
                     } catch(err) {
                       // console.warn(err);
@@ -214,6 +216,7 @@ const _handleUnlockRequest = async (req, res) => {
                   (async () => {
                     try {
                       const owner = await contracts.mainnet.NFT.methods.ownerOf(id).call();
+                      console.log('got mainnet owner', {owner});
                       return owner === address;
                     } catch(err) {
                       // console.warn(err);
