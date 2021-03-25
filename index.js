@@ -1543,7 +1543,13 @@ const _getChainToken = _getChainNft('NFT');
 const _getChainLand = _getChainNft('LAND');
 const _getChainOwnerNft = contractName => (isMainChain, isFront, isAll) => async (address, i, storeEntries) => {
   const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
-  const token = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
+  const tokenSrc = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
+  const token = _copy(tokenSrc);
+  const {hash} = token;
+  token.unlockable = await contracts[chainName][contractName].methods.getMetadata(hash, 'unlockable').call();
+  if (!token.unlockable) {
+    token.unlockable = '';
+  }
   let mainnetToken;
   if (!isFront && isAll) {
     mainnetToken = await contracts[isMainChain ? 'mainnet' : 'rinkeby'][contractName].methods.tokenByIdFull(token.id).call();
