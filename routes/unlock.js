@@ -162,6 +162,7 @@ const _handleUnlockRequest = async (req, res) => {
               req.on('error', reject);
             });
             const {signatures, id} = j;
+            console.log('got j', j);
             const key = unlockableKey;
             // console.log('got sig', {signatures, id});
             const addresses = [];
@@ -181,7 +182,7 @@ const _handleUnlockRequest = async (req, res) => {
             if (ok) {
               // console.log('got sig 3');
               const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
-              // console.log('got sig 4', hash);
+              console.log('got addresses', addresses);
 
               let isC = false; // collaborator
               let isO1 = false; // owner on sidechain
@@ -220,14 +221,19 @@ const _handleUnlockRequest = async (req, res) => {
                     }
                   })(),
                 ]);
+                console.log('iterate address', {address, _isC, _isO1, _isO2});
                 isC = isC || _isC;
                 isO1 = isO1 || _isO1;
                 isO2 = isO2 || _isO2;
               }
+              
+              console.log('final addresses', {addresses, isC, isO1, isO2});
 
               if (isC || isO1 || isO2) {
                 let value = await contracts.mainnetsidechain.NFT.methods.getMetadata(hash, key).call();
+                console.log('pre value', {value});
                 value = jsonParse(value);
+                console.log('final value', {value});
                 if (value !== null) {
                   let {ciphertext, tag} = value;
                   ciphertext = Buffer.from(ciphertext, 'base64');
