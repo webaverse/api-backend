@@ -1510,11 +1510,23 @@ const _formatLand = isMainChain => async (token, storeEntries) => {
     totalSupply: parseInt(token.totalSupply, 10)
   };
 };
+const _copy = o => {
+  const oldO = o;
+  const newO = JSON.parse(JSON.stringify(oldO));
+  for (const k in oldO) {
+    newO[k] = oldO[k];
+  }
+  return newO;
+};
 const _getChainNft = contractName => (isMainChain, isFront, isAll) => async (tokenId, storeEntries) => {
   const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
-  const token = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
+  const tokenSrc = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
+  const token = _copy(tokenSrc);
   const {hash} = token;
   token.unlockable = await contracts[chainName].NFT.methods.getMetadata(hash, 'unlockable').call();
+  if (!token.unlockable) {
+    token.unlockable = '';
+  }
   let mainnetToken;
   if (!isFront && isAll) {
     mainnetToken = await contracts[isMainChain ? 'mainnet' : 'rinkeby'][contractName].methods.tokenByIdFull(tokenId).call();
