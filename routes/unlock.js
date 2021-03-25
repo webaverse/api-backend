@@ -166,7 +166,7 @@ const _handleUnlockRequest = async (req, res) => {
             // console.log('got sig', {signature, id});
             let address = null;
             try {
-              address = await web3.mainnet.eth.accounts.recover(proofOfAddressMessage, signature);
+              address = await web3.mainnetsidechain.eth.accounts.recover(proofOfAddressMessage, signature);
               address = address.toLowerCase();
             } catch(err) {
               console.warn(err.stack);
@@ -188,7 +188,7 @@ const _handleUnlockRequest = async (req, res) => {
                     const isC = await contracts.mainnetsidechain.NFT.methods.isCollaborator(hash, address).call();
                     return isC;
                   } catch(err) {
-                    console.warn(err);
+                    // console.warn(err);
                     return false;
                   }
                 })(),
@@ -197,7 +197,7 @@ const _handleUnlockRequest = async (req, res) => {
                     const owner = await contracts.mainnetsidechain.NFT.methods.ownerOf(id).call();
                     return owner === address;
                   } catch(err) {
-                    console.warn(err);
+                    // console.warn(err);
                     return false;
                   }
                 })(),
@@ -206,7 +206,7 @@ const _handleUnlockRequest = async (req, res) => {
                     const owner = await contracts.mainnet.NFT.methods.ownerOf(id).call();
                     return owner === address;
                   } catch(err) {
-                    console.warn(err);
+                    // console.warn(err);
                     return false;
                   }
                 })(),

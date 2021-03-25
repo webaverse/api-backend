@@ -1401,7 +1401,7 @@ const _formatToken = isMainChain => async (token, storeEntries, mainnetToken) =>
   }
 
   const id = parseInt(token.id, 10);
-  const {name, ext, hash} = token;
+  const {name, ext, unlockable, hash} = token;
   const description = await contracts[chainName].NFT.methods.getMetadata(hash, 'description').call();
   const storeEntry = storeEntries.find(entry => entry.tokenId === id);
   const buyPrice = storeEntry ? storeEntry.price : null;
@@ -1417,6 +1417,7 @@ const _formatToken = isMainChain => async (token, storeEntries, mainnetToken) =>
       name,
       hash,
       ext,
+      unlockable,
     },
     minter,
     owner,
@@ -1469,7 +1470,7 @@ const _formatLand = isMainChain => async (token, storeEntries) => {
 
   const id = parseInt(token.id, 10);
   // console.log('got token', token);
-  const {name, hash, ext} = token;
+  const {name, hash, ext, unlockable} = token;
   const [
     description,
     rarity,
@@ -1502,6 +1503,7 @@ const _formatLand = isMainChain => async (token, storeEntries) => {
       rarity,
       extents,
       ext,
+      unlockable,
     },
     owner,
     balance: parseInt(token.balance, 10),
@@ -1511,6 +1513,8 @@ const _formatLand = isMainChain => async (token, storeEntries) => {
 const _getChainNft = contractName => (isMainChain, isFront, isAll) => async (tokenId, storeEntries) => {
   const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
   const token = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
+  const {hash} = token;
+  token.unlockable = await contracts[chainName].NFT.methods.getMetadata(hash, 'unlockable').call();
   let mainnetToken;
   if (!isFront && isAll) {
     mainnetToken = await contracts[isMainChain ? 'mainnet' : 'rinkeby'][contractName].methods.tokenByIdFull(tokenId).call();
