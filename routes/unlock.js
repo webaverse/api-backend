@@ -178,9 +178,9 @@ const _handleUnlockRequest = async (req, res) => {
               }
             }
             
-            // console.log('got sig 2', address);
+            console.log('got sig 2', address);
             if (ok) {
-              // console.log('got sig 3');
+              console.log('got sig 3');
               const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
               console.log('got addresses', addresses);
 
@@ -205,7 +205,8 @@ const _handleUnlockRequest = async (req, res) => {
                   })(),
                   (async () => {
                     try {
-                      const owner = await contracts.mainnetsidechain.NFT.methods.ownerOf(id).call();
+                      let owner = await contracts.mainnetsidechain.NFT.methods.ownerOf(id).call();
+                      owner = owner.toLowerCase();
                       console.log('got mainnetsidechain owner', {owner, id});
                       return owner === address;
                     } catch(err) {
@@ -215,8 +216,9 @@ const _handleUnlockRequest = async (req, res) => {
                   })(),
                   (async () => {
                     try {
-                      const owner = await contracts.mainnet.NFT.methods.ownerOf(id).call();
-                      console.log('got mainnet owner', {owner});
+                      let owner = await contracts.mainnet.NFT.methods.ownerOf(id).call();
+                      owner = owner.toLowerCase();
+                      console.log('got mainnet owner', {owner} );
                       return owner === address;
                     } catch(err) {
                       // console.warn(err);
