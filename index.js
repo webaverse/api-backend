@@ -2122,7 +2122,9 @@ const _ws = protocol => (req, socket, head) => {
       return j;
     })(),
   ]);
-
+  
+  // console.log('ports', ports);
+  
   gethNodeUrl = `http://${ethereumHostAddress}`;
   gethNodeWSUrl = `ws://${ethereumHostAddress}`;
 
@@ -2147,16 +2149,18 @@ const _ws = protocol => (req, socket, head) => {
       `wss://mainnet.infura.io/ws/v3/${infuraProjectId}`
     )),
     mainnetsidechain: new Web3(new Web3.providers.WebsocketProvider(
-      `${gethNodeWSUrl}:${ports.mainnetsidechain}`
+      `${gethNodeWSUrl}:${ports.mainnetsidechainWs}`
     )),
 
     rinkeby: new Web3(new Web3.providers.WebsocketProvider(
       `wss://rinkeby.infura.io/ws/v3/${infuraProjectId}`
     )),
     rinkebysidechain: new Web3(new Web3.providers.WebsocketProvider(
-      `${gethNodeWSUrl}:${ports.rinkebysidechain}`
+      `${gethNodeWSUrl}:${ports.rinkebysidechainWs}`
     )),
   };
+  
+  console.log('ws mainnet url:', `${gethNodeWSUrl}:${ports.mainnetsidechainWs}`);
 
   contracts = {
     mainnet: {
@@ -2290,7 +2294,7 @@ initCache({
   addresses,
   contracts,
   wsContracts,
-  sockets: web3sockets
+  webSockets: web3sockets,
 }).catch(console.error);
 
 const server = http.createServer(_req('http:'));
