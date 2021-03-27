@@ -5,30 +5,30 @@ const ids = {
   lastCachedBlock: 'lastCachedBlock',
 };
 
-async function initCache({addresses, contracts, wsContracts, sockets}) {
-  const contract = wsContracts.mainnetsidechain;
-  const socket = sockets.mainnet;
+async function initCache({addresses, wsContracts, webSockets}) {
+  const webSocketWeb3 = webSockets.mainnetsidechain;
+  const webSocketContract = wsContracts.mainnetsidechain;
 
-  const currentBlockNumber = await socket.eth.getBlockNumber();
-  const lastBlockNumber =
-    (await getDynamoItem(ids.lastCachedBlock)).number || 0;
+  const currentBlockNumber = await webSocketWeb3.eth.getBlockNumber();
+  const lastBlockNumber = (await getDynamoItem(ids.lastCachedBlock)).number || 0;
 
   // Catch up on missing blocks.
   if (currentBlockNumber !== lastBlockNumber) {
-    const events = await getPastEvents(contracts.mainnetsidechain, lastBlockNumber);
-    if (events.length) await processEvents({addresses, contract, contracts, wsContracts, events});
-
-    // Set last block number.
-    putDynamoItem(ids.lastCachedBlock, {number: currentBlockNumber})
-      .catch(console.error);
+    const events = await getPastEvents(webSocketContract, lastBlockNumber);
+    if (events.length > 0) {
+      await processEvents({addresses, contract: webSocketContract, events, currentBlockNumber});
+    }
   }
 
   // Watch for new events.
   wsContracts.mainnet.NFT.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
-    console.debug( 'EVENT:', event )
-    if (error) console.log('Error getting event: ' + error);
-    else await processEvent({addresses, contract: wsContracts.mainnetsidechain, event});
-  })
+    console.debug('EVENT:', event);
+    if (error) {
+      console.log('Error getting event: ' + error);
+    } else {
+      await processEvent({addresses, contract: webSocketContract, event});
+    }
+  });
 }
 
 async function processEvent({addresses, contract, event}) {
@@ -42,18 +42,22 @@ async function processEvent({addresses, contract, event}) {
         tokenId,
       });
 
-      if (token.properties.hash)
-        putDynamoItem(token.id, token)
-          .catch(console.error);
+      if (token.properties.hash) {
+        await putDynamoItem(token.id, token)
+          // .catch(console.error);
+      }
+    } catch (e) {
+      console.error(e);
     }
-
-    catch ( e ) { console.error(e); }
   }
+
+  const {blockNumber} = event;
+  await putDynamoItem(ids.lastCachedBlock, {number: blockNumber});
 }
 
-async function processEvents({addresses, contracts, events}) {
+async function processEvents({addresses, contract, events, currentBlockNumber}) {
   const responses = {};
-  const tokens = {};
+  // const tokens = {};
 
   // Get tokenId from each event and add it to the URI table.
   for (const event of events) {
@@ -62,10 +66,12 @@ async function processEvents({addresses, contracts, events}) {
     if (tokenId) {
       try {
         const res = getDynamoItem(tokenId);
-        if (res) responses[tokenId] = res;
+        if (res) {
+          responses[tokenId] = res;
+        }
+      } catch (e) {
+        console.error(e);
       }
-
-      catch ( e ) { console.error(e); }
     }
   }
 
@@ -75,19 +81,18 @@ async function processEvents({addresses, contracts, events}) {
     // Map each response to a token.
     const token = await getChainNft({
       addresses,
-      contract: contracts.mainnetsidechain,
+      contract,
       tokenId: entry[0],
     })
 
-    if (token.properties.hash)
-      tokens[entry[0]] = token;
-  }))
-
-  // Cache each token.
-  Object.entries(tokens).forEach(entry =>
-    putDynamoItem(entry[0], entry[1])
-      .catch(console.error)
-  )
+    // Cache each token.
+    if (token.properties.hash) {
+      // tokens[entry[0]] = token;
+      await putDynamoItem(entry[0], token);
+    }
+  }));
+  
+  await putDynamoItem(ids.lastCachedBlock, {number: currentBlockNumber})
 }
 
 async function getPastEvents(
@@ -110,4 +115,4 @@ async function getPastEvents(
 
 module.exports = {
   initCache,
-}
+};
