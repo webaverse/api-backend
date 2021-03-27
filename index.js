@@ -2087,19 +2087,40 @@ const _ws = protocol => (req, socket, head) => {
 {
   addresses = await fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
-  const ethereumHostAddress = await new Promise((accept, reject) => {
-    dns.resolve4(ethereumHost, (err, addresses) => {
-      if (!err) {
-        if (addresses.length > 0) {
-          accept(addresses[0]);
+  const [
+    ports,
+    ethereumHostAddress,
+  ] = await Promise.all([
+    (async () => {
+      const proxyRes = await https.request('https://contract.webaverse.com/config/ports.js');
+      const j = await new Promise((accept, reject) => {
+        const bs = [];
+        proxyRes.on('data', b => {
+          bs.push(b);
+        });
+        proxyRes.on('end', () => {
+          accept(JSON.parse(Buffer.concat(bs).toString('utf8').slice('export default'.length)));
+        });
+        proxyRes.on('error', err => {
+          reject(err);
+        });
+      });
+      return j;
+    }),
+    new Promise((accept, reject) => {
+      dns.resolve4(ethereumHost, (err, addresses) => {
+        if (!err) {
+          if (addresses.length > 0) {
+            accept(addresses[0]);
+          } else {
+            reject(new Error('no addresses resolved for ' + ethereumHost));
+          }
         } else {
-          reject(new Error('no addresses resolved for ' + ethereumHost));
+          reject(err);
         }
-      } else {
-        reject(err);
-      }
-    });
-  });
+      });
+    }),
+  ]);
 
   gethNodeUrl = `http://${ethereumHostAddress}`;
   gethNodeWSUrl = `ws://${ethereumHostAddress}`;
@@ -2109,14 +2130,14 @@ const _ws = protocol => (req, socket, head) => {
       `https://mainnet.infura.io/v3/${infuraProjectId}`
     )),
     mainnetsidechain: new Web3(new Web3.providers.HttpProvider(
-      `${gethNodeUrl}:${ports.mainnet}`
+      `${gethNodeUrl}:${ports.mainnetsidechain}`
     )),
 
     rinkeby: new Web3(new Web3.providers.HttpProvider(
       `https://rinkeby.infura.io/v3/${infuraProjectId}`
     )),
     rinkebysidechain: new Web3(new Web3.providers.HttpProvider(
-      `${gethNodeUrl}:${ports.rinkeby}`
+      `${gethNodeUrl}:${ports.rinkebysidechain}`
     )),
   };
 
@@ -2125,14 +2146,14 @@ const _ws = protocol => (req, socket, head) => {
       `wss://mainnet.infura.io/ws/v3/${infuraProjectId}`
     )),
     mainnetsidechain: new Web3(new Web3.providers.WebsocketProvider(
-      `${gethNodeWSUrl}:${ports.mainnet}`
+      `${gethNodeWSUrl}:${ports.mainnetsidechain}`
     )),
 
     rinkeby: new Web3(new Web3.providers.WebsocketProvider(
       `wss://rinkeby.infura.io/ws/v3/${infuraProjectId}`
     )),
     rinkebysidechain: new Web3(new Web3.providers.WebsocketProvider(
-      `${gethNodeWSUrl}:${ports.rinkeby}`
+      `${gethNodeWSUrl}:${ports.rinkebysidechain}`
     )),
   };
 
