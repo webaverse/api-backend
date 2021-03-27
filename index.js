@@ -16,7 +16,6 @@ const FormData = require('form-data');
 const httpProxy = require('http-proxy');
 const ws = require('ws');
 // const LRU = require('lru');
-const request = require('request');
 const mime = require('mime');
 const AWS = require('aws-sdk');
 const Stripe = require('stripe');
