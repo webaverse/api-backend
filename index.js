@@ -1537,7 +1537,9 @@ const _formatLand = isMainChain => async (token, storeEntries) => {
 };
 const _copy = o => {
   const oldO = o;
+  // copy array
   const newO = JSON.parse(JSON.stringify(oldO));
+  // decorate array
   for (const k in oldO) {
     newO[k] = oldO[k];
   }
