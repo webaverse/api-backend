@@ -2087,25 +2087,9 @@ const _ws = protocol => (req, socket, head) => {
   addresses = await fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const [
-    ports,
     ethereumHostAddress,
+    ports,
   ] = await Promise.all([
-    (async () => {
-      const proxyRes = await https.request('https://contract.webaverse.com/config/ports.js');
-      const j = await new Promise((accept, reject) => {
-        const bs = [];
-        proxyRes.on('data', b => {
-          bs.push(b);
-        });
-        proxyRes.on('end', () => {
-          accept(JSON.parse(Buffer.concat(bs).toString('utf8').slice('export default'.length)));
-        });
-        proxyRes.on('error', err => {
-          reject(err);
-        });
-      });
-      return j;
-    }),
     new Promise((accept, reject) => {
       dns.resolve4(ethereumHost, (err, addresses) => {
         if (!err) {
@@ -2119,6 +2103,24 @@ const _ws = protocol => (req, socket, head) => {
         }
       });
     }),
+    (async () => {
+      const j = await new Promise((accept, reject) => {
+        const proxyReq = https.request('https://contracts.webaverse.com/config/ports.js', proxyRes => {
+          const bs = [];
+          proxyRes.on('data', b => {
+            bs.push(b);
+          });
+          proxyRes.on('end', () => {
+            accept(JSON.parse(Buffer.concat(bs).toString('utf8').slice('export default'.length)));
+          });
+          proxyRes.on('error', err => {
+            reject(err);
+          });
+        });
+        proxyReq.end();
+      });
+      return j;
+    })(),
   ]);
 
   gethNodeUrl = `http://${ethereumHostAddress}`;
