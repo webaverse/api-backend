@@ -6,7 +6,8 @@
   "scripts": {
     "start": "sudo $(which node) $(which forever) start -a -l forever.log -o stdout.log -e stderr.log index.js",
     "start-proxied": "node ./ index.js",
-    "stop": "sudo $(which node) $(which forever) stop index.js"
+    "stop": "sudo $(which node) $(which forever) stop index.js",
+    "dev": "sudo $(which node) index.js"
   },
   "repository": {
     "type": "git",

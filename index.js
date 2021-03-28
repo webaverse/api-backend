@@ -14,7 +14,7 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const { hdkey } = require('ethereumjs-wallet');
 const config = require('./config.json');
-const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, discordClientId, discordClientSecret, stripeClientId, stripeClientSecret, infuraNetwork, infuraProjectId} = config;
+const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, discordClientId, discordClientSecret, stripeClientId, stripeClientSecret, infuraProjectId} = config;
 
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
