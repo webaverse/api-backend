@@ -72,8 +72,8 @@ async function initAccountCache({addresses, wsContracts, webSockets, isMainnet})
       contractName: 'Account',
       lastBlockNumber,
     });
+    console.log('initAccountCache 3', events.length);
     if (events.length > 0) {
-      console.log('initAccountCache 3', !!events);
       await processEventsAccount({
         addresses,
         contract: webSocketContract,
