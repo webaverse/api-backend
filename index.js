@@ -29,7 +29,7 @@ const {default: formurlencoded} = require('form-urlencoded');
 const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
-const {getDynamoItem, putDynamoItem} = require('./aws.js');
+const {getDynamoItem, getDynamoAllItems, putDynamoItem} = require('./aws.js');
 // const blockchain = require('./blockchain.js');
 const {initCaches} = require('./cache.js');
 const {getExt, makePromise} = require('./utils.js');
@@ -814,29 +814,7 @@ try {
     res.end();
   } else if (method === 'GET') {
     if (p === '/') {
-      const addressMap = {};
-      await Promise.all([
-        contracts[chainName].NFT.getPastEvents('Transfer', {
-          fromBlock: 0,
-          toBlock: 'latest',
-        }).then(entries => {
-          for (const entry of entries) {
-            const address = entry.returnValues.to;
-            addressMap[address] = true;
-          }
-        }),
-        contracts[chainName].FT.getPastEvents('Transfer', {
-          fromBlock: 0,
-          toBlock: 'latest',
-        }).then(entries => {
-          for (const entry of entries) {
-            const address = entry.returnValues.to;
-            addressMap[address] = true;
-          }
-        }),
-      ]);
-      const addresses = Object.keys(addressMap);
-      const accounts = await Promise.all(addresses.map(address => _getAccount(address)));
+      const accounts = await getDynamoAllItems(tableNames.mainnetsidechainAccount);
       _respond(200, JSON.stringify(accounts));
     } else {
       const match = p.match(/^\/(0x[a-f0-9]+)$/i);

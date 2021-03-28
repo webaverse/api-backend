@@ -81,6 +81,21 @@ async function putDynamoItem(id, data, TableName = defaultDynamoTable) {
   }
 }
 
+async function getDynamoAllItems(TableName = defaultDynamoTable) {
+  const params = {
+    TableName,
+  };
+
+  try {
+    const o = await ddbd.scan(params).promise();
+    const items = (o && o.Items) || [];
+    return items;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+}
+
 function uploadFromStream(bucket, key, type) {
   const pass = new stream.PassThrough();
   const params = {Bucket: bucket, Key: key, Body: pass, ACL: 'public-read'};
@@ -103,6 +118,7 @@ module.exports = {
   ddbd,
   getDynamoItem,
   putDynamoItem,
+  getDynamoAllItems,
   getObject,
   putObject,
   uploadFromStream,
