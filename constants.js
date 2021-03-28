@@ -12,6 +12,15 @@ const accountKeys = [
   'ftu',
   'mainnetAddress',
 ];
+const ids = {
+  lastCachedBlock: 'lastCachedBlock',
+};
+const tableNames = {
+  mainnetsidechainAccount: 'sidechain-cache-account',
+  mainnetsidechainNft: 'sidechain-cache-nft',
+};
 module.exports = {
   accountKeys,
+  ids,
+  tableNames,
 };

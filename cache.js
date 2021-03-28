@@ -1,14 +1,6 @@
 const {getDynamoItem, putDynamoItem} = require('./aws.js');
 const {getChainNft, getChainAccount} = require('./tokens.js');
-const {accountKeys} = require('./constants.js');
-
-const ids = {
-  lastCachedBlock: 'lastCachedBlock',
-};
-const tableNames = {
-  mainnetsidechainAccount: 'sidechain-cache-account',
-  mainnetsidechainNft: 'sidechain-cache-nft',
-};
+const {ids, tableNames, accountKeys} = require('./constants.js');
 
 async function initNftCache({addresses, wsContracts, webSockets}) {
   const webSocketWeb3 = webSockets.mainnetsidechain;
