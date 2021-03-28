@@ -1652,32 +1652,26 @@ const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, 
     if (match = p.match(/^\/([0-9]+)$/)) {
       const tokenId = parseInt(match[1], 10);
 
-      let token = (await getDynamoItem(tokenId)).Item;
-
-      // if(token === null || !Object.keys(token).length) {
-      if(!token) {
-        const storeEntries = await _maybeGetStoreEntries();
-
-        token = await _getChainNft(contractName)(isMainChain, isFront, isAll)(tokenId, storeEntries);
-
-        // TODO: Remove after solving missing hash during caching.
-        putDynamoItem(tokenId, token).catch(console.error);
-      }
+      let o = await getDynamoItem(tokenId);
+      let token = o.Item;
 
       _setCorsHeaders(res);
-      res.setHeader('Content-Type', 'application/json');
-      _respond(200, JSON.stringify(token));
+      if (token) {
+        res.setHeader('Content-Type', 'application/json');
+        _respond(200, JSON.stringify(token));
+      } else {
+        _respond(404, 'not found');
+      }
     } else if (match = p.match(/^\/([0-9]+)-([0-9]+)$/)) {
       const startTokenId = parseInt(match[1], 10);
       const endTokenId = parseInt(match[2], 10);
 
       if (startTokenId >= 1 && endTokenId > startTokenId && (endTokenId - startTokenId) <= 100) {
-        const storeEntries = await _maybeGetStoreEntries();
-
         const numTokens = endTokenId - startTokenId;
         const promises = Array(numTokens);
         for (let i = 0; i < numTokens; i++) {
-          promises[i] = _getChainNft(contractName)(isMainChain, isFront, isAll)(startTokenId + i, storeEntries);
+          promises[i] = getDynamoItem(startTokenId + i)
+            .then(o => o.Item);
         }
         let tokens = await Promise.all(promises);
         tokens = tokens.filter(token => token !== null);
@@ -1685,7 +1679,7 @@ const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, 
         if (contractName === 'NFT') {
           tokens = tokens.filter((token, i) => { // filter unique hashes
             if (token.properties.hash === "" && token.owner.address === "0x0000000000000000000000000000000000000000") {
-                return false;
+              return false;
             }
             for (let j = 0; j < i; j++) {
               if (tokens[j].properties.hash === token.properties.hash && token.properties.hash !== "") {
@@ -1744,7 +1738,7 @@ const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, 
         mainnetAddress = await web3.rinkeby.eth.accounts.recover(mainnetSignatureMessage, signature);
       }
 
-      const [
+      /* const [
         nftBalance,
         storeEntries,
       ] = await Promise.all([
@@ -1756,7 +1750,30 @@ const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, 
       for (let i = 0; i < nftBalance; i++) {
         promises[i] = _getChainOwnerNft(contractName)(isMainChain, isFront)(address, i, storeEntries);
       }
-      let tokens = await Promise.all(promises);
+      let tokens = await Promise.all(promises); */
+
+      const o = await ddbd.scan({
+        TableName: 'sidechain-cache',
+        // ProjectionExpression: "#yr, title, info.rating",
+        FilterExpression: "#yr = :end_yr",
+        ExpressionAttributeNames: {
+          "#yr": "ownerAddress",
+        },
+        ExpressionAttributeValues: {
+          ":end_yr": address,
+        },
+        /* ScanFilter: {
+          'address': {
+            ComparisonOperator: 'EQ',
+            AttributeValueList: [
+              // someValue
+              address,
+            ],
+          },
+        }, */
+        IndexName: 'ownerAddress-index',
+      }).promise();
+      let tokens = o.Items;
 
       if (isAll && mainnetAddress) {
         const nftMainnetBalance = await contracts[otherChainName][contractName].methods.balanceOf(mainnetAddress).call();
