@@ -49,7 +49,6 @@ const {
   stripeClientSecret,
   infuraNetwork,
   infuraProjectId,
-  ports,
 } = config;
 
 const awsConfig = new AWS.Config({
@@ -106,6 +105,7 @@ let
   abis,
   contracts,
   wsContracts,
+  ports,
   gethNodeUrl,
   gethNodeWSUrl;
 
@@ -2088,7 +2088,7 @@ const _ws = protocol => (req, socket, head) => {
   abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const [
     ethereumHostAddress,
-    ports,
+    newPorts,
   ] = await Promise.all([
     new Promise((accept, reject) => {
       dns.resolve4(ethereumHost, (err, addresses) => {
@@ -2125,6 +2125,7 @@ const _ws = protocol => (req, socket, head) => {
   
   // console.log('ports', ports);
   
+  ports = newPorts;
   gethNodeUrl = `http://${ethereumHostAddress}`;
   gethNodeWSUrl = `ws://${ethereumHostAddress}`;
 
