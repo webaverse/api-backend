@@ -1679,33 +1679,41 @@ const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, 
     } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
       const address = match[1];
 
-      let mainnetAddress = null;
-      const signature = await contracts['mainnetsidechain'].Account.methods.getMetadata(address, "mainnetAddress").call();
-      if (signature !== "") {
-        mainnetAddress = await web3.rinkeby.eth.accounts.recover(mainnetSignatureMessage, signature);
-      }
-
-      const o = await ddbd.scan({
-        TableName: 'sidechain-cache',
-        // ProjectionExpression: "#yr, title, info.rating",
-        FilterExpression: "#yr = :end_yr",
-        ExpressionAttributeNames: {
-          "#yr": "ownerAddress",
-        },
-        ExpressionAttributeValues: {
-          ":end_yr": address,
-        },
-        /* ScanFilter: {
-          'address': {
-            ComparisonOperator: 'EQ',
-            AttributeValueList: [
-              // someValue
-              address,
-            ],
+      const [
+        mainnetAddress,
+        o,
+      ] = await Promise.all([
+        (async () => {
+          let mainnetAddress = null;
+          const account = await getDynamoItem(address, tableNames.mainnetsidechainAccount);
+          const signature = account?.metadata?.['mainnetAddress'];
+          if (signature) {
+            mainnetAddress = await web3.rinkeby.eth.accounts.recover(mainnetSignatureMessage, signature);
+          }
+          return mainnetAddress;
+        })(),
+        ddbd.scan({
+          TableName: 'sidechain-cache',
+          // ProjectionExpression: "#yr, title, info.rating",
+          FilterExpression: "#yr = :end_yr",
+          ExpressionAttributeNames: {
+            "#yr": "ownerAddress",
           },
-        }, */
-        IndexName: 'ownerAddress-index',
-      }).promise();
+          ExpressionAttributeValues: {
+            ":end_yr": address,
+          },
+          /* ScanFilter: {
+            'address': {
+              ComparisonOperator: 'EQ',
+              AttributeValueList: [
+                // someValue
+                address,
+              ],
+            },
+          }, */
+          IndexName: 'ownerAddress-index',
+        }).promise()
+      ]);
       let tokens = o.Items;
 
       if (isAll && mainnetAddress) {
