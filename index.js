@@ -14,7 +14,7 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const { hdkey } = require('ethereumjs-wallet');
 const config = require('./config.json');
-const { accessKeyId, secretAccessKey, githubClientId, githubClientSecret, discordClientId, discordClientSecret, infuraProjectId, polygonVigilKey } = config;
+const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, discordClientId, discordClientSecret, stripeClientId, stripeClientSecret, infuraNetwork, infuraProjectId} = config;
 
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
@@ -36,6 +36,7 @@ const ethereumHost = 'ethereum.exokit.org';
 
 const { worldManager, _handleWorldsRequest } = require('./routes/worlds.js');
 const { _handleSignRequest } = require('./routes/sign.js');
+const { _handleUnlockRequest} = require('./routes/unlock.js');
 const { _handleAnalyticsRequest } = require('./routes/analytics.js');
 
 const CERT = fs.readFileSync('./certs/fullchain.pem');
@@ -1417,18 +1418,37 @@ function _jsonParse(s) {
         })(),
       ]);
 
-      return {
-        address,
-        username,
-        avatarPreview,
-        monetizationPointer,
-      };
-    };
-    const owner = await _fetchAccount(token.owner);
-
-    const id = parseInt(token.id, 10);
-    // console.log('got token', token);
-    const { name, hash, ext } = token;
+  const id = parseInt(token.id, 10);
+  const {name, ext, unlockable, hash} = token;
+  const description = await contracts[chainName].NFT.methods.getMetadata(hash, 'description').call();
+  const storeEntry = storeEntries.find(entry => entry.tokenId === id);
+  const buyPrice = storeEntry ? storeEntry.price : null;
+  const storeId = storeEntry ? storeEntry.id : null;
+  return {
+    id,
+    name,
+    description,
+    image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
+    external_url: 'https://app.webaverse.com?h=' + hash,
+    animation_url: `${storageHost}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+    properties: {
+      name,
+      hash,
+      ext,
+      unlockable,
+    },
+    minter,
+    owner,
+    balance: parseInt(token.balance, 10),
+    totalSupply: parseInt(token.totalSupply, 10),
+    buyPrice,
+    storeId,
+    isMainnet,
+  };
+};
+const _formatLand = isMainChain => async (token, storeEntries) => {
+  const chainName = isMainChain ? 'mainnetsidechain' : 'rinkebysidechain';
+  const _fetchAccount = async address => {
     const [
       description,
       rarity,
@@ -1467,27 +1487,137 @@ function _jsonParse(s) {
       totalSupply: parseInt(token.totalSupply, 10)
     };
   };
-  const _getChainNft = contractName => (chainName) => async (tokenId, storeEntries) => {
-    const token = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
-    if (contractName === 'NFT') {
-      return await _formatToken(chainName)(token, storeEntries);
-    } else if (contractName === 'LAND') {
-      return await _formatLand(chainName)(token, storeEntries);
-    } else {
-      return null;
-    }
+  const owner = await _fetchAccount(token.owner);
+
+  const id = parseInt(token.id, 10);
+  // console.log('got token', token);
+  const {name, hash, ext, unlockable} = token;
+  const [
+    description,
+    rarity,
+    extents,
+  ] = await Promise.all([
+    contracts[chainName].LAND.methods.getSingleMetadata(id, 'description').call(),
+    contracts[chainName].LAND.methods.getMetadata(name, 'rarity').call(),
+    contracts[chainName].LAND.methods.getMetadata(name, 'extents').call(),
+  ]);
+  const extentsJson = _jsonParse(extents);
+  const coord = (
+    extentsJson && extentsJson[0] &&
+    typeof extentsJson[0][0] === 'number' && typeof extentsJson[0][1] === 'number' && typeof extentsJson[0][2] === 'number' &&
+    typeof extentsJson[1][0] === 'number' && typeof extentsJson[1][1] === 'number' && typeof extentsJson[1][2] === 'number'
+  ) ? [
+    (extentsJson[1][0] + extentsJson[0][0])/2,
+    (extentsJson[1][1] + extentsJson[0][1])/2,
+    (extentsJson[1][2] + extentsJson[0][2])/2,
+  ] : null;
+  return {
+    id,
+    name,
+    description,
+    image: coord ? `https://land-preview.exokit.org/32/${coord[0]}/${coord[2]}?${extentsJson ? `e=${JSON.stringify(extentsJson)}` : ''}` : null,
+    external_url: `https://app.webaverse.com?${coord ? `c=${JSON.stringify(coord)}` : ''}`,
+    // animation_url: `${storageHost}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+    properties: {
+      name,
+      hash,
+      rarity,
+      extents,
+      ext,
+      unlockable,
+    },
+    owner,
+    balance: parseInt(token.balance, 10),
+    totalSupply: parseInt(token.totalSupply, 10)
   };
-  const _getChainToken = _getChainNft('NFT');
-  const _getChainLand = _getChainNft('LAND');
-  const _getChainOwnerNft = contractName => (chainName) => async (address, i, storeEntries) => {
-    const token = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
-    if (contractName === 'NFT') {
-      return await _formatToken(chainName)(token, storeEntries);
-    } else if (contractName === 'LAND') {
-      return await _formatLand(chainName)(token, storeEntries);
-    } else {
-      return null;
-    }
+};
+const _copy = o => {
+  const oldO = o;
+  const newO = JSON.parse(JSON.stringify(oldO));
+  for (const k in oldO) {
+    newO[k] = oldO[k];
+  }
+  return newO;
+};
+const _getChainNft = contractName => (isMainChain, isFront, isAll) => async (tokenId, storeEntries) => {
+  const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
+  const tokenSrc = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
+  const token = _copy(tokenSrc);
+  const {hash} = token;
+  token.unlockable = await contracts[chainName].NFT.methods.getMetadata(hash, 'unlockable').call();
+  if (!token.unlockable) {
+    token.unlockable = '';
+  }
+  let mainnetToken;
+  if (!isFront && isAll) {
+    mainnetToken = await contracts[isMainChain ? 'mainnet' : 'rinkeby'][contractName].methods.tokenByIdFull(tokenId).call();
+  }
+  if (contractName === 'NFT') {
+    return await _formatToken(isMainChain)(token, storeEntries, mainnetToken);
+  } else if (contractName === 'LAND') {
+    return await _formatLand(isMainChain)(token, storeEntries, mainnetToken);
+  } else {
+    return null;
+  }
+};
+const _getChainToken = _getChainNft('NFT');
+const _getChainLand = _getChainNft('LAND');
+const _getChainOwnerNft = contractName => (isMainChain, isFront, isAll) => async (address, i, storeEntries) => {
+  const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
+  const tokenSrc = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
+  const token = _copy(tokenSrc);
+  const {hash} = token;
+  token.unlockable = await contracts[chainName][contractName].methods.getMetadata(hash, 'unlockable').call();
+  if (!token.unlockable) {
+    token.unlockable = '';
+  }
+  let mainnetToken;
+  if (!isFront && isAll) {
+    mainnetToken = await contracts[isMainChain ? 'mainnet' : 'rinkeby'][contractName].methods.tokenByIdFull(token.id).call();
+  }
+  if (contractName === 'NFT') {
+    return await _formatToken(isMainChain)(token, storeEntries, mainnetToken);
+  } else if (contractName === 'LAND') {
+    return await _formatLand(isMainChain)(token, storeEntries, mainnetToken);
+  } else {
+    return null;
+  }
+};
+const _getStoreEntries = async isMainChain => {
+  const chainName = isMainChain ? 'mainnetsidechain' : 'rinkebysidechain';
+  const numStores = await contracts[chainName].Trade.methods.numStores().call();
+  const promises = Array(numStores);
+  for (let i = 0; i < numStores; i++) {
+    promises[i] = contracts[chainName].Trade.methods.getStoreByIndex(i + 1).call()
+      .then(store => {
+        if (store.live) {
+          const id = parseInt(store.id, 10);
+          const seller = store.seller.toLowerCase();
+          const tokenId = parseInt(store.tokenId, 10);
+          const price = parseInt(store.price, 10);
+          const entry = {
+            id,
+            seller,
+            tokenId,
+            price,
+          };
+          return entry;
+        } else {
+          return null;
+        }
+      });
+  }
+  let storeEntries = await Promise.all(promises);
+  storeEntries = storeEntries.filter(store => store !== null);
+  return storeEntries;
+};
+const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, res) => {
+  const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
+  const otherChainName = (isMainChain ? 'mainnet' : 'rinkeby');
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
   };
   const _getStoreEntries = async chainName => {
     const numStores = await contracts[chainName].Trade.methods.numStores().call();
@@ -1798,18 +1928,93 @@ function _jsonParse(s) {
     console.warn(err.stack);
   });
 
-  const presenceWss = new ws.Server({
-    noServer: true,
-  });
-  presenceWss.on('connection', async (s, req/*, channels, saveHtml*/) => {
-    const _transaction = tx => {
-      s.send(JSON.stringify(tx));
-    };
-    eventsManager.on('transaction', _transaction);
-    s.on('close', () => {
-      eventsManager.removeListener('transaction', _transaction);
-    });
-  });
+const _req = protocol => (req, res) => {
+try {
+
+  const o = url.parse(protocol + '//' + (req.headers['host'] || '') + req.url);
+  let match;
+  if (o.host === 'login.exokit.org') {
+    _handleLogin(req, res);
+    return;
+  } else if (o.host === 'mainnetsidechain.exokit.org') {
+    _handleEthereum(8545)(req, res);
+    return;
+  } else if (o.host === 'rinkebysidechain.exokit.org') {
+    _handleEthereum(8546)(req, res);
+    return;
+  } else if (o.host === 'accounts.webaverse.com' || o.host === 'mainnetsidechain-accounts.webaverse.com') {
+    _handleAccounts(true)(req, res);
+    return;
+  } else if (o.host === 'rinkebysidechain-accounts.webaverse.com') {
+    _handleAccounts(false)(req, res);
+    return;
+  } else if (o.host === 'analytics.webaverse.com') {
+    _handleAnalyticsRequest(req, res);
+    return;
+  } else if (o.host === 'sign.exokit.org') {
+    _handleSignRequest(req, res);
+    return;
+  } else if (o.host === 'unlock.exokit.org') {
+    _handleUnlockRequest(req, res);
+    return;
+  } else if (o.host === 'oauth.exokit.org') {
+    _handleOauth(req, res);
+    return;
+  } else if (o.host === 'profile.webaverse.com' || o.host === 'mainnetsidechain-profile.webaverse.com') {
+    _handleProfile(true)(req, res);
+    return;
+  } else if (o.host === 'rinkebysidechain-profile.webaverse.com') {
+    _handleProfile(false)(req, res);
+    return;
+  } else if (o.host === 'main.webaverse.com' || o.host === 'test.webaverse.com') {
+    _handleProxyRoot(req, res);
+    return;
+  } else if (o.host === 'main.app.webaverse.com' || o.host === 'test.app.webaverse.com') {
+    _handleProxyApp(req, res);
+    return;
+  } else if (o.host === 'mainnet-tokens.webaverse.com') {
+    _handleTokens(true, true)(req, res);
+    return;
+  } else if (o.host === 'tokens.webaverse.com' || o.host === 'mainnetall-tokens.webaverse.com') {
+    _handleTokens(true, false, true)(req, res);
+    return;
+  } else if (o.host === 'rinkebyall-tokens.webaverse.com') {
+    _handleTokens(false, false, true)(req, res);
+    return;
+  } else if (o.host === 'tokens.webaverse.com' || o.host === 'mainnetsidechain-tokens.webaverse.com') {
+    _handleTokens(true, false)(req, res);
+    return;
+  } else if (o.host === 'rinkeby-tokens.webaverse.com') {
+    _handleTokens(false, true)(req, res);
+    return;
+  } else if (o.host === 'rinkebysidechain-tokens.webaverse.com') {
+    _handleTokens(false, false)(req, res);
+    return;
+  } else if (o.host === 'mainnet-land.webaverse.com') {
+    _handleLand(true, true)(req, res);
+    return;
+  } else if (o.host === 'land.webaverse.com' || o.host === 'mainnetsidechain-land.webaverse.com') {
+    _handleLand(true, false)(req, res);
+    return;
+  } else if (o.host === 'rinkeby-land.webaverse.com') {
+    _handleLand(false, true)(req, res);
+    return;
+  } else if (o.host === 'rinkebysidechain-land.webaverse.com') {
+    _handleLand(false, false)(req, res);
+    return;
+  } else if (o.host === 'worlds.exokit.org') {
+    _handleWorldsRequest(req, res);
+    return;
+  /* } else if (o.host === 'storage.exokit.org' || o.host === 'storage.webaverse.com') {
+    _handleStorageRequest(req, res);
+    return; */
+  } else if (o.host === 'store.webaverse.com' || o.host === 'mainnetsidechain-store.webaverse.com') {
+    _handleStore(true)(req, res);
+    return;
+  } else if (o.host === 'rinkebysidechain-store.webaverse.com') {
+    _handleStore(false)(req, res);
+    return;
+  }
 
   const _req = protocol => (req, res) => {
     try {

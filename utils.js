@@ -1,3 +1,10 @@
+const jsonParse = (s, d = null) => {
+  try {
+    return JSON.parse(s);
+  } catch (err) {
+    return d;
+  }
+};
 const _setCorsHeaders = res => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', '*');
@@ -19,6 +26,7 @@ const makePromise = () => {
   return p;
 };
 module.exports = {
+  jsonParse,
   _setCorsHeaders,
   getExt,
   makePromise,
