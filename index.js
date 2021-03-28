@@ -1586,10 +1586,10 @@ const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, 
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
-  const _maybeGetStoreEntries = () =>
+  /* const _maybeGetStoreEntries = () =>
     (contractName === 'NFT' && !isFront)
       ? _getStoreEntries(isMainChain)
-      : Promise.resolve([]);
+      : Promise.resolve([]); */
 
   try {
   const {method} = req;
@@ -1679,26 +1679,11 @@ const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, 
     } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
       const address = match[1];
 
-      const signature = await contracts['mainnetsidechain'].Account.methods.getMetadata(address, "mainnetAddress").call();
-
       let mainnetAddress = null;
+      const signature = await contracts['mainnetsidechain'].Account.methods.getMetadata(address, "mainnetAddress").call();
       if (signature !== "") {
         mainnetAddress = await web3.rinkeby.eth.accounts.recover(mainnetSignatureMessage, signature);
       }
-
-      /* const [
-        nftBalance,
-        storeEntries,
-      ] = await Promise.all([
-        contracts[chainName][contractName].methods.balanceOf(address).call(),
-        _maybeGetStoreEntries(),
-      ]);
-
-      const promises = Array(nftBalance);
-      for (let i = 0; i < nftBalance; i++) {
-        promises[i] = _getChainOwnerNft(contractName)(isMainChain, isFront)(address, i, storeEntries);
-      }
-      let tokens = await Promise.all(promises); */
 
       const o = await ddbd.scan({
         TableName: 'sidechain-cache',
