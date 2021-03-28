@@ -1705,14 +1705,37 @@ const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, 
               mainnetAddress = await web3.rinkeby.eth.accounts.recover(mainnetSignatureMessage, signature);
             }
             if (mainnetAddress) {
-              const nftMainnetBalance = await contracts[otherChainName][contractName].methods.balanceOf(mainnetAddress).call();
+              const o = await ddbd.scan({
+                TableName: tableNames.mainnetNft,
+                // ProjectionExpression: "#yr, title, info.rating",
+                FilterExpression: "#yr = :end_yr",
+                ExpressionAttributeNames: {
+                  "#yr": "ownerAddress",
+                },
+                ExpressionAttributeValues: {
+                  ":end_yr": address,
+                },
+                /* ScanFilter: {
+                  'address': {
+                    ComparisonOperator: 'EQ',
+                    AttributeValueList: [
+                      // someValue
+                      address,
+                    ],
+                  },
+                }, */
+                IndexName: 'ownerAddress-id-index',
+              }).promise();
+              return (o && o.Items) || [];
+
+              /* const nftMainnetBalance = await contracts[otherChainName][contractName].methods.balanceOf(mainnetAddress).call();
               const mainnetPromises = Array(nftMainnetBalance);
               for (let i = 0; i < nftMainnetBalance; i++) {
                 let id = await _getChainOwnerNft(contractName)(isMainChain, true, isAll)(address, i, storeEntries);
                 mainnetPromises[i] = _getChainNft(contractName)(isMainChain, isFront, isAll)(id.id, storeEntries);
               }
               let mainnetTokens = await Promise.all(mainnetPromises);
-              return mainnetTokens;
+              return mainnetTokens; */
             } else {
               return [];
             }
