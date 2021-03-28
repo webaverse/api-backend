@@ -179,7 +179,8 @@ async function processEventsAccount({addresses, contract, events, currentBlockNu
 
   // Get tokenId from each event and add it to the URI table.
   for (const event of events) {
-    const {owner} = event.returnValues;
+    let {owner} = event.returnValues;
+    owner = owner.toLowerCase();
 
     if (owner) {
       try {
