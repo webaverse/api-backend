@@ -56,8 +56,10 @@ const putObject = (bucket, key, data, type) => {
 async function getDynamoItem(id, TableName = defaultDynamoTable) {
   const params = {
     TableName,
-    Key: {id: String(id)}
-  }
+    Key: {
+      id,
+    }
+  };
 
   try {
     return await ddbd.get(params).promise();
@@ -70,7 +72,10 @@ async function getDynamoItem(id, TableName = defaultDynamoTable) {
 async function putDynamoItem(id, data, TableName = defaultDynamoTable) {
   const params = {
     TableName,
-    Item: {...data, id: String(id)},
+    Item: {
+      ...data,
+      id,
+    },
   };
 
   try {
