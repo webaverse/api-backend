@@ -13,7 +13,8 @@ const accountKeys = [
   'mainnetAddress',
 ];
 const ids = {
-  lastCachedBlock: 'lastCachedBlock',
+  lastCachedBlockAccount: 'lastCachedBlock',
+  lastCachedBlockNft: -1,
 };
 const tableNames = {
   mainnetsidechainAccount: 'sidechain-cache-account',
