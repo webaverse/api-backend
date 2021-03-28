@@ -17,6 +17,8 @@ const ids = {
   lastCachedBlockNft: -1,
 };
 const tableNames = {
+  mainnetAccount: 'mainnet-cache-account',
+  mainnetNft: 'mainnet-cache-nft',
   mainnetsidechainAccount: 'sidechain-cache-account',
   mainnetsidechainNft: 'sidechain-cache-nft',
 };
