@@ -1693,53 +1693,59 @@ const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, 
       const address = match[1];
 
       const [
-        mainnetAddress,
-        o,
+        mainnetTokens,
+        sidechainTokens,
       ] = await Promise.all([
         (async () => {
-          let mainnetAddress = null;
-          const account = await getDynamoItem(address, tableNames.mainnetsidechainAccount);
-          const signature = account?.metadata?.['mainnetAddress'];
-          if (signature) {
-            mainnetAddress = await web3.rinkeby.eth.accounts.recover(mainnetSignatureMessage, signature);
+          if (isAll) {
+            let mainnetAddress = null;
+            const account = await getDynamoItem(address, tableNames.mainnetsidechainAccount);
+            const signature = account?.metadata?.['mainnetAddress'];
+            if (signature) {
+              mainnetAddress = await web3.rinkeby.eth.accounts.recover(mainnetSignatureMessage, signature);
+            }
+            if (mainnetAddress) {
+              const nftMainnetBalance = await contracts[otherChainName][contractName].methods.balanceOf(mainnetAddress).call();
+              const mainnetPromises = Array(nftMainnetBalance);
+              for (let i = 0; i < nftMainnetBalance; i++) {
+                let id = await _getChainOwnerNft(contractName)(isMainChain, true, isAll)(address, i, storeEntries);
+                mainnetPromises[i] = _getChainNft(contractName)(isMainChain, isFront, isAll)(id.id, storeEntries);
+              }
+              let mainnetTokens = await Promise.all(mainnetPromises);
+              return mainnetTokens;
+            } else {
+              return [];
+            }
+          } else {
+            return [];
           }
-          return mainnetAddress;
         })(),
-        ddbd.scan({
-          TableName: 'sidechain-cache',
-          // ProjectionExpression: "#yr, title, info.rating",
-          FilterExpression: "#yr = :end_yr",
-          ExpressionAttributeNames: {
-            "#yr": "ownerAddress",
-          },
-          ExpressionAttributeValues: {
-            ":end_yr": address,
-          },
-          /* ScanFilter: {
-            'address': {
-              ComparisonOperator: 'EQ',
-              AttributeValueList: [
-                // someValue
-                address,
-              ],
+        (async () => {
+          const o = await ddbd.scan({
+            TableName: tableNames.mainnetsidechainNft,
+            // ProjectionExpression: "#yr, title, info.rating",
+            FilterExpression: "#yr = :end_yr",
+            ExpressionAttributeNames: {
+              "#yr": "ownerAddress",
             },
-          }, */
-          IndexName: 'ownerAddress-index',
-        }).promise()
+            ExpressionAttributeValues: {
+              ":end_yr": address,
+            },
+            /* ScanFilter: {
+              'address': {
+                ComparisonOperator: 'EQ',
+                AttributeValueList: [
+                  // someValue
+                  address,
+                ],
+              },
+            }, */
+            IndexName: 'ownerAddress-id-index',
+          }).promise();
+          return (o && o.Items) || [];
+        })(),
       ]);
-      let tokens = o.Items;
-
-      if (isAll && mainnetAddress) {
-        const nftMainnetBalance = await contracts[otherChainName][contractName].methods.balanceOf(mainnetAddress).call();
-        const mainnetPromises = Array(nftMainnetBalance);
-        for (let i = 0; i < nftMainnetBalance; i++) {
-          let id = await _getChainOwnerNft(contractName)(isMainChain, true, isAll)(address, i, storeEntries);
-          mainnetPromises[i] = _getChainNft(contractName)(isMainChain, isFront, isAll)(id.id, storeEntries);
-        }
-        let mainnetTokens = await Promise.all(mainnetPromises);
-
-        tokens = tokens.concat(mainnetTokens);
-      }
+      let tokens = sidechainTokens.concat(mainnetTokens);
       // tokens = tokens.filter(token => token !== null);
       tokens.sort((a, b) => a.id - b.id);
       if (contractName === 'NFT') {
