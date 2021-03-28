@@ -1600,7 +1600,7 @@ const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, 
     if (match = p.match(/^\/([0-9]+)$/)) {
       const tokenId = parseInt(match[1], 10);
 
-      let o = await getDynamoItem(tokenId, tableName.mainnetsidechainNft);
+      let o = await getDynamoItem(tokenId, tableNames.mainnetsidechainNft);
       let token = o.Item;
 
       _setCorsHeaders(res);
