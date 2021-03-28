@@ -2,12 +2,15 @@ const {getDynamoItem, putDynamoItem} = require('./aws.js');
 const {getChainNft, getChainAccount} = require('./tokens.js');
 const {ids, tableNames, accountKeys} = require('./constants.js');
 
-async function initNftCache({addresses, wsContracts, webSockets}) {
-  const webSocketWeb3 = webSockets.mainnetsidechain;
-  const webSocketContract = wsContracts.mainnetsidechain;
+async function initNftCache({addresses, wsContracts, webSockets, isMainnet}) {
+  const webSocketWeb3 = isMainnet ? webSockets.mainnet : webSockets.mainnetsidechain;
+  const webSocketContract = isMainnet ? wsContracts.mainnet : wsContracts.mainnetsidechain;
 
   const currentBlockNumber = await webSocketWeb3.eth.getBlockNumber();
-  const lastBlockNumber = (await getDynamoItem(ids.lastCachedBlockNft, tableNames.mainnetsidechainNft)).number || 0;
+  const lastBlockNumber = (await getDynamoItem(
+    ids.lastCachedBlockNft,
+    isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft
+  )).number || 0;
 
   // Catch up on missing blocks.
   if (currentBlockNumber !== lastBlockNumber) {
@@ -17,13 +20,18 @@ async function initNftCache({addresses, wsContracts, webSockets}) {
       lastBlockNumber,
     });
     if (events.length > 0) {
-      await processEventsNft({addresses, contract: webSocketContract, events, currentBlockNumber});
+      await processEventsNft({
+        addresses,
+        contract: webSocketContract,
+        events,
+        currentBlockNumber,
+      });
     }
   }
 
   // Watch for new events.
   await new Promise((accept, reject) => {
-    wsContracts.mainnet.NFT.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
+    (isMainnet ? wsContracts.mainnet : wsContracts.mainnetsidechain).NFT.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
       console.debug('EVENT:', event);
       if (error) {
         console.log('Error getting event: ' + error);
@@ -39,12 +47,15 @@ async function initNftCache({addresses, wsContracts, webSockets}) {
     });
   });
 }
-async function initAccountCache({addresses, wsContracts, webSockets}) {
-  const webSocketWeb3 = webSockets.mainnetsidechain;
-  const webSocketContract = wsContracts.mainnetsidechain;
+async function initAccountCache({addresses, wsContracts, webSockets, isMainnet}) {
+  const webSocketWeb3 = isMainnet ? webSockets.mainnet : webSockets.mainnetsidechain;
+  const webSocketContract = isMainnet ? wsContracts.mainnet : wsContracts.mainnetsidechain;
 
   const currentBlockNumber = await webSocketWeb3.eth.getBlockNumber();
-  const lastBlockNumber = (await getDynamoItem(ids.lastCachedBlockAccount, tableNames.mainnetsidechainAccount)).number || 0;
+  const lastBlockNumber = (await getDynamoItem(
+    ids.lastCachedBlockAccount,
+    isMainnet ? tableNames.mainnetAccount : tableNames.mainnetsidechainAccount
+  )).number || 0;
 
   console.log('initAccountCache 1', {
     currentBlockNumber,
@@ -74,7 +85,7 @@ async function initAccountCache({addresses, wsContracts, webSockets}) {
 
   /* // Watch for new events.
   await new Promise((accept, reject) => {
-    wsContracts.mainnet.Account.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
+    (isMainnet ? wsContracts.mainnet : wsContracts.mainnetsidechain).Account.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
       console.debug('EVENT:', event);
       if (error) {
         console.log('Error getting event: ' + error);
@@ -88,8 +99,10 @@ async function initAccountCache({addresses, wsContracts, webSockets}) {
 }
 async function initCaches({addresses, wsContracts, webSockets}) {
   await Promise.all([
-    initNftCache({addresses, wsContracts, webSockets}),
-    initAccountCache({addresses, wsContracts, webSockets}),
+    initNftCache({addresses, wsContracts, webSockets, isMainnet: false}),
+    initAccountCache({addresses, wsContracts, webSockets, isMainnet: false}),
+    initNftCache({addresses, wsContracts, webSockets, isMainnet: true}),
+    initAccountCache({addresses, wsContracts, webSockets, isMainnet: true}),
   ]);
 }
 
