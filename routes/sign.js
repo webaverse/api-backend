@@ -8,7 +8,7 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {_setCorsHeaders} = require('../utils.js');
-const {mainnetMnemonic, testnetMnemonic, infuraProjectId} = require('../config.json');
+const {mainnetMnemonic, testnetMnemonic, polygonMnemonic, testnetpolygonMnemonic, infuraProjectId} = require('../config.json');
 
 const loadPromise = (async () => {
   const ethereumHost = 'ethereum.exokit.org';
@@ -33,7 +33,8 @@ const loadPromise = (async () => {
     mainnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8545')),
     testnet: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
     testnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8546')),
-    // TODO: ADD ME
+    polygon: new Web3(new Web3.providers.HttpProvider(`https://rpc-mainnet.maticvigil.com/v1/${polygonVigilKey}`)),
+    testnetpolygon: new Web3(new Web3.providers.HttpProvider(`https://rpc-mumbai.maticvigil.com/v1/${polygonVigilKey}`))
   };
   const addresses = await fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
@@ -64,9 +65,12 @@ const loadPromise = (async () => {
     });
     return result;
   })();
+
   const wallets = {
     mainnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mainnetMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
     testnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(testnetMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    polygon: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(polygonMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    testnetpolygon: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(testnetpolygonMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
   };
 
   return {
@@ -113,23 +117,8 @@ const _handleSignRequest = async (req, res) => {
                         ) || null;
                         // console.log('got log', logs, log);
                         if (log) {
-                          let isMainChain, oppositeChainName;
-                          if (chainName === 'mainnet') {
-                            isMainChain = true;
-                            oppositeChainName = 'mainnetsidechain';
-                          } else if (chainName === 'mainnetsidechain') {
-                            isMainChain = true;
-                            oppositeChainName = 'mainnet';
-                          } else if (chainName === 'testnet') {
-                            isMainChain = false;
-                            oppositeChainName = 'testnetsidechain';
-                          } else if (chainName === 'testnetsidechain') {
-                            isMainChain = false;
-                            oppositeChainName = 'testnet';
-                          } else {
-                            throw new Error('cannot look up chain spec');
-                          }
-                          const wallet = wallets[isMainChain ? 'mainnet' : 'testnet'];
+
+                          const wallet = wallets[chainName];
                           const proxyContractAddress = addresses[chainName][proxyContractName];
                           
                           // const {returnValues} = log;

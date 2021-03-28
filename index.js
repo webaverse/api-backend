@@ -1388,8 +1388,8 @@ function _jsonParse(s) {
       storeId
     };
   };
-  const _formatLand = isMainChain => async (token, storeEntries) => {
-    const chainName = isMainChain ? 'mainnetsidechain' : 'testnetsidechain';
+
+  const _formatLand = chainName => async (token, storeEntries) => {
     const _fetchAccount = async address => {
       const [
         description,
@@ -1481,8 +1481,7 @@ function _jsonParse(s) {
     }
     return newO;
   };
-  const _getChainNft = contractName => (isMainChain, isFront, isAll) => async (tokenId, storeEntries) => {
-    const chainName = (isMainChain ? 'mainnet' : 'testnet') + (isFront ? '' : 'sidechain');
+  const _getChainNft = contractName => (chainName) => async (tokenId, storeEntries) => {
     const tokenSrc = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
     const token = _copy(tokenSrc);
     const { hash } = token;
@@ -1492,20 +1491,19 @@ function _jsonParse(s) {
     }
     let mainnetToken;
     if (!isFront && isAll) {
-      mainnetToken = await contracts[isMainChain ? 'mainnet' : 'testnet'][contractName].methods.tokenByIdFull(tokenId).call();
+      mainnetToken = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
     }
     if (contractName === 'NFT') {
-      return await _formatToken(isMainChain)(token, storeEntries, mainnetToken);
+      return await _formatToken(chainName)(token, storeEntries, mainnetToken);
     } else if (contractName === 'LAND') {
-      return await _formatLand(isMainChain)(token, storeEntries, mainnetToken);
+      return await _formatLand(chainName)(token, storeEntries, mainnetToken);
     } else {
       return null;
     }
   };
   const _getChainToken = _getChainNft('NFT');
   const _getChainLand = _getChainNft('LAND');
-  const _getChainOwnerNft = contractName => (isMainChain, isFront, isAll) => async (address, i, storeEntries) => {
-    const chainName = (isMainChain ? 'mainnet' : 'testnet') + (isFront ? '' : 'sidechain');
+  const _getChainOwnerNft = contractName => (chainName) => async (address, i, storeEntries) => {
     const tokenSrc = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
     const token = _copy(tokenSrc);
     const { hash } = token;
@@ -1515,18 +1513,17 @@ function _jsonParse(s) {
     }
     let mainnetToken;
     if (!isFront && isAll) {
-      mainnetToken = await contracts[isMainChain ? 'mainnet' : 'testnet'][contractName].methods.tokenByIdFull(token.id).call();
+      mainnetToken = await contracts[chainName][contractName].methods.tokenByIdFull(token.id).call();
     }
     if (contractName === 'NFT') {
-      return await _formatToken(isMainChain)(token, storeEntries, mainnetToken);
+      return await _formatToken(chainName)(token, storeEntries, mainnetToken);
     } else if (contractName === 'LAND') {
-      return await _formatLand(isMainChain)(token, storeEntries, mainnetToken);
+      return await _formatLand(chainName)(token, storeEntries, mainnetToken);
     } else {
       return null;
     }
   };
-  const _getStoreEntries = async isMainChain => {
-    const chainName = isMainChain ? 'mainnetsidechain' : 'testnetsidechain';
+  const _getStoreEntries = async chainName => {
     const numStores = await contracts[chainName].Trade.methods.numStores().call();
     const promises = Array(numStores);
     for (let i = 0; i < numStores; i++) {
@@ -1555,8 +1552,6 @@ function _jsonParse(s) {
   };
   const _handleNft = contractName => (chainName) => async (req, res) => {
     // TODO: FIX me!
-    const chainName = (isMainChain ? 'mainnet' : 'testnet') + (isFront ? '' : 'sidechain');
-    const otherChainName = (isMainChain ? 'mainnet' : 'testnet');
     const _respond = (statusCode, body) => {
       res.statusCode = statusCode;
       _setCorsHeaders(res);

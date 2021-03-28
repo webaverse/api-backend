@@ -10,7 +10,7 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {jsonParse, _setCorsHeaders} = require('../utils.js');
-const {accessKeyId, secretAccessKey, mainnetMnemonic, /* testnetMnemonic, */ infuraProjectId, encryptionMnemonic} = require('../config.json');
+const {accessKeyId, secretAccessKey, mainnetMnemonic, testnetMnemonic, polygonMnemonic, testnetpolygonMnemonic, infuraProjectId, encryptionMnemonic} = require('../config.json');
 
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
@@ -120,10 +120,12 @@ const loadPromise = (async () => {
     });
     return result;
   })();
+
   const wallets = {
     mainnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mainnetMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
-    // rinkeby: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(rinkebyMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
-    // TODO: FIX ME?
+    testnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(testnetMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    polygon: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(polygonMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    testnetpolygon: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(testnetpolygonMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
   };
 
   return {
