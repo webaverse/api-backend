@@ -34,7 +34,7 @@ const {getDynamoItem, putDynamoItem} = require('./aws.js');
 const {initCaches} = require('./cache.js');
 const {getExt, makePromise} = require('./utils.js');
 // const browserManager = require('./browser-manager.js');
-const {accountKeys} = require('./constants.js');
+const {tableNames, accountKeys} = require('./constants.js');
 
 const config = require('./config.json');
 const {
@@ -801,25 +801,7 @@ const _handleAccounts = isMainChain => async (req, res) => {
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
-  const _getAccount = async address => {
-    const result = {
-      address,
-    };
-    await Promise.all(
-      accountKeys.map(key =>
-        contracts[chainName].Account.methods.getMetadata(address, key).call()
-          .then(async value => {
-            if (key === 'mainnetAddress' && value !== "") {
-              value = await web3.rinkeby.eth.accounts.recover("Connecting mainnet address.", value);
-              result[key] = value;
-            } else {
-              result[key] = value;
-            }
-          })
-      )
-    );
-    return result;
-  };
+  const _getAccount = async address => getDynamoItem(address, tableNames.mainnetsidechainAccount);
 
 try {
   const {method} = req;
