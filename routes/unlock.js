@@ -10,7 +10,7 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {jsonParse, _setCorsHeaders} = require('../utils.js');
-const {accessKeyId, secretAccessKey, mainnetMnemonic, /* rinkebyMnemonic, */ infuraProjectId, encryptionMnemonic} = require('../config.json');
+const {accessKeyId, secretAccessKey, mainnetMnemonic, /* testnetMnemonic, */ infuraProjectId, encryptionMnemonic} = require('../config.json');
 
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
@@ -87,8 +87,9 @@ const loadPromise = (async () => {
   const web3 = {
     mainnet: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`)),
     mainnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8545')),
-    // rinkeby: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
-    // rinkebysidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8546')),
+    testnet: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
+    testnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8546'))
+    // TODO: ADD ME
   };
   const addresses = await fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
@@ -99,8 +100,8 @@ const loadPromise = (async () => {
     [
       'mainnet',
       'mainnetsidechain',
-      /* 'rinkeby',
-      'rinkebysidechain', */
+      'testnet',
+      'testnetsidechain',
     ].forEach(chainName => {
       [
         'Account',
@@ -122,6 +123,7 @@ const loadPromise = (async () => {
   const wallets = {
     mainnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mainnetMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
     // rinkeby: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(rinkebyMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    // TODO: FIX ME?
   };
 
   return {
