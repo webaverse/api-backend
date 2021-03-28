@@ -107,6 +107,25 @@ async function getChainNft({
   return await formatToken({addresses, token, storeEntries, mainnetToken, contract});
 }
 
+async function getChainAccount({
+  addresses,
+  address,
+  contract,
+  isFront = false,
+  isAll = true,
+} = {}) {
+  throw new Error('not implemented');
+  
+  const token = await contract.Account.methods.tokenByIdFull(address).call();
+  const storeEntries = await getStoreEntries(contract);
+
+  let mainnetToken;
+  if (!isFront && isAll) {
+    mainnetToken = await contract.Account.methods.tokenByIdFull(address).call();
+  }
+  return await formatToken({addresses, token, storeEntries, mainnetToken, contract});
+}
+
 async function getStoreEntries(contract) {
   const numStores =
     await contract.Trade.methods.numStores().call();
@@ -141,4 +160,5 @@ async function getStoreEntries(contract) {
 
 module.exports = {
   getChainNft,
+  getChainAccount,
 }

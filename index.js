@@ -31,9 +31,10 @@ const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {getDynamoItem, putDynamoItem} = require('./aws.js');
 // const blockchain = require('./blockchain.js');
-const {initCache} = require('./cache.js');
+const {initCaches} = require('./cache.js');
 const {getExt, makePromise} = require('./utils.js');
 // const browserManager = require('./browser-manager.js');
+const {accountKeys} = require('./constants.js');
 
 const config = require('./config.json');
 const {
@@ -805,20 +806,7 @@ const _handleAccounts = isMainChain => async (req, res) => {
       address,
     };
     await Promise.all(
-      [
-        'name',
-        'avatarId',
-        'avatarName',
-        'avatarExt',
-        'avatarPreview',
-        'loadout',
-        'homeSpaceId',
-        'homeSpaceName',
-        'homeSpaceExt',
-        'homeSpacePreview',
-        'ftu',
-        'mainnetAddress',
-      ].map(key =>
+      accountKeys.map(key =>
         contracts[chainName].Account.methods.getMetadata(address, key).call()
           .then(async value => {
             if (key === 'mainnetAddress' && value !== "") {
@@ -2309,7 +2297,7 @@ const _ws = protocol => (req, socket, head) => {
 }
 
 // Initialize DynamoDB cache.
-initCache({
+initCaches({
   addresses,
   contracts,
   wsContracts,
