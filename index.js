@@ -77,6 +77,7 @@ const stripe = Stripe(stripeClientSecret);
 // const eventsManager = require('./events-manager.js');
 const storageHost = 'https://ipfs.exokit.org';
 const ethereumHost = 'ethereum.exokit.org';
+const mainnetSignatureMessage = `Connecting mainnet address.`;
 
 const Discord = require('discord.js');
 
@@ -1740,7 +1741,7 @@ const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, 
 
       let mainnetAddress = null;
       if (signature !== "") {
-        mainnetAddress = await web3.rinkeby.eth.accounts.recover("Connecting mainnet address.", signature);
+        mainnetAddress = await web3.rinkeby.eth.accounts.recover(mainnetSignatureMessage, signature);
       }
 
       const [
