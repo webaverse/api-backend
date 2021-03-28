@@ -83,7 +83,7 @@ async function processEvents({addresses, contract, events, currentBlockNumber}) 
       addresses,
       contract,
       tokenId: entry[0],
-    })
+    });
 
     // Cache each token.
     if (token.properties.hash) {
