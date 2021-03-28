@@ -1615,13 +1615,26 @@ const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, 
       const endTokenId = parseInt(match[2], 10);
 
       if (startTokenId >= 1 && endTokenId > startTokenId && (endTokenId - startTokenId) <= 100) {
-        const numTokens = endTokenId - startTokenId;
-        const promises = Array(numTokens);
-        for (let i = 0; i < numTokens; i++) {
-          promises[i] = getDynamoItem(startTokenId + i)
-            .then(o => o.Item);
-        }
-        let tokens = await Promise.all(promises);
+        // const numTokens = endTokenId - startTokenId;
+        // const promises = Array(numTokens);
+        
+        const params = {
+          // KeyConditionExpression: 'id >= :idLow',
+          FilterExpression: "#yr BETWEEN :idLow AND :idHigh",
+          ExpressionAttributeNames: {
+            "#yr": "id",
+          },
+          ExpressionAttributeValues: {
+            ':idLow' : startTokenId,
+            ':idHigh' : endTokenId,
+          },
+          // ProjectionExpression: 'Episode, Title, Subtitle',
+          // FilterExpression: 'contains (Subtitle, :topic)',
+          TableName: tableNames.mainnetsidechainNft,
+        };
+        const o = await ddbd.scan(params).promise();
+        // console.log('got o', o);
+        let tokens = o.Items;
         tokens = tokens.filter(token => token !== null);
         tokens.sort((a, b) => a.id - b.id);
         if (contractName === 'NFT') {
