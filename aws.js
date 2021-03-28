@@ -53,7 +53,7 @@ const putObject = (bucket, key, data, type) => {
     })
 }
 
-async function getDynamoItem(id, TableName = defaultDynamoTable) {
+async function getDynamoItem(id, TableName) {
   const params = {
     TableName,
     Key: {
