@@ -185,11 +185,9 @@ async function processEventAccount({addresses, contract, event}) {
 async function processEventsAccount({addresses, contract, events, currentBlockNumber}) {
   const responses = {};
 
-  // Get owner from each event and add it to the URI table.
+  // Get tokenId from each event and add it to the URI table.
   for (const event of events) {
     const {owner} = event.returnValues;
-    
-    // console.log('load owner', owner);
 
     if (owner) {
       try {
@@ -203,31 +201,20 @@ async function processEventsAccount({addresses, contract, events, currentBlockNu
     }
   }
 
-  const accounts = await Promise.all(Object.entries(responses).map(async entry => {
-    const [key, res] = entry;
-    const value = await res;
-    // console.log('got log', value);
-    if (!value.address) {
-      value.address = key;
-    }
-    if (!value.metadata) {
-      value.metadata = {};
-    }
-    return value;
+  // Map each response to a token.
+  await Promise.all(Object.entries(responses).map(async entry => {
+    const account = await getChainAccount({
+      addresses,
+      contract,
+      address: entry[0],
+    });
+
+    // Cache each token.
+    // XXX possible race condition with different versions of tokens + timing?
+    await putDynamoItem(entry[0], account, tableNames.mainnetsidechainAccount);
   }));
   
-  for (const account of accounts) {
-    const {address} = account;
-    await Promise.all(accountKeys.map(async accountKey => {
-      const accountValue = await contract.Account.methods.getMetadata(address, accountKey).call();
-      // console.log('get value', accountKey, accountValue);
-      account.metadata[accountKey] = accountValue;
-    }));
-  }
-  
-  // console.log('loaded accounts', accounts);
-  
-  // await putDynamoItem(ids.lastCachedBlock, {number: currentBlockNumber}, tableNames.mainnetsidechainAccount);
+  await putDynamoItem(ids.lastCachedBlock, {number: currentBlockNumber}, tableNames.mainnetsidechainAccount);
 }
 
 async function getPastEvents({

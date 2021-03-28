@@ -1,5 +1,6 @@
-const storageHost = 'https://ipfs.exokit.org';
+const {accountKeys} = require('./constants.js');
 
+const storageHost = 'https://ipfs.exokit.org';
 const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
 
 async function formatToken({
@@ -114,16 +115,18 @@ async function getChainAccount({
   isFront = false,
   isAll = true,
 } = {}) {
-  throw new Error('not implemented');
-  
-  const token = await contract.Account.methods.tokenByIdFull(address).call();
-  const storeEntries = await getStoreEntries(contract);
+  const account = {
+    address,
+    metadata: {},
+  };
 
-  let mainnetToken;
-  if (!isFront && isAll) {
-    mainnetToken = await contract.Account.methods.tokenByIdFull(address).call();
-  }
-  return await formatToken({addresses, token, storeEntries, mainnetToken, contract});
+  await Promise.all(accountKeys.map(async accountKey => {
+    const accountValue = await contract.Account.methods.getMetadata(address, accountKey).call();
+    // console.log('get value', accountKey, accountValue);
+    account.metadata[accountKey] = accountValue;
+  }));
+  
+  return account;
 }
 
 async function getStoreEntries(contract) {
