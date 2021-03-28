@@ -93,7 +93,7 @@ async function getChainNft({
   tokenId,
   contract,
   isFront = false,
-  isAll = true
+  isAll = true,
 } = {}) {
   const token = await contract.NFT.methods.tokenByIdFull(tokenId).call();
   const storeEntries = await getStoreEntries(contract);
