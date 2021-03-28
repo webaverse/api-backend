@@ -69,7 +69,7 @@ async function getDynamoItem(id, TableName) {
   }
 }
 
-async function putDynamoItem(id, data, TableName = defaultDynamoTable) {
+async function putDynamoItem(id, data, TableName) {
   const params = {
     TableName,
     Item: {
