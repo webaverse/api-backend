@@ -25,6 +25,7 @@ async function initNftCache({addresses, wsContracts, webSockets, isMainnet}) {
         contract: webSocketContract,
         events,
         currentBlockNumber,
+        isMainnet,
       });
     }
   }
@@ -41,6 +42,7 @@ async function initNftCache({addresses, wsContracts, webSockets, isMainnet}) {
           addresses,
           contract: webSocketContract,
           event,
+          isMainnet,
         });
         accept();
       }
@@ -79,6 +81,7 @@ async function initAccountCache({addresses, wsContracts, webSockets, isMainnet})
         contract: webSocketContract,
         events,
         currentBlockNumber,
+        isMainnet,
       });
     }
   }
@@ -91,7 +94,12 @@ async function initAccountCache({addresses, wsContracts, webSockets, isMainnet})
         console.log('Error getting event: ' + error);
         reject(error);
       } else {
-        await processEventAccount({addresses, contract: webSocketContract, event});
+        await processEventAccount({
+          addresses,
+          contract: webSocketContract,
+          event,
+          isMainnet,
+        });
         accept();
       }
     });
@@ -106,7 +114,7 @@ async function initCaches({addresses, wsContracts, webSockets}) {
   ]);
 }
 
-async function processEventNft({addresses, contract, event}) {
+async function processEventNft({addresses, contract, event, isMainnet}) {
   const {tokenId} = event.returnValues;
 
   if (tokenId) {
@@ -119,7 +127,7 @@ async function processEventNft({addresses, contract, event}) {
 
       if (token.properties.hash) {
         console.log('loaded token with id', {id: token.id});
-        await putDynamoItem(token.id, token, tableNames.mainnetsidechainNft);
+        await putDynamoItem(token.id, token, isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft);
       }
     } catch (e) {
       console.error(e);
@@ -127,10 +135,10 @@ async function processEventNft({addresses, contract, event}) {
   }
 
   const {blockNumber} = event;
-  await putDynamoItem(ids.lastCachedBlockNft, {number: blockNumber}, tableNames.mainnetsidechainNft);
+  await putDynamoItem(ids.lastCachedBlockNft, {number: blockNumber}, isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft);
 }
 
-async function processEventsNft({addresses, contract, events, currentBlockNumber}) {
+async function processEventsNft({addresses, contract, events, currentBlockNumber, isMainnet}) {
   const responses = {};
 
   // Get tokenId from each event and add it to the URI table.
@@ -140,7 +148,7 @@ async function processEventsNft({addresses, contract, events, currentBlockNumber
 
     if (!isNaN(tokenId)) {
       try {
-        const res = getDynamoItem(tokenId, tableNames.mainnetsidechainNft);
+        const res = getDynamoItem(tokenId, isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft);
         if (res) {
           responses[tokenId] = res;
         }
@@ -160,14 +168,14 @@ async function processEventsNft({addresses, contract, events, currentBlockNumber
 
     // Cache each token.
     if (token.properties.hash) {
-      await putDynamoItem(parseInt(entry[0], 10), token, tableNames.mainnetsidechainNft);
+      await putDynamoItem(parseInt(entry[0], 10), token, isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft);
     }
   }));
   
   await putDynamoItem(ids.lastCachedBlockNft, {number: currentBlockNumber}, tableNames.mainnetsidechainNft);
 }
 
-async function processEventAccount({addresses, contract, event}) {
+async function processEventAccount({addresses, contract, event, isMainnet}) {
   const {tokenId} = event.returnValues;
 
   if (tokenId) {
@@ -179,7 +187,7 @@ async function processEventAccount({addresses, contract, event}) {
       });
 
       if (token.properties.hash) {
-        await putDynamoItem(token.id, token, tableNames.mainnetsidechainAccount);
+        await putDynamoItem(token.id, token, isMainnet ? tableNames.mainnetAccount : tableNames.mainnetsidechainAccount);
       }
     } catch (e) {
       console.error(e);
@@ -187,9 +195,9 @@ async function processEventAccount({addresses, contract, event}) {
   }
 
   const {blockNumber} = event;
-  await putDynamoItem(ids.lastCachedBlockAccount, {number: blockNumber}, tableNames.mainnetsidechainAccount);
+  await putDynamoItem(ids.lastCachedBlockAccount, {number: blockNumber}, isMainnet ? tableNames.mainnetAccount : tableNames.mainnetsidechainAccount);
 }
-async function processEventsAccount({addresses, contract, events, currentBlockNumber}) {
+async function processEventsAccount({addresses, contract, events, currentBlockNumber, isMainnet}) {
   const responses = {};
 
   // Get tokenId from each event and add it to the URI table.
@@ -199,7 +207,7 @@ async function processEventsAccount({addresses, contract, events, currentBlockNu
 
     if (owner) {
       try {
-        const res = getDynamoItem(owner, tableNames.mainnetsidechainAccount);
+        const res = getDynamoItem(owner, isMainnet ? tableNames.mainnetAccount : tableNames.mainnetsidechainAccount);
         if (res) {
           responses[owner] = res;
         }
@@ -222,7 +230,7 @@ async function processEventsAccount({addresses, contract, events, currentBlockNu
     await putDynamoItem(entry[0], account, tableNames.mainnetsidechainAccount);
   }));
   
-  await putDynamoItem(ids.lastCachedBlockAccount, {number: currentBlockNumber}, tableNames.mainnetsidechainAccount);
+  await putDynamoItem(ids.lastCachedBlockAccount, {number: currentBlockNumber}, isMainnet ? tableNames.mainnetAccount : tableNames.mainnetsidechainAccount);
 }
 
 async function getPastEvents({
