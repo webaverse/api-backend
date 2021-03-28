@@ -7,7 +7,7 @@ async function initNftCache({addresses, wsContracts, webSockets}) {
   const webSocketContract = wsContracts.mainnetsidechain;
 
   const currentBlockNumber = await webSocketWeb3.eth.getBlockNumber();
-  const lastBlockNumber = (await getDynamoItem(ids.lastCachedBlock, tableNames.mainnetsidechainNft)).number || 0;
+  const lastBlockNumber = (await getDynamoItem(ids.lastCachedBlockNft, tableNames.mainnetsidechainNft)).number || 0;
 
   // Catch up on missing blocks.
   if (currentBlockNumber !== lastBlockNumber) {
@@ -44,7 +44,7 @@ async function initAccountCache({addresses, wsContracts, webSockets}) {
   const webSocketContract = wsContracts.mainnetsidechain;
 
   const currentBlockNumber = await webSocketWeb3.eth.getBlockNumber();
-  const lastBlockNumber = (await getDynamoItem(ids.lastCachedBlock, tableNames.mainnetsidechainAccount)).number || 0;
+  const lastBlockNumber = (await getDynamoItem(ids.lastCachedBlockAccount, tableNames.mainnetsidechainAccount)).number || 0;
 
   console.log('initAccountCache 1', {
     currentBlockNumber,
@@ -62,7 +62,7 @@ async function initAccountCache({addresses, wsContracts, webSockets}) {
       lastBlockNumber,
     });
     if (events.length > 0) {
-      console.log('initAccountCache 3', events);
+      console.log('initAccountCache 3', !!events);
       await processEventsAccount({
         addresses,
         contract: webSocketContract,
@@ -105,6 +105,7 @@ async function processEventNft({addresses, contract, event}) {
       });
 
       if (token.properties.hash) {
+        console.log('loaded token with id', {id: token.id});
         await putDynamoItem(token.id, token, tableNames.mainnetsidechainNft);
       }
     } catch (e) {
@@ -113,7 +114,7 @@ async function processEventNft({addresses, contract, event}) {
   }
 
   const {blockNumber} = event;
-  await putDynamoItem(ids.lastCachedBlock, {number: blockNumber}, tableNames.mainnetsidechainNft);
+  await putDynamoItem(ids.lastCachedBlockNft, {number: blockNumber}, tableNames.mainnetsidechainNft);
 }
 
 async function processEventsNft({addresses, contract, events, currentBlockNumber}) {
@@ -121,9 +122,10 @@ async function processEventsNft({addresses, contract, events, currentBlockNumber
 
   // Get tokenId from each event and add it to the URI table.
   for (const event of events) {
-    const {tokenId} = event.returnValues;
+    let {tokenId} = event.returnValues;
+    tokenId = parseInt(tokenId, 10);
 
-    if (tokenId) {
+    if (!isNaN(tokenId)) {
       try {
         const res = getDynamoItem(tokenId, tableNames.mainnetsidechainNft);
         if (res) {
@@ -145,11 +147,11 @@ async function processEventsNft({addresses, contract, events, currentBlockNumber
 
     // Cache each token.
     if (token.properties.hash) {
-      await putDynamoItem(entry[0], token, tableNames.mainnetsidechainNft);
+      await putDynamoItem(parseInt(entry[0], 10), token, tableNames.mainnetsidechainNft);
     }
   }));
   
-  await putDynamoItem(ids.lastCachedBlock, {number: currentBlockNumber}, tableNames.mainnetsidechainNft);
+  await putDynamoItem(ids.lastCachedBlockNft, {number: currentBlockNumber}, tableNames.mainnetsidechainNft);
 }
 
 async function processEventAccount({addresses, contract, event}) {
@@ -172,7 +174,7 @@ async function processEventAccount({addresses, contract, event}) {
   }
 
   const {blockNumber} = event;
-  await putDynamoItem(ids.lastCachedBlock, {number: blockNumber}, tableNames.mainnetsidechainAccount);
+  await putDynamoItem(ids.lastCachedBlockAccount, {number: blockNumber}, tableNames.mainnetsidechainAccount);
 }
 async function processEventsAccount({addresses, contract, events, currentBlockNumber}) {
   const responses = {};
@@ -207,7 +209,7 @@ async function processEventsAccount({addresses, contract, events, currentBlockNu
     await putDynamoItem(entry[0], account, tableNames.mainnetsidechainAccount);
   }));
   
-  await putDynamoItem(ids.lastCachedBlock, {number: currentBlockNumber}, tableNames.mainnetsidechainAccount);
+  await putDynamoItem(ids.lastCachedBlockAccount, {number: currentBlockNumber}, tableNames.mainnetsidechainAccount);
 }
 
 async function getPastEvents({
