@@ -117,13 +117,12 @@ async function getChainAccount({
 } = {}) {
   const account = {
     address,
-    metadata: {},
   };
 
   await Promise.all(accountKeys.map(async accountKey => {
     const accountValue = await contract.Account.methods.getMetadata(address, accountKey).call();
     // console.log('get value', accountKey, accountValue);
-    account.metadata[accountKey] = accountValue;
+    account[accountKey] = accountValue;
   }));
   
   return account;
