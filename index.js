@@ -16,7 +16,6 @@ const FormData = require('form-data');
 const httpProxy = require('http-proxy');
 const ws = require('ws');
 // const LRU = require('lru');
-const request = require('request');
 const mime = require('mime');
 const AWS = require('aws-sdk');
 const Stripe = require('stripe');
@@ -30,11 +29,28 @@ const {default: formurlencoded} = require('form-urlencoded');
 const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
+const {getDynamoItem, getDynamoAllItems, putDynamoItem} = require('./aws.js');
 // const blockchain = require('./blockchain.js');
+const {initCaches} = require('./cache.js');
 const {getExt, makePromise} = require('./utils.js');
 // const browserManager = require('./browser-manager.js');
+const {tableNames, accountKeys} = require('./constants.js');
+
 const config = require('./config.json');
-const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, discordClientId, discordClientSecret, stripeClientId, stripeClientSecret, infuraProjectId} = config;
+const {
+  accessKeyId,
+  secretAccessKey,
+  /*githubUsername, githubApiKey,*/
+  githubPagesDomain,
+  githubClientId,
+  githubClientSecret,
+  discordClientId,
+  discordClientSecret,
+  stripeClientId,
+  stripeClientSecret,
+  infuraNetwork,
+  infuraProjectId,
+} = config;
 
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
@@ -62,6 +78,7 @@ const stripe = Stripe(stripeClientSecret);
 // const eventsManager = require('./events-manager.js');
 const storageHost = 'https://ipfs.exokit.org';
 const ethereumHost = 'ethereum.exokit.org';
+const mainnetSignatureMessage = `Connecting mainnet address.`;
 
 const Discord = require('discord.js');
 
@@ -83,7 +100,16 @@ const tableName = 'users';
 
 const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
 
-let web3, addresses, abis, contracts, gethNodeUrl;
+let
+  web3,
+  web3sockets,
+  addresses,
+  abis,
+  contracts,
+  wsContracts,
+  ports,
+  gethNodeUrl,
+  gethNodeWSUrl;
 
 Error.stackTraceLimit = 300;
 
@@ -158,7 +184,7 @@ try {
               email: {S: email + '.token'},
             },
           }).promise();
-          
+
           console.log('got login', tokenItem, {email, token});
 
           const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
@@ -187,9 +213,9 @@ try {
                 email: {S: email + '.code'},
               }
             }).promise();
-            
+
             console.log('got verification', codeItem, {email, code});
-            
+
             if (codeItem.Item && codeItem.Item.code.S === code) {
               await ddb.deleteItem({
                 TableName: tableName,
@@ -197,7 +223,7 @@ try {
                   email: {S: email + '.code'},
                 }
               }).promise();
-              
+
               const tokenItem = await ddb.getItem({
                 TableName: tableName,
                 Key: {
@@ -212,7 +238,7 @@ try {
               let stripeState = (tokenItem.Item && tokenItem.Item.stripeState) ? JSON.parse(tokenItem.Item.stripeState.S) : null;
               let stripeConnectState = (tokenItem.Item && tokenItem.Item.stripeConnectState) ? JSON.parse(tokenItem.Item.stripeConnectState.S) : null;
               let githubOauthState = (tokenItem.Item && tokenItem.Item.githubOauthState) ? JSON.parse(tokenItem.Item.githubOauthState.S) : null;
-              
+
               // console.log('old item', tokenItem, {tokens, mnemonic});
 
               const token = crypto.randomBytes(32).toString('base64');
@@ -242,7 +268,7 @@ try {
               }
 
               // console.log('new item', {name, tokens, mnemonic, addr});
-              
+
               await ddb.putItem({
                 TableName: tableName,
                 Item: {
@@ -293,7 +319,7 @@ try {
 
           if (whitelisted) { */
             const code = new Uint32Array(crypto.randomBytes(4).buffer, 0, 1).toString(10).slice(-6);
-            
+
             console.log('verification', {email, code});
 
             await ddb.putItem({
@@ -303,7 +329,7 @@ try {
                 code: {S: code},
               }
             }).promise();
-            
+
             var params = {
                 Destination: {
                     ToAddresses: [email],
@@ -314,19 +340,19 @@ try {
                             Data: `<h1>${code}</h1><h2><a href="https://webaverse.com/login.html?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}">Log in</a></h2>`
                         }
                     },
-                    
+
                     Subject: {
                         Data: `Verification code for Webaverse`
                     }
                 },
                 Source: "noreply@exokit.org"
             };
-        
-            
+
+
             const data = await ses.sendEmail(params).promise();
-            
+
             console.log('got response', data);
-            
+
             _respond(200, JSON.stringify({}));
           /* } else {
             _respond(403, JSON.stringify({
@@ -342,9 +368,9 @@ try {
               email: {S: discordid + '.code'},
             }
           }).promise();
-          
+
           console.log('check item', discordid, JSON.stringify(codeItem.Item, null, 2));
-          
+
           if (codeItem.Item && codeItem.Item.code.S === discordcode) {
             await ddb.deleteItem({
               TableName: tableName,
@@ -353,7 +379,7 @@ try {
               }
             }).promise();
 
-            // generate        
+            // generate
             const tokenItem = await ddb.getItem({
               TableName: tableName,
               Key: {
@@ -364,7 +390,7 @@ try {
             let name = (tokenItem.Item && tokenItem.Item.name) ? tokenItem.Item.name.S : null;
             let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
             // let addr = (tokenItem.Item && tokenItem.Item.address) ? tokenItem.Item.address.S : null;
-            
+
             // console.log('old item', tokenItem, {tokens, mnemonic});
 
             const token = crypto.randomBytes(32).toString('base64');
@@ -422,7 +448,7 @@ try {
               });
             });
             const {access_token} = discordOauthState;
-            
+
             const proxyReq2 = await https.request({
               host: 'discord.com',
               path: '/api/users/@me',
@@ -471,7 +497,7 @@ try {
                   }).promise();
                   return {mnemonic};
                 };
-                
+
                 const user = await _getUser(id) || _genKey(id);
                 const {mnemonic} = user;
 
@@ -514,9 +540,9 @@ try {
               email: {S: twitterid + '.code'},
             }
           }).promise();
-          
+
           console.log('check item', twitterid, JSON.stringify(codeItem.Item, null, 2));
-          
+
           if (codeItem.Item && codeItem.Item.code.S === twittercode) {
             await ddb.deleteItem({
               TableName: tableName,
@@ -525,7 +551,7 @@ try {
               }
             }).promise();
 
-            // generate        
+            // generate
             const tokenItem = await ddb.getItem({
               TableName: tableName,
               Key: {
@@ -536,7 +562,7 @@ try {
             let name = (tokenItem.Item && tokenItem.Item.name) ? tokenItem.Item.name.S : null;
             let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
             // let addr = (tokenItem.Item && tokenItem.Item.address) ? tokenItem.Item.address.S : null;
-            
+
             // console.log('old item', tokenItem, {tokens, mnemonic});
 
             const token = crypto.randomBytes(32).toString('base64');
@@ -579,7 +605,7 @@ try {
         const ip = req.connection.remoteAddress;
         if (autoip === 'src' && mnemonic) {
           console.log('got remote address src', ip);
-          
+
           await ddb.putItem({
             TableName: tableName,
             Item: {
@@ -594,16 +620,16 @@ try {
           }));
         } else if (autoip === 'dst') {
           console.log('got remote address dst', ip);
-          
+
           const codeItem = await ddb.getItem({
             TableName: tableName,
             Key: {
               email: {S: ip + '.ipcode'},
             }
           }).promise();
-          
+
           console.log('check item', ip, JSON.stringify(codeItem.Item, null, 2));
-          
+
           if (codeItem.Item && codeItem.Item.mnemonic.S && Date.now() < +new Date(parseInt(codeItem.Item.timeout.N))) {
             await ddb.deleteItem({
               TableName: tableName,
@@ -775,38 +801,7 @@ const _handleAccounts = isMainChain => async (req, res) => {
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
-  const _getAccount = async address => {
-    const result = {
-      address,
-    };
-    await Promise.all(
-      [
-        'name',
-        'avatarId',
-        'avatarName',
-        'avatarExt',
-        'avatarPreview',
-        'loadout',
-        'homeSpaceId',
-        'homeSpaceName',
-        'homeSpaceExt',
-        'homeSpacePreview',
-        'ftu',
-        'mainnetAddress',
-      ].map(key =>
-        contracts[chainName].Account.methods.getMetadata(address, key).call()
-          .then(async value => {
-            if (key === 'mainnetAddress' && value !== "") {
-              value = await web3.rinkeby.eth.accounts.recover("Connecting mainnet address.", value);
-              result[key] = value;
-            } else {
-              result[key] = value;
-            }
-          })
-      )
-    );
-    return result;
-  };
+  const _getAccount = async address => getDynamoItem(address, tableNames.mainnetsidechainAccount);
 
 try {
   const {method} = req;
@@ -819,29 +814,7 @@ try {
     res.end();
   } else if (method === 'GET') {
     if (p === '/') {
-      const addressMap = {};
-      await Promise.all([
-        contracts[chainName].NFT.getPastEvents('Transfer', {
-          fromBlock: 0,
-          toBlock: 'latest',
-        }).then(entries => {
-          for (const entry of entries) {
-            const address = entry.returnValues.to;
-            addressMap[address] = true;
-          }
-        }),
-        contracts[chainName].FT.getPastEvents('Transfer', {
-          fromBlock: 0,
-          toBlock: 'latest',
-        }).then(entries => {
-          for (const entry of entries) {
-            const address = entry.returnValues.to;
-            addressMap[address] = true;
-          }
-        }),
-      ]);
-      const addresses = Object.keys(addressMap);
-      const accounts = await Promise.all(addresses.map(address => _getAccount(address)));
+      const accounts = await getDynamoAllItems(tableNames.mainnetsidechainAccount);
       _respond(200, JSON.stringify(accounts));
     } else {
       const match = p.match(/^\/(0x[a-f0-9]+)$/i);
@@ -1012,7 +985,7 @@ try {
 
     const proxyRes = await request.post({
       uri: 'https://connect.stripe.com/oauth/token',
-      form: { 
+      form: {
         grant_type: 'authorization_code',
         client_id,
         client_secret,
@@ -1033,7 +1006,7 @@ try {
         reject(err);
       });
     });
-    
+
     // console.log('got json 2', stripeConnectState);
 
     const match = o.query.state.match(/^([^:]+):([^:]+):(.+)$/);
@@ -1394,7 +1367,7 @@ const _formatToken = isMainChain => async (token, storeEntries, mainnetToken) =>
     _fetchAccount(token.owner),
   ]);
 
-  let isMainnet = false; 
+  let isMainnet = false;
   if (mainnetToken && owner.address === addresses[chainName]['NFTProxy'] && mainnetToken.owner !== "0x0000000000000000000000000000000000000000") {
     isMainnet = true;
     owner.address = mainnetToken.owner;
@@ -1512,7 +1485,9 @@ const _formatLand = isMainChain => async (token, storeEntries) => {
 };
 const _copy = o => {
   const oldO = o;
+  // copy array
   const newO = JSON.parse(JSON.stringify(oldO));
+  // decorate array
   for (const k in oldO) {
     newO[k] = oldO[k];
   }
@@ -1562,25 +1537,33 @@ const _getChainOwnerNft = contractName => (isMainChain, isFront, isAll) => async
     return null;
   }
 };
+
 const _getStoreEntries = async isMainChain => {
-  const chainName = isMainChain ? 'mainnetsidechain' : 'rinkebysidechain';
-  const numStores = await contracts[chainName].Trade.methods.numStores().call();
+  const chainName = isMainChain
+    ? 'mainnetsidechain'
+    : 'rinkebysidechain';
+
+  const numStores =
+    await contracts[chainName].Trade.methods.numStores().call();
+
   const promises = Array(numStores);
+
   for (let i = 0; i < numStores; i++) {
-    promises[i] = contracts[chainName].Trade.methods.getStoreByIndex(i + 1).call()
+    promises[i] =
+      contracts[chainName].Trade.methods.getStoreByIndex(i + 1)
+      .call()
       .then(store => {
         if (store.live) {
           const id = parseInt(store.id, 10);
           const seller = store.seller.toLowerCase();
           const tokenId = parseInt(store.tokenId, 10);
           const price = parseInt(store.price, 10);
-          const entry = {
+          return {
             id,
             seller,
             tokenId,
             price,
           };
-          return entry;
         } else {
           return null;
         }
@@ -1603,9 +1586,12 @@ const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, 
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
-  const _maybeGetStoreEntries = () => (contractName === 'NFT' && !isFront) ? _getStoreEntries(isMainChain) : Promise.resolve([]);
+  /* const _maybeGetStoreEntries = () =>
+    (contractName === 'NFT' && !isFront)
+      ? _getStoreEntries(isMainChain)
+      : Promise.resolve([]); */
 
-try {
+  try {
   const {method} = req;
 
   if (method === 'GET') {
@@ -1614,61 +1600,47 @@ try {
     if (match = p.match(/^\/([0-9]+)$/)) {
       const tokenId = parseInt(match[1], 10);
 
-      const storeEntries = await _maybeGetStoreEntries();
-      const token = await _getChainNft(contractName)(isMainChain, isFront, isAll)(tokenId, storeEntries);
+      let o = await getDynamoItem(tokenId, tableNames.mainnetsidechainNft);
+      let token = o.Item;
 
       _setCorsHeaders(res);
-      res.setHeader('Content-Type', 'application/json');
-      _respond(200, JSON.stringify(token));
-      /* res.end(JSON.stringify({
-        "name": filename,
-        "description": 'Hash ' + hash,
-        "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.png',
-        "external_url": "https://app.webaverse.com?h=" + p.slice(1),
-        // "background_color": "000000",
-        "animation_url": `${storageHost}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
-        // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
-        "properties": {
-                "filename": filename,
-                "hash": hash,
-                "ext": ext,
-                "rich_property": {
-                        "name": "Name",
-                        "value": "123",
-                        "display_value": "123 Example Value",
-                        "class": "emphasis",
-                        "css": {
-                                "color": "#ffffff",
-                                "font-weight": "bold",
-                                "text-decoration": "underline"
-                        }
-                },
-                "array_property": {
-                        "name": "Name",
-                        "value": [1,2,3,4],
-                        "class": "emphasis"
-                }
-        }
-      })); */
+      if (token) {
+        res.setHeader('Content-Type', 'application/json');
+        _respond(200, JSON.stringify(token));
+      } else {
+        _respond(404, 'not found');
+      }
     } else if (match = p.match(/^\/([0-9]+)-([0-9]+)$/)) {
       const startTokenId = parseInt(match[1], 10);
       const endTokenId = parseInt(match[2], 10);
 
       if (startTokenId >= 1 && endTokenId > startTokenId && (endTokenId - startTokenId) <= 100) {
-        const storeEntries = await _maybeGetStoreEntries();
+        // const numTokens = endTokenId - startTokenId;
+        // const promises = Array(numTokens);
         
-        const numTokens = endTokenId - startTokenId;
-        const promises = Array(numTokens);
-        for (let i = 0; i < numTokens; i++) {
-          promises[i] = _getChainNft(contractName)(isMainChain, isFront, isAll)(startTokenId + i, storeEntries);
-        }
-        let tokens = await Promise.all(promises);
+        const params = {
+          // KeyConditionExpression: 'id >= :idLow',
+          FilterExpression: "#yr BETWEEN :idLow AND :idHigh",
+          ExpressionAttributeNames: {
+            "#yr": "id",
+          },
+          ExpressionAttributeValues: {
+            ':idLow' : startTokenId,
+            ':idHigh' : endTokenId,
+          },
+          // ProjectionExpression: 'Episode, Title, Subtitle',
+          // FilterExpression: 'contains (Subtitle, :topic)',
+          TableName: tableNames.mainnetsidechainNft,
+        };
+        const o = await ddbd.scan(params).promise();
+        // console.log('got o', o);
+        let tokens = o.Items;
         tokens = tokens.filter(token => token !== null);
         tokens.sort((a, b) => a.id - b.id);
         if (contractName === 'NFT') {
           tokens = tokens.filter((token, i) => { // filter unique hashes
             if (token.properties.hash === "" && token.owner.address === "0x0000000000000000000000000000000000000000") {
-                return false;
+              return false;
             }
             for (let j = 0; j < i; j++) {
               if (tokens[j].properties.hash === token.properties.hash && token.properties.hash !== "") {
@@ -1720,38 +1692,83 @@ try {
     } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
       const address = match[1];
 
-      const signature = await contracts['mainnetsidechain'].Account.methods.getMetadata(address, "mainnetAddress").call();
-
-      let mainnetAddress = null;
-      if (signature !== "") {
-        mainnetAddress = await web3.rinkeby.eth.accounts.recover("Connecting mainnet address.", signature);
-      }
-
       const [
-        nftBalance,
-        storeEntries,
+        mainnetTokens,
+        sidechainTokens,
       ] = await Promise.all([
-        contracts[chainName][contractName].methods.balanceOf(address).call(),
-        _maybeGetStoreEntries(),
+        (async () => {
+          if (isAll) {
+            let mainnetAddress = null;
+            const account = await getDynamoItem(address, tableNames.mainnetsidechainAccount);
+            const signature = account?.metadata?.['mainnetAddress'];
+            if (signature) {
+              mainnetAddress = await web3.rinkeby.eth.accounts.recover(mainnetSignatureMessage, signature);
+            }
+            if (mainnetAddress) {
+              const o = await ddbd.scan({
+                TableName: tableNames.mainnetNft,
+                // ProjectionExpression: "#yr, title, info.rating",
+                FilterExpression: "#yr = :end_yr",
+                ExpressionAttributeNames: {
+                  "#yr": "ownerAddress",
+                },
+                ExpressionAttributeValues: {
+                  ":end_yr": address,
+                },
+                /* ScanFilter: {
+                  'address': {
+                    ComparisonOperator: 'EQ',
+                    AttributeValueList: [
+                      // someValue
+                      address,
+                    ],
+                  },
+                }, */
+                IndexName: 'ownerAddress-id-index',
+              }).promise();
+              return (o && o.Items) || [];
+
+              /* const nftMainnetBalance = await contracts[otherChainName][contractName].methods.balanceOf(mainnetAddress).call();
+              const mainnetPromises = Array(nftMainnetBalance);
+              for (let i = 0; i < nftMainnetBalance; i++) {
+                let id = await _getChainOwnerNft(contractName)(isMainChain, true, isAll)(address, i, storeEntries);
+                mainnetPromises[i] = _getChainNft(contractName)(isMainChain, isFront, isAll)(id.id, storeEntries);
+              }
+              let mainnetTokens = await Promise.all(mainnetPromises);
+              return mainnetTokens; */
+            } else {
+              return [];
+            }
+          } else {
+            return [];
+          }
+        })(),
+        (async () => {
+          const o = await ddbd.scan({
+            TableName: tableNames.mainnetsidechainNft,
+            // ProjectionExpression: "#yr, title, info.rating",
+            FilterExpression: "#yr = :end_yr",
+            ExpressionAttributeNames: {
+              "#yr": "ownerAddress",
+            },
+            ExpressionAttributeValues: {
+              ":end_yr": address,
+            },
+            /* ScanFilter: {
+              'address': {
+                ComparisonOperator: 'EQ',
+                AttributeValueList: [
+                  // someValue
+                  address,
+                ],
+              },
+            }, */
+            IndexName: 'ownerAddress-id-index',
+          }).promise();
+          return (o && o.Items) || [];
+        })(),
       ]);
-
-      const promises = Array(nftBalance);
-      for (let i = 0; i < nftBalance; i++) {
-        promises[i] = _getChainOwnerNft(contractName)(isMainChain, isFront)(address, i, storeEntries);
-      }
-      let tokens = await Promise.all(promises);
-
-      if (isAll && mainnetAddress) {
-        const nftMainnetBalance = await contracts[otherChainName][contractName].methods.balanceOf(mainnetAddress).call();
-        const mainnetPromises = Array(nftMainnetBalance);
-        for (let i = 0; i < nftMainnetBalance; i++) {
-          let id = await _getChainOwnerNft(contractName)(isMainChain, true, isAll)(address, i, storeEntries);
-          mainnetPromises[i] = _getChainNft(contractName)(isMainChain, isFront, isAll)(id.id, storeEntries);
-        }
-        let mainnetTokens = await Promise.all(mainnetPromises);
-
-        tokens = tokens.concat(mainnetTokens);
-      }
+      let tokens = sidechainTokens.concat(mainnetTokens);
       // tokens = tokens.filter(token => token !== null);
       tokens.sort((a, b) => a.id - b.id);
       if (contractName === 'NFT') {
@@ -1810,7 +1827,7 @@ try {
     for (let i = 0; i < storeEntries.length; i++) {
       const store = storeEntries[i]
       const {tokenId, seller} = store;
-      
+
       if (tokenId) {
         const token = await _getChainToken(isMainChain, false)(tokenId, storeEntries);
 
@@ -1869,7 +1886,7 @@ proxy.on('error', err => {
 const presenceWss = new ws.Server({
   noServer: true,
 });
-presenceWss.on('connection', async (s, req/*, channels, saveHtml*/) => {
+/*presenceWss.on('connection', async (s, req/!*, channels, saveHtml*!/) => {
   const _transaction = tx => {
     s.send(JSON.stringify(tx));
   };
@@ -1877,7 +1894,7 @@ presenceWss.on('connection', async (s, req/*, channels, saveHtml*/) => {
   s.on('close', () => {
     eventsManager.removeListener('transaction', _transaction);
   });
-});
+});*/
 
 const _req = protocol => (req, res) => {
 try {
@@ -2053,7 +2070,7 @@ const _ws = protocol => (req, socket, head) => {
         // req.headers['user-agent'] = 'curl/1';
         req.headers['origin'] = 'https://hubs.mozilla.com';
         delete req.headers['referer'];
-        
+
         console.log('redirect', [host, req.url, req.headers]);
 
         proxy.ws(req, socket, head, {
@@ -2062,7 +2079,7 @@ const _ws = protocol => (req, socket, head) => {
         return;
       }
     }
-    
+
     socket.destroy();
   }
 };
@@ -2070,27 +2087,82 @@ const _ws = protocol => (req, socket, head) => {
 {
   addresses = await fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
-  const ethereumHostAddress = await new Promise((accept, reject) => {
-    dns.resolve4(ethereumHost, (err, addresses) => {
-      if (!err) {
-        if (addresses.length > 0) {
-          accept(addresses[0]);
+  const [
+    ethereumHostAddress,
+    newPorts,
+  ] = await Promise.all([
+    new Promise((accept, reject) => {
+      dns.resolve4(ethereumHost, (err, addresses) => {
+        if (!err) {
+          if (addresses.length > 0) {
+            accept(addresses[0]);
+          } else {
+            reject(new Error('no addresses resolved for ' + ethereumHost));
+          }
         } else {
-          reject(new Error('no addresses resolved for ' + ethereumHostname));
+          reject(err);
         }
-      } else {
-        reject(err);
-      }
-    });
-  });
-  gethNodeUrl = `http://${ethereumHostAddress}`;
+      });
+    }),
+    (async () => {
+      const j = await new Promise((accept, reject) => {
+        const proxyReq = https.request('https://contracts.webaverse.com/config/ports.js', proxyRes => {
+          const bs = [];
+          proxyRes.on('data', b => {
+            bs.push(b);
+          });
+          proxyRes.on('end', () => {
+            accept(JSON.parse(Buffer.concat(bs).toString('utf8').slice('export default'.length)));
+          });
+          proxyRes.on('error', err => {
+            reject(err);
+          });
+        });
+        proxyReq.end();
+      });
+      return j;
+    })(),
+  ]);
   
+  // console.log('ports', ports);
+  
+  ports = newPorts;
+  gethNodeUrl = `http://${ethereumHostAddress}`;
+  gethNodeWSUrl = `ws://${ethereumHostAddress}`;
+
   web3 = {
-    mainnet: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`)),
-    mainnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8545')),
-    rinkeby: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
-    rinkebysidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8546')),
+    mainnet: new Web3(new Web3.providers.HttpProvider(
+      `https://mainnet.infura.io/v3/${infuraProjectId}`
+    )),
+    mainnetsidechain: new Web3(new Web3.providers.HttpProvider(
+      `${gethNodeUrl}:${ports.mainnetsidechain}`
+    )),
+
+    rinkeby: new Web3(new Web3.providers.HttpProvider(
+      `https://rinkeby.infura.io/v3/${infuraProjectId}`
+    )),
+    rinkebysidechain: new Web3(new Web3.providers.HttpProvider(
+      `${gethNodeUrl}:${ports.rinkebysidechain}`
+    )),
   };
+
+  web3sockets = {
+    mainnet: new Web3(new Web3.providers.WebsocketProvider(
+      `wss://mainnet.infura.io/ws/v3/${infuraProjectId}`
+    )),
+    mainnetsidechain: new Web3(new Web3.providers.WebsocketProvider(
+      `${gethNodeWSUrl}:${ports.mainnetsidechainWs}`
+    )),
+
+    rinkeby: new Web3(new Web3.providers.WebsocketProvider(
+      `wss://rinkeby.infura.io/ws/v3/${infuraProjectId}`
+    )),
+    rinkebysidechain: new Web3(new Web3.providers.WebsocketProvider(
+      `${gethNodeWSUrl}:${ports.rinkebysidechainWs}`
+    )),
+  };
+  
+  console.log('ws mainnet url:', `${gethNodeWSUrl}:${ports.mainnetsidechainWs}`);
 
   contracts = {
     mainnet: {
@@ -2135,6 +2207,81 @@ const _ws = protocol => (req, socket, head) => {
     },
   };
 
+  wsContracts = {
+    mainnet: {
+      Account: new web3sockets.mainnet.eth.Contract(
+        abis.Account, addresses.mainnet.Account),
+      FT: new web3sockets.mainnet.eth.Contract(
+        abis.FT, addresses.mainnet.FT),
+      FTProxy: new web3sockets.mainnet.eth.Contract(
+        abis.FTProxy, addresses.mainnet.FTProxy),
+      NFT: new web3sockets.mainnet.eth.Contract(
+        abis.NFT, addresses.mainnet.NFT),
+      NFTProxy: new web3sockets.mainnet.eth.Contract(
+        abis.NFTProxy, addresses.mainnet.NFTProxy),
+      Trade: new web3sockets.mainnet.eth.Contract(
+        abis.Trade, addresses.mainnet.Trade),
+      LAND: new web3sockets.mainnet.eth.Contract(
+        abis.LAND, addresses.mainnet.LAND),
+      LANDProxy: new web3sockets.mainnet.eth.Contract(
+        abis.LANDProxy, addresses.mainnet.LANDProxy),
+    },
+    mainnetsidechain: {
+      Account: new web3sockets.mainnetsidechain.eth.Contract(
+        abis.Account, addresses.mainnetsidechain.Account),
+      FT: new web3sockets.mainnetsidechain.eth.Contract(
+        abis.FT, addresses.mainnetsidechain.FT),
+      FTProxy: new web3sockets.mainnetsidechain.eth.Contract(
+        abis.FTProxy, addresses.mainnetsidechain.FTProxy),
+      NFT: new web3sockets.mainnetsidechain.eth.Contract(
+        abis.NFT, addresses.mainnetsidechain.NFT),
+      NFTProxy: new web3sockets.mainnetsidechain.eth.Contract(
+        abis.NFTProxy, addresses.mainnetsidechain.NFTProxy),
+      Trade: new web3sockets.mainnetsidechain.eth.Contract(
+        abis.Trade, addresses.mainnetsidechain.Trade),
+      LAND: new web3sockets.mainnetsidechain.eth.Contract(
+        abis.LAND, addresses.mainnetsidechain.LAND),
+      LANDProxy: new web3sockets.mainnetsidechain.eth.Contract(
+        abis.LANDProxy, addresses.mainnetsidechain.LANDProxy),
+    },
+    rinkeby: {
+      Account: new web3sockets.rinkeby.eth.Contract(
+        abis.Account, addresses.rinkeby.Account),
+      FT: new web3sockets.rinkeby.eth.Contract(
+        abis.FT, addresses.rinkeby.FT),
+      FTProxy: new web3sockets.rinkeby.eth.Contract(
+        abis.FTProxy, addresses.rinkeby.FTProxy),
+      NFT: new web3sockets.rinkeby.eth.Contract(
+        abis.NFT, addresses.rinkeby.NFT),
+      NFTProxy: new web3sockets.rinkeby.eth.Contract(
+        abis.NFTProxy, addresses.rinkeby.NFTProxy),
+      Trade: new web3sockets.rinkeby.eth.Contract(
+        abis.Trade, addresses.rinkeby.Trade),
+      LAND: new web3sockets.rinkeby.eth.Contract(
+        abis.LAND, addresses.rinkeby.LAND),
+      LANDProxy: new web3sockets.rinkeby.eth.Contract(
+        abis.LANDProxy, addresses.rinkeby.LANDProxy),
+    },
+    rinkebysidechain: {
+      Account: new web3sockets.rinkebysidechain.eth.Contract(
+        abis.Account, addresses.rinkebysidechain.Account),
+      FT: new web3sockets.rinkebysidechain.eth.Contract(
+        abis.FT, addresses.rinkebysidechain.FT),
+      FTProxy: new web3sockets.rinkebysidechain.eth.Contract(
+        abis.FTProxy, addresses.rinkebysidechain.FTProxy),
+      NFT: new web3sockets.rinkebysidechain.eth.Contract(
+        abis.NFT, addresses.rinkebysidechain.NFT),
+      NFTProxy: new web3sockets.rinkebysidechain.eth.Contract(
+        abis.NFTProxy, addresses.rinkebysidechain.NFTProxy),
+      Trade: new web3sockets.rinkebysidechain.eth.Contract(
+        abis.Trade, addresses.rinkebysidechain.Trade),
+      LAND: new web3sockets.rinkebysidechain.eth.Contract(
+        abis.LAND, addresses.rinkebysidechain.LAND),
+      LANDProxy: new web3sockets.rinkebysidechain.eth.Contract(
+        abis.LANDProxy, addresses.rinkebysidechain.LANDProxy),
+    },
+  };
+
   /* web3.mainnetsidechain.eth.getPastLogs({
     fromBlock: 0,
     toBlock: 'latest',
@@ -2143,6 +2290,14 @@ const _ws = protocol => (req, socket, head) => {
     console.log('got res', result);
   }); */
 }
+
+// Initialize DynamoDB cache.
+initCaches({
+  addresses,
+  contracts,
+  wsContracts,
+  webSockets: web3sockets,
+}).catch(console.error);
 
 const server = http.createServer(_req('http:'));
 server.on('upgrade', _ws('http:'));
