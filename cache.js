@@ -33,7 +33,7 @@ async function initNftCache({addresses, wsContracts, webSockets, isMainnet}) {
   // Watch for new events.
   await new Promise((accept, reject) => {
     (isMainnet ? wsContracts.mainnet : wsContracts.mainnetsidechain).NFT.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
-      console.debug('EVENT:', event);
+      console.debug('nft event', event);
       if (error) {
         console.log('Error getting event: ' + error);
         reject(error);
@@ -89,7 +89,7 @@ async function initAccountCache({addresses, wsContracts, webSockets, isMainnet})
   /* // Watch for new events.
   await new Promise((accept, reject) => {
     (isMainnet ? wsContracts.mainnet : wsContracts.mainnetsidechain).Account.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
-      console.debug('EVENT:', event);
+      console.debug('account event', event);
       if (error) {
         console.log('Error getting event: ' + error);
         reject(error);
