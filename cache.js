@@ -59,11 +59,11 @@ async function initAccountCache({addresses, wsContracts, webSockets, isMainnet})
     isMainnet ? tableNames.mainnetAccount : tableNames.mainnetsidechainAccount
   )).number || 0;
 
-  console.log('initAccountCache 1', {
+  /* console.log('initAccountCache 1', {
     currentBlockNumber,
     lastBlockNumber,
     // webSocketContract,
-  });
+  }); */
 
   // Catch up on missing blocks.
   if (currentBlockNumber !== lastBlockNumber) {
@@ -86,7 +86,7 @@ async function initAccountCache({addresses, wsContracts, webSockets, isMainnet})
     }
   }
 
-  /* // Watch for new events.
+  // Watch for new events.
   await new Promise((accept, reject) => {
     (isMainnet ? wsContracts.mainnet : wsContracts.mainnetsidechain).Account.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
       console.debug('account event', event);
@@ -103,7 +103,7 @@ async function initAccountCache({addresses, wsContracts, webSockets, isMainnet})
         accept();
       }
     });
-  }); */
+  });
 }
 async function initCaches({addresses, wsContracts, webSockets}) {
   await Promise.all([
