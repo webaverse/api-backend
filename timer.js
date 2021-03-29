@@ -9,4 +9,4 @@ class Timer {
     console.log(this.name, timeDiff);
   }
 }
-export default Timer;
+module.exports = Timer;
