@@ -176,19 +176,24 @@ async function processEventsNft({addresses, contract, events, currentBlockNumber
 }
 
 async function processEventAccount({addresses, contract, event, isMainnet}) {
-  const {tokenId} = event.returnValues;
+  // console.log('got account event', event);
+  const {owner} = event.returnValues;
 
-  if (tokenId) {
+  if (owner) {
     try {
-      const token = await getChainAccount({
-        addresses,
-        // contract,
-        // tokenId,
-      });
+      // const o = await getDynamoItem(owner, isMainnet ? tableNames.mainnetAccount : tableNames.mainnetsidechainAccount);
 
-      if (token.properties.hash) {
-        await putDynamoItem(token.id, token, isMainnet ? tableNames.mainnetAccount : tableNames.mainnetsidechainAccount);
-      }
+      const account = await getChainAccount({
+        addresses,
+        contract,
+        address: owner,
+      });
+      
+      // console.log('load account into cache', owner, account);
+
+      // if (token.properties.hash) {
+        await putDynamoItem(owner, account, isMainnet ? tableNames.mainnetAccount : tableNames.mainnetsidechainAccount);
+      // }
     } catch (e) {
       console.error(e);
     }
