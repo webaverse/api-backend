@@ -66,6 +66,7 @@ const decodeSecret = (mnemonic, {ciphertext, tag}) => {
   return receivedPlaintext;
 };
 
+let contracts = null;
 const loadPromise = (async () => {
   const ethereumHost = 'ethereum.exokit.org';
 
@@ -93,7 +94,7 @@ const loadPromise = (async () => {
   const addresses = await fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const chainIds = await fetch('https://contracts.webaverse.com/config/chain-id.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
-  const contracts = await (async () => {
+  contracts = await (async () => {
     console.log('got addresses', addresses);
     const result = {};
     [
