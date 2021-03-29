@@ -33,6 +33,7 @@ const {getDynamoItem, getDynamoAllItems, putDynamoItem} = require('./aws.js');
 // const blockchain = require('./blockchain.js');
 const {initCaches} = require('./cache.js');
 const {getExt, makePromise} = require('./utils.js');
+const Timer = require('./timer.js');
 // const browserManager = require('./browser-manager.js');
 const {tableNames, accountKeys} = require('./constants.js');
 
@@ -1573,19 +1574,8 @@ const _getStoreEntries = async isMainChain => {
   storeEntries = storeEntries.filter(store => store !== null);
   return storeEntries;
 };
-class Timer {
-  constructor(name) {
-    this.name = name;
-    this.startTime = Date.now();
-  }
-  end() {
-    const now = Date.now();
-    const timeDiff = (now - this.startTime) / 1000;
-    console.log(this.name, timeDiff);
-  }
-}
 const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, res) => {
-  const t = new Timer('handle nft');
+  // const t = new Timer('handle nft');
   
   const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
   const otherChainName = (isMainChain ? 'mainnet' : 'rinkeby');
@@ -1594,7 +1584,7 @@ const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, 
     _setCorsHeaders(res);
     res.end(body);
     
-    t.end();
+    // t.end();
   };
   const _setCorsHeaders = res => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -1616,9 +1606,9 @@ const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, 
       const tokenId = parseInt(match[1], 10);
 
 
-      const t = new Timer('get nft');
+      // const t = new Timer('get nft');
       let o = await getDynamoItem(tokenId, tableNames.mainnetsidechainNft);
-      t.end();
+      // t.end();
       let token = o.Item;
 
       _setCorsHeaders(res);
