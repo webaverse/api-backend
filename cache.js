@@ -67,14 +67,14 @@ async function initAccountCache({addresses, wsContracts, webSockets, isMainnet})
 
   // Catch up on missing blocks.
   if (currentBlockNumber !== lastBlockNumber) {
-    console.log('initAccountCache 2');
+    // console.log('initAccountCache 2');
     
     const events = await getPastEvents({
       contract: webSocketContract,
       contractName: 'Account',
       lastBlockNumber,
     });
-    console.log('initAccountCache 3', events.length);
+    // console.log('initAccountCache 3', events.length);
     if (events.length > 0) {
       await processEventsAccount({
         addresses,
