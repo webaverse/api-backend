@@ -1574,7 +1574,7 @@ const _getStoreEntries = async isMainChain => {
   storeEntries = storeEntries.filter(store => store !== null);
   return storeEntries;
 };
-const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, res) => {
+const _handleCachedNft = contractName => (isMainChain, isFront, isAll) => async (req, res) => {
   // const t = new Timer('handle nft');
   
   const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
@@ -1809,8 +1809,202 @@ const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, 
   }));
 }
 };
-const _handleTokens = _handleNft('NFT');
-const _handleLand = _handleNft('LAND');
+const _handleChainNft = contractName => (isMainChain, isFront, isAll) => async (req, res) => {
+  const chainName = (isMainChain ? 'mainnet' : 'rinkeby') + (isFront ? '' : 'sidechain');
+  const otherChainName = (isMainChain ? 'mainnet' : 'rinkeby');
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+  const _maybeGetStoreEntries = () => (contractName === 'NFT' && !isFront) ? _getStoreEntries(isMainChain) : Promise.resolve([]);
+
+try {
+  const {method} = req;
+
+  if (method === 'GET') {
+    const {pathname: p} = url.parse(req.url, true);
+    let match;
+    if (match = p.match(/^\/([0-9]+)$/)) {
+      const tokenId = parseInt(match[1], 10);
+
+      const storeEntries = await _maybeGetStoreEntries();
+      const token = await _getChainNft(contractName)(isMainChain, isFront, isAll)(tokenId, storeEntries);
+
+      _setCorsHeaders(res);
+      res.setHeader('Content-Type', 'application/json');
+      _respond(200, JSON.stringify(token));
+      /* res.end(JSON.stringify({
+        "name": filename,
+        "description": 'Hash ' + hash,
+        "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.png',
+        "external_url": "https://app.webaverse.com?h=" + p.slice(1),
+        // "background_color": "000000",
+        "animation_url": `${storageHost}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+        // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
+        "properties": {
+                "filename": filename,
+                "hash": hash,
+                "ext": ext,
+                "rich_property": {
+                        "name": "Name",
+                        "value": "123",
+                        "display_value": "123 Example Value",
+                        "class": "emphasis",
+                        "css": {
+                                "color": "#ffffff",
+                                "font-weight": "bold",
+                                "text-decoration": "underline"
+                        }
+                },
+                "array_property": {
+                        "name": "Name",
+                        "value": [1,2,3,4],
+                        "class": "emphasis"
+                }
+        }
+      })); */
+    } else if (match = p.match(/^\/([0-9]+)-([0-9]+)$/)) {
+      const startTokenId = parseInt(match[1], 10);
+      const endTokenId = parseInt(match[2], 10);
+
+      if (startTokenId >= 1 && endTokenId > startTokenId && (endTokenId - startTokenId) <= 100) {
+        const storeEntries = await _maybeGetStoreEntries();
+        
+        const numTokens = endTokenId - startTokenId;
+        const promises = Array(numTokens);
+        for (let i = 0; i < numTokens; i++) {
+          promises[i] = _getChainNft(contractName)(isMainChain, isFront, isAll)(startTokenId + i, storeEntries);
+        }
+        let tokens = await Promise.all(promises);
+        tokens = tokens.filter(token => token !== null);
+        tokens.sort((a, b) => a.id - b.id);
+        if (contractName === 'NFT') {
+          tokens = tokens.filter((token, i) => { // filter unique hashes
+            if (token.properties.hash === "" && token.owner.address === "0x0000000000000000000000000000000000000000") {
+                return false;
+            }
+            for (let j = 0; j < i; j++) {
+              if (tokens[j].properties.hash === token.properties.hash && token.properties.hash !== "") {
+                return false;
+              }
+            }
+            return true;
+          });
+        } else if (contractName === 'LAND') {
+          tokens = tokens.filter(token => !!token.name);
+        }
+
+        _setCorsHeaders(res);
+        res.setHeader('Content-Type', 'application/json');
+        _respond(200, JSON.stringify(tokens));
+        /* res.end(JSON.stringify({
+          "name": filename,
+          "description": 'Hash ' + hash,
+          "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.png',
+          "external_url": "https://app.webaverse.com?h=" + p.slice(1),
+          // "background_color": "000000",
+          "animation_url": `${storageHost}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+          // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
+          "properties": {
+                  "filename": filename,
+                  "hash": hash,
+                  "ext": ext,
+                  "rich_property": {
+                          "name": "Name",
+                          "value": "123",
+                          "display_value": "123 Example Value",
+                          "class": "emphasis",
+                          "css": {
+                                  "color": "#ffffff",
+                                  "font-weight": "bold",
+                                  "text-decoration": "underline"
+                          }
+                  },
+                  "array_property": {
+                          "name": "Name",
+                          "value": [1,2,3,4],
+                          "class": "emphasis"
+                  }
+          }
+        })); */
+      } else {
+        _respond(400, 'invalid range');
+      }
+    } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
+      const address = match[1];
+
+      const signature = await contracts['mainnetsidechain'].Account.methods.getMetadata(address, "mainnetAddress").call();
+
+      let mainnetAddress = null;
+      if (signature !== "") {
+        mainnetAddress = await web3.rinkeby.eth.accounts.recover("Connecting mainnet address.", signature);
+      }
+
+      const [
+        nftBalance,
+        storeEntries,
+      ] = await Promise.all([
+        contracts[chainName][contractName].methods.balanceOf(address).call(),
+        _maybeGetStoreEntries(),
+      ]);
+
+      const promises = Array(nftBalance);
+      for (let i = 0; i < nftBalance; i++) {
+        promises[i] = _getChainOwnerNft(contractName)(isMainChain, isFront)(address, i, storeEntries);
+      }
+      let tokens = await Promise.all(promises);
+
+      if (isAll && mainnetAddress) {
+        const nftMainnetBalance = await contracts[otherChainName][contractName].methods.balanceOf(mainnetAddress).call();
+        const mainnetPromises = Array(nftMainnetBalance);
+        for (let i = 0; i < nftMainnetBalance; i++) {
+          let id = await _getChainOwnerNft(contractName)(isMainChain, true, isAll)(address, i, storeEntries);
+          mainnetPromises[i] = _getChainNft(contractName)(isMainChain, isFront, isAll)(id.id, storeEntries);
+        }
+        let mainnetTokens = await Promise.all(mainnetPromises);
+
+        tokens = tokens.concat(mainnetTokens);
+      }
+      // tokens = tokens.filter(token => token !== null);
+      tokens.sort((a, b) => a.id - b.id);
+      if (contractName === 'NFT') {
+        tokens = tokens.filter((token, i) => { // filter unique hashes
+          if (token === "0" || (token.properties.hash === "" && token.owner.address === "0x0000000000000000000000000000000000000000")) {
+            return false;
+          }
+          for (let j = 0; j < i; j++) {
+            if (tokens[j].properties.hash === token.properties.hash && token.properties.hash !== "") {
+              return false;
+            }
+          }
+          return true;
+        });
+      } else if (contractName === 'LAND') {
+        tokens = tokens.filter(token => !!token.name);
+      }
+      _respond(200, JSON.stringify(tokens));
+    } else {
+      _respond(404, 'not found');
+    }
+  } else {
+    _respond(404, 'not found');
+  }
+} catch(err) {
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
+}
+};
+const _handleTokens = _handleCachedNft('NFT');
+const _handleLand = _handleChainNft('LAND');
 
 const _handleStore = isMainChain => async (req, res) => {
   const _respond = (statusCode, body) => {
