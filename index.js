@@ -35,7 +35,7 @@ const {initCaches} = require('./cache.js');
 const {getExt, makePromise} = require('./utils.js');
 const Timer = require('./timer.js');
 // const browserManager = require('./browser-manager.js');
-const {tableNames, accountKeys} = require('./constants.js');
+const {tableNames, accountKeys, ids} = require('./constants.js');
 
 const config = require('./config.json');
 const {
