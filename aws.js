@@ -58,7 +58,7 @@ async function getDynamoItem(id, TableName) {
     TableName,
     Key: {
       id,
-    }
+    },
   };
 
   try {
