@@ -1601,9 +1601,9 @@ const _handleNft = contractName => (isMainChain, isFront, isAll) => async (req, 
       const tokenId = parseInt(match[1], 10);
 
 
-      console.time('get nft 1');
+      console.time('get nft');
       let o = await getDynamoItem(tokenId, tableNames.mainnetsidechainNft);
-      console.timeEnd('get nft 2');
+      console.timeEnd('get nft');
       let token = o.Item;
 
       _setCorsHeaders(res);
