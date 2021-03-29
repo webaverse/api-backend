@@ -115,7 +115,7 @@ async function initCaches({addresses, wsContracts, webSockets}) {
 }
 
 async function processEventNft({addresses, contract, event, isMainnet}) {
-  const {tokenId} = event.returnValues;
+  let {tokenId} = event.returnValues;
 
   if (tokenId) {
     try {
@@ -126,8 +126,8 @@ async function processEventNft({addresses, contract, event, isMainnet}) {
       });
 
       if (token.properties.hash) {
-        // console.log('loaded token with id', {id: token.id});
-        await putDynamoItem(token.id, token, isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft);
+        tokenId = parseInt(tokenId, 10);
+        await putDynamoItem(tokenId, token, isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft);
       }
     } catch (e) {
       console.error(e);
@@ -168,7 +168,8 @@ async function processEventsNft({addresses, contract, events, currentBlockNumber
 
     // Cache each token.
     if (token.properties.hash) {
-      await putDynamoItem(parseInt(entry[0], 10), token, isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft);
+      const tokenId = parseInt(entry[0], 10);
+      await putDynamoItem(tokenId, token, isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft);
     }
   }));
   
