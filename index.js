@@ -1734,7 +1734,7 @@ const _handleCachedNft = contractName => (isMainChain, isFront, isAll) => async 
                     ],
                   },
                 }, */
-                IndexName: 'ownerAddress-id-index',
+                IndexName: 'ownerAddress-index',
               }).promise();
               return (o && o.Items) || [];
 

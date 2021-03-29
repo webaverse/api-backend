@@ -1,4 +1,4 @@
-const {getDynamoItem, putDynamoItem} = require('./aws.js');
+const {ddbd, getDynamoItem, putDynamoItem} = require('./aws.js');
 const {getChainNft, getChainAccount} = require('./tokens.js');
 const {ids, tableNames, accountKeys} = require('./constants.js');
 
@@ -115,7 +115,7 @@ async function initCaches({addresses, wsContracts, webSockets}) {
 }
 
 async function processEventNft({addresses, contract, event, isMainnet}) {
-  let {tokenId} = event.returnValues;
+  let {tokenId, hash, key, value} = event.returnValues;
 
   if (tokenId) {
     try {
@@ -127,11 +127,41 @@ async function processEventNft({addresses, contract, event, isMainnet}) {
 
       if (token.properties.hash) {
         tokenId = parseInt(tokenId, 10);
+
         await putDynamoItem(tokenId, token, isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft);
       }
     } catch (e) {
       console.error(e);
     }
+  } else if (hash) {
+    // console.log('updating hash 1', hash);
+    
+    const params = {
+      FilterExpression: "#hash = :hash",
+      ExpressionAttributeNames: {
+        "#hash": "hash",
+      },
+      ExpressionAttributeValues: {
+        ':hash': hash,
+      },
+      TableName: isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft,
+      IndexName: 'hash-index',
+    };
+    const o = await ddbd.scan(params).promise();
+    // console.log('got o', o);
+    let tokens = o.Items;
+    // console.log('updating hash 2', tokens);
+    for (const token of tokens) {
+      token[key] = value;
+    }
+    
+    // console.log('updating hash 3', tokens);
+
+    await Promise.all(tokens.map(token => {
+      return putDynamoItem(parseInt(token.id, 10), token, isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft);
+    }));
+    
+    // console.log('updating hash 4');
   }
 
   const {blockNumber} = event;

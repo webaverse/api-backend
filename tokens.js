@@ -79,6 +79,7 @@ async function formatToken({
       hash,
       ext,
     },
+    hash,
     minterAddress: minter.address.toLowerCase(),
     minter,
     ownerAddress: owner.address.toLowerCase(),
@@ -98,8 +99,15 @@ async function getChainNft({
   isFront = false,
   isAll = true,
 } = {}) {
-  const token = await contract.NFT.methods.tokenByIdFull(tokenId).call();
-  const storeEntries = await getStoreEntries(contract);
+  const [
+    token,
+    storeEntries,
+    // hash,
+  ] = await Promise.all([
+    contract.NFT.methods.tokenByIdFull(tokenId).call(),
+    getStoreEntries(contract),
+    // contract.NFT.methods.getHash(tokenId).call(),
+  ]);
 
   let mainnetToken;
   if (!isFront && isAll) {
