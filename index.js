@@ -815,7 +815,8 @@ try {
     res.end();
   } else if (method === 'GET') {
     if (p === '/') {
-      const accounts = await getDynamoAllItems(tableNames.mainnetsidechainAccount);
+      let accounts = await getDynamoAllItems(tableNames.mainnetsidechainAccount);
+      accounts = accounts.filter(a => a.id !== ids.lastCachedBlockAccount);
       _respond(200, JSON.stringify(accounts));
     } else {
       const match = p.match(/^\/(0x[a-f0-9]+)$/i);
