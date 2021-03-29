@@ -89,7 +89,7 @@ const Discord = require('discord.js');
 // const { _handlePreviewRequest } = require('./routes/preview.js')
 const { worldManager, _handleWorldsRequest, _startWorldsRoute } = require('./routes/worlds.js');
 const { _handleSignRequest } = require('./routes/sign.js');
-const { _handleUnlockRequest} = require('./routes/unlock.js');
+const { _handleUnlockRequest, _isCollaborator, _isSingleCollaborator} = require('./routes/unlock.js');
 const { _handleAnalyticsRequest } = require('./routes/analytics.js');
 
 const CERT = fs.readFileSync('./certs/fullchain.pem');
@@ -1797,6 +1797,24 @@ const _handleCachedNft = contractName => (isMainChain, isFront, isAll) => async 
         tokens = tokens.filter(token => !!token.name);
       }
       _respond(200, JSON.stringify(tokens));
+    } else if (match = p.match(/^\/isCollaborator\/([0-9]+)\/(0x[a-f0-9]+)$/i)) {
+      const tokenId = parseInt(match[1], 10);
+      const address = match[2];
+      
+      const isCollaborator = await _isCollaborator(tokenId, address);
+
+      _setCorsHeaders(res);
+      res.setHeader('Content-Type', 'application/json');
+      _respond(200, JSON.stringify(isCollaborator));
+    } else if (match = p.match(/^\/isSingleCollaborator\/([0-9]+)\/(0x[a-f0-9]+)$/i)) {
+      const tokenId = parseInt(match[1], 10);
+      const address = match[2];
+      
+      const isSingleCollaborator = await _isSingleCollaborator(tokenId, address);
+
+      _setCorsHeaders(res);
+      res.setHeader('Content-Type', 'application/json');
+      _respond(200, JSON.stringify(isSingleCollaborator));
     } else {
       _respond(404, 'not found');
     }
