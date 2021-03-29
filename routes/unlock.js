@@ -243,7 +243,7 @@ const _areAddressesSingleColaborator = async (addresses, id) => {
   return isC || isO1 || isO2;
 };
 const _handleUnlockRequest = async (req, res) => {
-    console.log('unlock request', req.url);
+    // console.log('unlock request', req.url);
     
     const {web3, addresses, abis, chainIds, contracts, wallets} = await loadPromise;
     
