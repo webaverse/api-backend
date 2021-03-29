@@ -136,6 +136,116 @@ const loadPromise = (async () => {
 })();
 
 const proofOfAddressMessage = "Proof of address."
+const _areAddressesColaborator = async (addresses, id) => {              
+  // console.log('got sig 3');
+  const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
+  // console.log('got addresses', addresses);
+
+  let isC = false; // collaborator
+  let isO1 = false; // owner on sidechain
+  let isO2 = false; // owner on mainnet
+  for (const address of addresses) {
+    const [
+      _isC,
+      _isO1,
+      _isO2,
+    ] = await Promise.all([
+      (async () => {
+        try {
+          const isC = await contracts.mainnetsidechain.NFT.methods.isCollaborator(hash, address).call();
+          // console.log('got mainnetsidechain is c', {hash, address});
+          return isC;
+        } catch(err) {
+          // console.warn(err);
+          return false;
+        }
+      })(),
+      (async () => {
+        try {
+          let owner = await contracts.mainnetsidechain.NFT.methods.ownerOf(id).call();
+          owner = owner.toLowerCase();
+          // console.log('got mainnetsidechain owner', {owner, id});
+          return owner === address;
+        } catch(err) {
+          // console.warn(err);
+          return false;
+        }
+      })(),
+      (async () => {
+        try {
+          let owner = await contracts.mainnet.NFT.methods.ownerOf(id).call();
+          owner = owner.toLowerCase();
+          // console.log('got mainnet owner', {owner} );
+          return owner === address;
+        } catch(err) {
+          // console.warn(err);
+          return false;
+        }
+      })(),
+    ]);
+    // console.log('iterate address', {address, _isC, _isO1, _isO2});
+    isC = isC || _isC;
+    isO1 = isO1 || _isO1;
+    isO2 = isO2 || _isO2;
+  }
+  
+  // console.log('final addresses', {addresses, isC, isO1, isO2});
+  
+  return isC || isO1 || isO2;
+};
+const _areAddressesSingleColaborator = async (addresses, id) => {
+  let isC = false; // collaborator
+  let isO1 = false; // owner on sidechain
+  let isO2 = false; // owner on mainnet
+  for (const address of addresses) {
+    const [
+      _isC,
+      _isO1,
+      _isO2,
+    ] = await Promise.all([
+      (async () => {
+        try {
+          const isC = await contracts.mainnetsidechain.NFT.methods.isSingleCollaborator(id, address).call();
+          // console.log('got mainnetsidechain is c', {hash, address});
+          return isC;
+        } catch(err) {
+          // console.warn(err);
+          return false;
+        }
+      })(),
+      (async () => {
+        try {
+          let owner = await contracts.mainnetsidechain.NFT.methods.ownerOf(id).call();
+          owner = owner.toLowerCase();
+          // console.log('got mainnetsidechain owner', {owner, id});
+          return owner === address;
+        } catch(err) {
+          // console.warn(err);
+          return false;
+        }
+      })(),
+      (async () => {
+        try {
+          let owner = await contracts.mainnet.NFT.methods.ownerOf(id).call();
+          owner = owner.toLowerCase();
+          // console.log('got mainnet owner', {owner} );
+          return owner === address;
+        } catch(err) {
+          // console.warn(err);
+          return false;
+        }
+      })(),
+    ]);
+    // console.log('iterate address', {address, _isC, _isO1, _isO2});
+    isC = isC || _isC;
+    isO1 = isO1 || _isO1;
+    isO2 = isO2 || _isO2;
+  }
+  
+  // console.log('final addresses', {addresses, isC, isO1, isO2});
+  
+  return isC || isO1 || isO2;
+};
 const _handleUnlockRequest = async (req, res) => {
     console.log('unlock request', req.url);
     
@@ -181,61 +291,8 @@ const _handleUnlockRequest = async (req, res) => {
             
             // console.log('got sig 2', addresses);
             if (ok) {
-              // console.log('got sig 3');
-              const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
-              // console.log('got addresses', addresses);
-
-              let isC = false; // collaborator
-              let isO1 = false; // owner on sidechain
-              let isO2 = false; // owner on mainnet
-              for (const address of addresses) {
-                const [
-                  _isC,
-                  _isO1,
-                  _isO2,
-                ] = await Promise.all([
-                  (async () => {
-                    try {
-                      const isC = await contracts.mainnetsidechain.NFT.methods.isCollaborator(hash, address).call();
-                      // console.log('got mainnetsidechain is c', {hash, address});
-                      return isC;
-                    } catch(err) {
-                      // console.warn(err);
-                      return false;
-                    }
-                  })(),
-                  (async () => {
-                    try {
-                      let owner = await contracts.mainnetsidechain.NFT.methods.ownerOf(id).call();
-                      owner = owner.toLowerCase();
-                      // console.log('got mainnetsidechain owner', {owner, id});
-                      return owner === address;
-                    } catch(err) {
-                      // console.warn(err);
-                      return false;
-                    }
-                  })(),
-                  (async () => {
-                    try {
-                      let owner = await contracts.mainnet.NFT.methods.ownerOf(id).call();
-                      owner = owner.toLowerCase();
-                      // console.log('got mainnet owner', {owner} );
-                      return owner === address;
-                    } catch(err) {
-                      // console.warn(err);
-                      return false;
-                    }
-                  })(),
-                ]);
-                // console.log('iterate address', {address, _isC, _isO1, _isO2});
-                isC = isC || _isC;
-                isO1 = isO1 || _isO1;
-                isO2 = isO2 || _isO2;
-              }
-              
-              // console.log('final addresses', {addresses, isC, isO1, isO2});
-
-              if (isC || isO1 || isO2) {
+              const isCollaborator = await _areAddressesColaborator(addresses, id);
+              if (isCollaborator) {
                 let value = await contracts.mainnetsidechain.NFT.methods.getMetadata(hash, key).call();
                 // console.log('pre value', {value});
                 value = jsonParse(value);
@@ -277,7 +334,11 @@ const _handleUnlockRequest = async (req, res) => {
         res.end(err.stack);
     }
 }
+const _isCollaborator = async (tokenId, address) => await _areAddressesColaborator([address], tokenId);
+const _isSingleCollaborator = async (tokenId, address) => await _areAddressesSingleColaborator([address], tokenId);
 
 module.exports = {
   _handleUnlockRequest,
+  _isCollaborator,
+  _isSingleCollaborator,
 };
