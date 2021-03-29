@@ -332,7 +332,7 @@ const _handleUnlockRequest = async (req, res) => {
     }
 }
 const _isCollaborator = async (tokenId, address) => {
-  const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
+  const hash = await contracts.mainnetsidechain.NFT.methods.getHash(tokenId).call();
   return await _areAddressesColaborator([address], hash);
 };
 const _isSingleCollaborator = async (tokenId, address) => await _areAddressesSingleColaborator([address], tokenId);
