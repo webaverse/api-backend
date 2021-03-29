@@ -135,12 +135,8 @@ const loadPromise = (async () => {
   };
 })();
 
-const proofOfAddressMessage = "Proof of address."
-const _areAddressesColaborator = async (addresses, id) => {              
-  // console.log('got sig 3');
-  const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
-  // console.log('got addresses', addresses);
-
+const proofOfAddressMessage = `Proof of address.`;
+const _areAddressesColaborator = async (addresses, hash) => {
   let isC = false; // collaborator
   let isO1 = false; // owner on sidechain
   let isO2 = false; // owner on mainnet
@@ -291,7 +287,8 @@ const _handleUnlockRequest = async (req, res) => {
             
             // console.log('got sig 2', addresses);
             if (ok) {
-              const isCollaborator = await _areAddressesColaborator(addresses, id);
+              const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
+              const isCollaborator = await _areAddressesColaborator(addresses, hash);
               if (isCollaborator) {
                 let value = await contracts.mainnetsidechain.NFT.methods.getMetadata(hash, key).call();
                 // console.log('pre value', {value});
@@ -334,7 +331,10 @@ const _handleUnlockRequest = async (req, res) => {
         res.end(err.stack);
     }
 }
-const _isCollaborator = async (tokenId, address) => await _areAddressesColaborator([address], tokenId);
+const _isCollaborator = async (tokenId, address) => {
+  const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
+  return await _areAddressesColaborator([address], hash);
+};
 const _isSingleCollaborator = async (tokenId, address) => await _areAddressesSingleColaborator([address], tokenId);
 
 module.exports = {
