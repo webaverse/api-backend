@@ -126,7 +126,7 @@ async function processEventNft({addresses, contract, event, isMainnet}) {
       });
 
       if (token.properties.hash) {
-        console.log('loaded token with id', {id: token.id});
+        // console.log('loaded token with id', {id: token.id});
         await putDynamoItem(token.id, token, isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft);
       }
     } catch (e) {
