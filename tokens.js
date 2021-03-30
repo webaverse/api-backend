@@ -109,7 +109,7 @@ async function getChainNft({
     // contract.NFT.methods.getHash(tokenId).call(),
   ]);
 
-  let mainnetToken;
+  let mainnetToken = null;
   if (!isFront && isAll) {
     mainnetToken = await contract.NFT.methods.tokenByIdFull(tokenId).call();
   }
