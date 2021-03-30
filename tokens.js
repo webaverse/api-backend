@@ -9,9 +9,8 @@ async function formatToken({
   mainnetToken,
   contract,
   addresses,
+  chainName,
 } = {}) {
-  const chainName = 'testnetsidechain';
-
   const _fetchAccount = async address => {
     const [
       username,
@@ -96,6 +95,7 @@ async function getChainNft({
   addresses,
   tokenId,
   contract,
+  chainName,
   isFront = false,
   isAll = true,
 } = {}) {
@@ -113,7 +113,7 @@ async function getChainNft({
   if (!isFront && isAll) {
     mainnetToken = await contract.NFT.methods.tokenByIdFull(tokenId).call();
   }
-  return await formatToken({addresses, token, storeEntries, mainnetToken, contract});
+  return await formatToken({addresses, token, storeEntries, mainnetToken, contract, chainName});
 }
 
 async function getChainAccount({
