@@ -718,7 +718,7 @@ function _jsonParse(s) {
     }
   };
 
-  const isTestChain = chainName => BlockchainNetwork.testnet || chainName === BlockchainNetwork.testnetsidechain
+  const isTestChain = chainName => BlockchainNetwork.testnet || chainName === BlockchainNetwork.testnetsidechain;
 
   const _handleAccounts = chainName => async (req, res) => {
 
@@ -1550,8 +1550,7 @@ function _jsonParse(s) {
     storeEntries = storeEntries.filter(store => store !== null);
     return storeEntries;
   };
-  const _handleNft = contractName => (chainName) => async (req, res) => {
-    // TODO: FIX me!
+  const _handleNft = contractName => (chainName, isAll) => async (req, res) => {
     const _respond = (statusCode, body) => {
       res.statusCode = statusCode;
       _setCorsHeaders(res);
@@ -1861,7 +1860,6 @@ function _jsonParse(s) {
   });
 
   try {
-
     const o = url.parse(protocol + '//' + (req.headers['host'] || '') + req.url);
     let match;
     if (o.host === 'login.exokit.org') {
@@ -1874,10 +1872,13 @@ function _jsonParse(s) {
       _handleEthereum(8546)(req, res);
       return;
     } else if (o.host === 'accounts.webaverse.com' || o.host === 'mainnetsidechain-accounts.webaverse.com') {
-      _handleAccounts(true)(req, res);
+      _handleAccounts('mainnet')(req, res);
       return;
     } else if (o.host === 'testnetsidechain-accounts.webaverse.com') {
-      _handleAccounts(false)(req, res);
+      _handleAccounts('testnet')(req, res);
+      return;
+    } else if (o.host === 'polygonsidechain-accounts.webaverse.com') {
+      _handleAccounts('polygon')(req, res);
       return;
     } else if (o.host === 'analytics.webaverse.com') {
       _handleAnalyticsRequest(req, res);
@@ -1892,10 +1893,13 @@ function _jsonParse(s) {
       _handleOauth(req, res);
       return;
     } else if (o.host === 'profile.webaverse.com' || o.host === 'mainnetsidechain-profile.webaverse.com') {
-      _handleProfile(true)(req, res);
+      _handleProfile('mainnet')(req, res);
       return;
     } else if (o.host === 'testnetsidechain-profile.webaverse.com') {
-      _handleProfile(false)(req, res);
+      _handleProfile('testnet')(req, res);
+      return;
+    } else if (o.host === 'polygonsidechain-profile.webaverse.com') {
+      _handleProfile('polygon')(req, res);
       return;
     } else if (o.host === 'main.webaverse.com' || o.host === 'test.webaverse.com') {
       _handleProxyRoot(req, res);
@@ -1904,34 +1908,46 @@ function _jsonParse(s) {
       _handleProxyApp(req, res);
       return;
     } else if (o.host === 'mainnet-tokens.webaverse.com') {
-      _handleTokens(true, true)(req, res);
+      _handleTokens('mainnet', false)(req, res);
       return;
     } else if (o.host === 'tokens.webaverse.com' || o.host === 'mainnetall-tokens.webaverse.com') {
-      _handleTokens(true, false, true)(req, res);
+      _handleTokens('mainnetsidechain', true)(req, res);
+      return;
+    } else if (o.host === 'polygon-tokens.webaverse.com') {
+      _handleTokens('polygon', false)(req, res);
+      return;
+    } else if (o.host === 'polygon-tokens.webaverse.com' || o.host === 'polygonall-tokens.webaverse.com') {
+      _handleTokens('polygonsidechain', true)(req, res);
       return;
     } else if (o.host === 'testnetall-tokens.webaverse.com') {
-      _handleTokens(false, false, true)(req, res);
+      _handleTokens('testnesidechain', true)(req, res);
       return;
-    } else if (o.host === 'tokens.webaverse.com' || o.host === 'mainnetsidechain-tokens.webaverse.com') {
-      _handleTokens(true, false)(req, res);
+    } else if (o.host === 'mainnetsidechain-tokens.webaverse.com') {
+      _handleTokens('mainnetsidechain', false)(req, res);
       return;
     } else if (o.host === 'testnet-tokens.webaverse.com') {
-      _handleTokens(false, true)(req, res);
+      _handleTokens('testnet', false)(req, res);
       return;
     } else if (o.host === 'testnetsidechain-tokens.webaverse.com') {
-      _handleTokens(false, false)(req, res);
+      _handleTokens('testnetsidechain', false)(req, res);
       return;
     } else if (o.host === 'mainnet-land.webaverse.com') {
-      _handleLand(true, true)(req, res);
+      _handleLand('mainnet', false)(req, res);
       return;
-    } else if (o.host === 'land.webaverse.com' || o.host === 'mainnetsidechain-land.webaverse.com') {
-      _handleLand(true, false)(req, res);
+    } else if (o.host === 'land.webaverse.com' || o.host === 'mainnetsidechainall-land.webaverse.com') {
+      _handleLand('mainnetsidechain', true)(req, res);
+      return;
+    } else if (o.host === 'polygon-land.webaverse.com') {
+      _handleLand('polygon', false)(req, res);
+      return;
+    } else if (o.host === 'polygon-land.webaverse.com' || o.host === 'polygonsidechainall-land.webaverse.com') {
+      _handleLand('polygonsidechain', true)(req, res);
       return;
     } else if (o.host === 'testnet-land.webaverse.com') {
-      _handleLand(false, true)(req, res);
+      _handleLand('testnet', false)(req, res);
       return;
     } else if (o.host === 'testnetsidechain-land.webaverse.com') {
-      _handleLand(false, false)(req, res);
+      _handleLand('testnetsidechain', false)(req, res);
       return;
     } else if (o.host === 'worlds.exokit.org') {
       _handleWorldsRequest(req, res);
