@@ -21,7 +21,9 @@ const tableNames = {
   mainnetNft: 'mainnet-cache-nft',
   mainnetsidechainAccount: 'sidechain-cache-account',
   mainnetsidechainNft: 'sidechain-cache-nft',
+  polygonAccount: 'polygon-cache-account',
   polygonNft: 'polygon-cache-nft',
+  testnetpolygonAccount: 'testnetpolygon-cache-account',
   testnetpolygonNft: 'testnetpolygon-cache-nft',
 };
 module.exports = {
