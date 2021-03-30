@@ -1592,7 +1592,7 @@ function _jsonParse(s) {
     const _maybeGetStoreEntries = () => (contractName === 'NFT' && chainName === BlockchainNetwork.mainnetsidechain) ? _getStoreEntries(chainName) : Promise.resolve([]);
 
     try {
-      const { method } = req;
+      const {method} = req;
 
       if (method === 'GET') {
         const { pathname: p } = url.parse(req.url, true);
