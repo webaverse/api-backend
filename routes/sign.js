@@ -8,7 +8,7 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {_setCorsHeaders} = require('../utils.js');
-const {mainnetMnemonic, testnetMnemonic, polygonMnemonic, testnetpolygonMnemonic, infuraProjectId} = require('../config.json');
+const {mainnetMnemonic, testnetMnemonic, polygonMnemonic, testnetpolygonMnemonic, infuraProjectId, polygonVigilKey} = require('../config.json');
 
 const loadPromise = (async () => {
   const ethereumHost = 'ethereum.exokit.org';
