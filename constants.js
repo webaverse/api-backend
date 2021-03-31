@@ -26,8 +26,10 @@ const tableNames = {
   testnetpolygonAccount: 'testnetpolygon-cache-account',
   testnetpolygonNft: 'testnetpolygon-cache-nft',
 };
+const polygonVigilKey = `0937c004ab133135c86586b55ca212a6c9ecd224`;
 module.exports = {
   accountKeys,
   ids,
   tableNames,
+  polygonVigilKey,
 };
