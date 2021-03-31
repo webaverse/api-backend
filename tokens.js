@@ -58,7 +58,7 @@ async function formatToken({
   ]);
 
   let isMainnet = false;
-  console.log('got addressess', addresses, chainName, !!addresses[chainName]);
+  // console.log('got addressess', addresses, chainName, !!addresses[chainName]);
   if (mainnetToken && owner.address === addresses[chainName]['NFTProxy'] && mainnetToken.owner !== "0x0000000000000000000000000000000000000000") {
     isMainnet = true;
     owner.address = mainnetToken.owner;
