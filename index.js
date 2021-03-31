@@ -2374,6 +2374,13 @@ const _ws = protocol => (req, socket, head) => {
     testnetsidechain: new Web3(new Web3.providers.HttpProvider(
       `${gethNodeUrl}:${ports.testnetsidechain}`
     )),
+    
+    polygon: new Web3(new Web3.providers.HttpProvider(
+      `https://rpc-mainnet.maticvigil.com/v1/${polygonVigilKey}`
+    )),
+    testnetpolygon: new Web3(new Web3.providers.HttpProvider(
+      `https://rpc-mumbai.maticvigil.com/v1/${polygonVigilKey}`
+    )),
   };
 
   web3sockets = {
@@ -2389,6 +2396,13 @@ const _ws = protocol => (req, socket, head) => {
     )),
     testnetsidechain: new Web3(new Web3.providers.WebsocketProvider(
       `${gethNodeWSUrl}:${ports.testnetsidechainWs}`
+    )),
+    
+    polygon: new Web3(new Web3.providers.HttpProvider(
+      `wss://rpc-mainnet.maticvigil.com/ws/v1/${polygonVigilKey}`
+    )),
+    testnetpolygon: new Web3(new Web3.providers.HttpProvider(
+      `wss://rpc-mumbai.maticvigil.com/ws/v1/${polygonVigilKey}`
     )),
   };
   
