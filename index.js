@@ -1542,7 +1542,7 @@ const _getChainOwnerNft = contractName => (chainName, isAll) => async (address, 
 };
 
 const _getStoreEntries = async chainName => {
-  console.log('get store entries', contracts, chainName, !!contracts[chainName]);
+  // console.log('get store entries', contracts, chainName, !!contracts[chainName]);
   const numStores = await contracts[chainName].Trade.methods.numStores().call();
 
   const promises = Array(numStores);
