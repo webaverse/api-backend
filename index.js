@@ -2398,15 +2398,13 @@ const _ws = protocol => (req, socket, head) => {
       `${gethNodeWSUrl}:${ports.testnetsidechainWs}`
     )),
     
-    polygon: new Web3(new Web3.providers.HttpProvider(
-      `wss://rpc-mainnet.maticvigil.com/ws/v1/${polygonVigilKey}`
+    polygon: new Web3(new Web3.providers.WebsocketProvider(
+      `wss://ws-mainnet.matic.network`
     )),
-    testnetpolygon: new Web3(new Web3.providers.HttpProvider(
-      `wss://rpc-mumbai.maticvigil.com/ws/v1/${polygonVigilKey}`
+    testnetpolygon: new Web3(new Web3.providers.WebsocketProvider(
+      `wss://ws-mumbai.matic.today`
     )),
   };
-  
-  console.log('ws mainnet url:', `${gethNodeWSUrl}:${ports.mainnetsidechainWs}`);
 
   const BlockchainNetwork = [
     "mainnet",
