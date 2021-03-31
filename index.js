@@ -1610,7 +1610,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
         res.setHeader('Content-Type', 'application/json');
         _respond(200, JSON.stringify(token));
       } else {
-        _respond(404, 'not found');
+        _respond(404, JSON.stringify(null));
       }
     } else if (match = p.match(/^\/([0-9]+)-([0-9]+)$/)) {
       const startTokenId = parseInt(match[1], 10);
@@ -1765,7 +1765,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
                 ],
               },
             }, */
-            IndexName: 'ownerAddress-id-index',
+            IndexName: 'ownerAddress-index',
           }).promise();
           return (o && o.Items) || [];
         })(),
