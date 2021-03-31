@@ -110,7 +110,9 @@ let
   wsContracts,
   ports,
   gethNodeUrl,
-  gethNodeWSUrl;
+  gethNodeWSUrl,
+  contracts,
+  wsContracts;
 
 Error.stackTraceLimit = 300;
 
@@ -1542,7 +1544,7 @@ const _getChainOwnerNft = contractName => (chainName, isAll) => async (address, 
 };
 
 const _getStoreEntries = async chainName => {
-  console.log('get store entries', Object.keys(contracts), chainName, !!contracts[chainName]);
+  console.log('get store entries', contracts, chainName, !!contracts[chainName]);
   const numStores = await contracts[chainName].Trade.methods.numStores().call();
 
   const promises = Array(numStores);
@@ -2414,9 +2416,8 @@ const _ws = protocol => (req, socket, head) => {
     "testnetsidechain",
     "testnetpolygon",
   ];
-
-  let contracts = {};
   
+  contracts = {};
   BlockchainNetwork.forEach(network => {
     contracts[network] = {
       Account: new web3[network].eth.Contract(abis.Account, addresses[network].Account),
@@ -2430,7 +2431,7 @@ const _ws = protocol => (req, socket, head) => {
     }
   })
   
-  let wsContracts = {}
+  wsContracts = {};
   BlockchainNetwork.forEach(network => {
     wsContracts[network] = {
       Account: new web3sockets[network].eth.Contract(abis.Account, addresses[network].Account),
