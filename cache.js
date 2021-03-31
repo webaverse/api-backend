@@ -198,6 +198,7 @@ async function processEventsNft({addresses, contract, events, currentBlockNumber
       addresses,
       contract,
       tokenId: entry[0],
+      chainName,
     });
 
     // Cache each token.
