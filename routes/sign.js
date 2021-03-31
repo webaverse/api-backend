@@ -46,9 +46,9 @@ const loadPromise = (async () => {
       'mainnet',
       'mainnetsidechain',
       'testnet',
-      'testnetsidechain'
-      'polygon'
-      'polygonsidechain'
+      'testnetsidechain',
+      'polygon',
+      'polygonsidechain',
     ].forEach(chainName => {
       [
         'Account',
