@@ -2400,8 +2400,8 @@ const _ws = protocol => (req, socket, head) => {
     "polygon",
     "testnet",
     "testnetsidechain",
-    "testnetpolygon"
-  ]
+    "testnetpolygon",
+  ];
 
   let contracts = {};
   
