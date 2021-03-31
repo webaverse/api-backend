@@ -41,7 +41,7 @@ const loadPromise = (async () => {
   const abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const chainIds = await fetch('https://contracts.webaverse.com/config/chain-id.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const contracts = await (async () => {
-    console.log('got addresses', addresses);
+    // console.log('got addresses', addresses);
     const result = {};
     [
       'mainnet',
