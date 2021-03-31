@@ -2354,7 +2354,7 @@ const _ws = protocol => (req, socket, head) => {
     })(),
   ]);
   
-  // console.log('ports', ports);
+  // console.log('ports', {ethereumHostAddress, newPorts});
   
   ports = newPorts;
   gethNodeUrl = `http://${ethereumHostAddress}`;
