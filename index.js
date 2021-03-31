@@ -2380,7 +2380,7 @@ const _ws = protocol => (req, socket, head) => {
       `wss://rinkeby.infura.io/ws/v3/${infuraProjectId}`
     )),
     rinkebysidechain: new Web3(new Web3.providers.WebsocketProvider(
-      `${gethNodeWSUrl}:${ports.rinkebysidechainWs}`
+      `${gethNodeWSUrl}:${ports.testnetsidechainWs}`
     )),
   };
   
