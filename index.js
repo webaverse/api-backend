@@ -2446,6 +2446,14 @@ const _ws = protocol => (req, socket, head) => {
     }
   })
 
+  // Initialize DynamoDB cache.
+  await initCaches({
+    addresses,
+    contracts,
+    wsContracts,
+    webSockets: web3sockets,
+  });
+
   /* web3.mainnetsidechain.eth.getPastLogs({
     fromBlock: 0,
     toBlock: 'latest',
@@ -2454,14 +2462,6 @@ const _ws = protocol => (req, socket, head) => {
     console.log('got res', result);
   }); */
 }
-
-// Initialize DynamoDB cache.
-initCaches({
-  addresses,
-  contracts,
-  wsContracts,
-  webSockets: web3sockets,
-}).catch(console.error);
 
 const server = http.createServer(_req('http:'));
 server.on('upgrade', _ws('http:'));
