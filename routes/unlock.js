@@ -10,6 +10,7 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {jsonParse, _setCorsHeaders} = require('../utils.js');
+const {polygonVigilKey} = require('../constants.js');
 const {accessKeyId, secretAccessKey, mainnetMnemonic, testnetMnemonic, polygonMnemonic, testnetpolygonMnemonic, infuraProjectId, encryptionMnemonic} = require('../config.json');
 
 const awsConfig = new AWS.Config({
