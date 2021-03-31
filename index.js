@@ -2445,11 +2445,16 @@ const _ws = protocol => (req, socket, head) => {
   })
 
   // Initialize DynamoDB cache.
-  await initCaches({
+  console.log('initializing caches...');
+  initCaches({
     addresses,
     contracts,
     wsContracts,
     webSockets: web3sockets,
+  }).then(() => {
+    console.log('caches initialized');
+  }, err => {
+    console.warn('failed to initialize caches', err);
   });
 
   /* web3.mainnetsidechain.eth.getPastLogs({
