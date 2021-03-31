@@ -11,6 +11,10 @@ async function formatToken({
   addresses,
   chainName,
 } = {}) {
+  if (!chainName) {
+    throw new Error('no chain name');
+  }
+  
   const _fetchAccount = async address => {
     const [
       username,
@@ -54,6 +58,7 @@ async function formatToken({
   ]);
 
   let isMainnet = false;
+  console.log('got addressess', addresses, chainName, !!addresses[chainName]);
   if (mainnetToken && owner.address === addresses[chainName]['NFTProxy'] && mainnetToken.owner !== "0x0000000000000000000000000000000000000000") {
     isMainnet = true;
     owner.address = mainnetToken.owner;
