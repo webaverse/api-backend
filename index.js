@@ -110,9 +110,7 @@ let
   wsContracts,
   ports,
   gethNodeUrl,
-  gethNodeWSUrl,
-  contracts,
-  wsContracts;
+  gethNodeWSUrl;
 
 Error.stackTraceLimit = 300;
 
