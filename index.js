@@ -801,8 +801,36 @@ const _handleAccounts = chainName => async (req, res) => {
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
-  const _getAccount = async address => getDynamoItem(address, tableNames.mainnetsidechainAccount)
-    .then(o => o.Item);
+
+  const _getAccount = async address => {
+    return (
+      (await getDynamoItem(
+          address,
+          tableNames.mainnetsidechainAccount
+      )).Item ||
+      _getNonCachedAccount(address)
+  )
+  };
+
+  const _getNonCachedAccount = async address => {
+    const result = {
+      address,
+    };
+    await Promise.all(
+      accountKeys.map(key =>
+        contracts[chainName].Account.methods.getMetadata(address, key).call()
+          .then(async value => {
+            if (key === 'mainnetAddress' && value !== "") {
+              value = await web3.rinkeby.eth.accounts.recover("Connecting mainnet address.", value);
+              result[key] = value;
+            } else {
+              result[key] = value;
+            }
+          })
+      )
+    );
+    return result;
+  };
 
 try {
   const {method} = req;
