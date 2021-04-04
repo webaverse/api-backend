@@ -1334,7 +1334,7 @@ const _handleProxyApp = (() => {
   };
 })();
 
-const _formatToken = chainName => async (token, storeEntries, mainnetToken) => {
+const _formatToken = chainName => async (token, storeEntries, mainnetToken, polygonToken) => {
   const _fetchAccount = async address => {
     const [
       username,
@@ -1377,9 +1377,15 @@ const _formatToken = chainName => async (token, storeEntries, mainnetToken) => {
   ]);
 
   let isMainnet = false;
-  if (mainnetToken && owner.address === addresses[chainName]['NFTProxy'] && mainnetToken.owner !== "0x0000000000000000000000000000000000000000") {
+  if (mainnetToken && owner.address === addresses[chainName]['NFTProxy']) {
     isMainnet = true;
     owner.address = mainnetToken.owner;
+  }
+  
+  let isPolygon = false;
+  if (polygonToken && owner.address === addresses[chainName]['NFTProxy']) {
+    isPolygon = true;
+    owner.address = polygonToken.owner;
   }
 
   const id = parseInt(token.id, 10);
@@ -1408,6 +1414,7 @@ const _formatToken = chainName => async (token, storeEntries, mainnetToken) => {
     buyPrice,
     storeId,
     isMainnet,
+    isPolygon,
   };
 };
 const _formatLand = chainName => async (token, storeEntries) => {
@@ -1502,25 +1509,47 @@ const _copy = o => {
   return newO;
 };
 const _getChainNft = contractName => (chainName, isAll) => async (tokenId, storeEntries) => {
+  const isSidechain = chainName.includes('sidechain');
+  const isTestnet = chainName.includes('testnet');
 
-  const isFront = !chainName.includes('sidechain')
-
-  const tokenSrc = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
-  const token = _copy(tokenSrc);
-  const {hash} = token;
-  token.unlockable = await contracts[chainName].NFT.methods.getMetadata(hash, 'unlockable').call();
-  if (!token.unlockable) {
-    token.unlockable = '';
-  }
-  let mainnetToken;
+  const [
+    token,
+    mainnetToken,
+    polygonToken,
+  ] = await Promise.all([
+    (async () => {
+      const tokenSrc = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
+      const token = _copy(tokenSrc);
+      const {hash} = token;
+      token.unlockable = await contracts[chainName].NFT.methods.getMetadata(hash, 'unlockable').call();
+      if (!token.unlockable) {
+        token.unlockable = '';
+      }
+      return token;
+    })(),
+    (async () => {
+      if (isSidechain && isAll) {
+        const mainnetToken = await contracts[isTestnet ? 'testnet' : 'mainnet'][contractName].methods.tokenByIdFull(tokenId).call();
+        return mainnetToken;
+      } else {
+        return null;
+      }
+    })(),
+    (async () => {
+      if (isSidechain && isAll) {
+        const polygonToken = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call(isTestnet ? 'testnetpolygon' : 'polygon');
+        return polygonToken;
+      } else {
+        return null;
+      }
+    })(),
+  ]);
   
-  if (!isFront && isAll) {
-    mainnetToken = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
-  }
+  
   if (contractName === 'NFT') {
-    return await _formatToken(chainName)(token, storeEntries, mainnetToken);
+    return await _formatToken(chainName)(token, storeEntries, mainnetToken, polygonToken);
   } else if (contractName === 'LAND') {
-    return await _formatLand(chainName)(token, storeEntries, mainnetToken);
+    return await _formatLand(chainName)(token, storeEntries, mainnetToken, polygonToken);
   } else {
     return null;
   }
