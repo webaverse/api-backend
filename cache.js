@@ -31,22 +31,19 @@ async function initNftCache({addresses, wsContracts, webSockets, chainName}) {
   }
 
   // Watch for new events.
-  await new Promise((accept, reject) => {
-    wsContracts[chainName].NFT.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
-      console.debug('nft event', event);
-      if (error) {
-        console.log('Error getting event: ' + error);
-        reject(error);
-      } else {
-        await processEventNft({
-          addresses,
-          contract: webSocketContract,
-          event,
-          chainName,
-        });
-        accept();
-      }
-    });
+  wsContracts[chainName].NFT.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
+    console.debug('nft event', event);
+    if (error) {
+      console.log('Error getting event: ' + error);
+      reject(error);
+    } else {
+      await processEventNft({
+        addresses,
+        contract: webSocketContract,
+        event,
+        chainName,
+      });
+    }
   });
 }
 async function initAccountCache({addresses, wsContracts, webSockets, chainName}) {
