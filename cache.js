@@ -106,16 +106,29 @@ async function initAccountCache({addresses, wsContracts, webSockets, chainName})
   });
 }
 async function initCaches({addresses, wsContracts, webSockets}) {
+  const _logCache = async (name, p) => {
+    console.log('started init cache', name);
+    try {
+      return await p;
+    } catch(err) {
+      console.warn('errored init cache', err);
+      throw err;
+    }
+    console.log('finished init cache', name);
+  };
   await Promise.all([
-    initNftCache({addresses, wsContracts, webSockets, chainName: 'mainnet'}),
-    initAccountCache({addresses, wsContracts, webSockets, chainName: 'mainnetsidechain'}),
-    initNftCache({addresses, wsContracts, webSockets, chainName: 'testnet'}),
-    initAccountCache({addresses, wsContracts, webSockets, chainName: 'testnetsidechain'}),
-    initNftCache({addresses, wsContracts, webSockets, chainName: 'polygon'}),
-    initAccountCache({addresses, wsContracts, webSockets, chainName: 'polygon'}),
-    initNftCache({addresses, wsContracts, webSockets, chainName: 'testnetpolygon'}),
-    initAccountCache({addresses, wsContracts, webSockets, chainName: 'testnetpolygon'}),
-  ]);
+    'mainnet',
+    'mainnetsidechain',
+    'testnet',
+    'testnetsidechain',
+    'polygon',
+    'testnetpolygon',
+  ].map(chainName => {
+    return Promise.all([
+      _logCache(chainName + ' NFT', initNftCache({addresses, wsContracts, webSockets, chainName})),
+      _logCache(chainName + ' Account', initAccountCache({addresses, wsContracts, webSockets, chainName})),
+    ]);
+  }));
 }
 
 async function processEventNft({addresses, contract, event, isMainnet}) {
