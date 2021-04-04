@@ -128,7 +128,7 @@ async function initCaches({addresses, wsContracts, webSockets}) {
   }));
 }
 
-async function processEventNft({addresses, contract, event, isMainnet}) {
+async function processEventNft({addresses, contract, event, isMainnet, chainName}) {
   let {tokenId, hash, key, value} = event.returnValues;
 
   if (tokenId) {
@@ -137,6 +137,7 @@ async function processEventNft({addresses, contract, event, isMainnet}) {
         addresses,
         contract,
         tokenId,
+        chainName,
       });
 
       if (token.properties.hash) {
