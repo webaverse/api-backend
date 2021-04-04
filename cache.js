@@ -6,6 +6,22 @@ async function initNftCache({addresses, wsContracts, webSockets, chainName}) {
   const webSocketWeb3 = webSockets[chainName];
   const webSocketContract = wsContracts[chainName];
 
+  // Watch for new events.
+  wsContracts[chainName].NFT.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
+    console.debug('nft event', event);
+    if (error) {
+      console.log('Error getting event: ' + error);
+      reject(error);
+    } else {
+      await processEventNft({
+        addresses,
+        contract: webSocketContract,
+        event,
+        chainName,
+      });
+    }
+  });
+
   const currentBlockNumber = await webSocketWeb3.eth.getBlockNumber();
   const lastBlockNumber = (await getDynamoItem(
     ids.lastCachedBlockNft,
@@ -29,22 +45,6 @@ async function initNftCache({addresses, wsContracts, webSockets, chainName}) {
       });
     }
   }
-
-  // Watch for new events.
-  wsContracts[chainName].NFT.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
-    console.debug('nft event', event);
-    if (error) {
-      console.log('Error getting event: ' + error);
-      reject(error);
-    } else {
-      await processEventNft({
-        addresses,
-        contract: webSocketContract,
-        event,
-        chainName,
-      });
-    }
-  });
 }
 async function initAccountCache({addresses, wsContracts, webSockets, chainName}) {
   const webSocketWeb3 = webSockets[chainName];
