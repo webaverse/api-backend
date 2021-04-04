@@ -801,8 +801,17 @@ const _handleAccounts = chainName => async (req, res) => {
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
+  const _makeFakeAccount = address => {
+    const account = {
+      address,
+    };
+    for (const k of accountKeys) {
+      account[k] = '';
+    }
+    return account;
+  };
   const _getAccount = async address => getDynamoItem(address, tableNames.mainnetsidechainAccount)
-    .then(o => o.Item);
+    .then(o => o.Item || _makeFakeAccount(address));
 
 try {
   const {method} = req;
