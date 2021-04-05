@@ -419,9 +419,6 @@ async function getChainAccount({
   
   return account;
 }
-async function getChainAllAccounts() {
-  // XXX
-}
 
 const getStoreEntries = async chainName => {
   const numStores = await contracts[chainName].Trade.methods.numStores().call();
@@ -544,7 +541,6 @@ const getAllWithdrawsDeposits = contractName => async chainName => {
 module.exports = {
   getChainNft,
   getChainAccount,
-  getChainAllAccounts,
   getChainToken,
   formatToken,
   formatLand,
