@@ -15,7 +15,9 @@ let addresses,
   web3sockets,
   web3socketProviders,
   contracts,
-  wsContracts;
+  wsContracts,
+  gethNodeUrl,
+  gethNodeWSUrl;
 
 const BlockchainNetworks = [
   "mainnet",
@@ -73,8 +75,8 @@ const loadPromise = (async() => {
   // console.log('ports', {ethereumHostAddress, newPorts});
   
   const ports = newPorts;
-  const gethNodeUrl = `http://${ethereumHostAddress}`;
-  const gethNodeWSUrl = `ws://${ethereumHostAddress}`;
+  gethNodeUrl = `http://${ethereumHostAddress}`;
+  gethNodeWSUrl = `ws://${ethereumHostAddress}`;
 
   web3 = {
     mainnet: new Web3(new Web3.providers.HttpProvider(
@@ -195,6 +197,8 @@ async function getBlockchain() {
     web3sockets,
     contracts,
     wsContracts,
+    gethNodeUrl,
+    gethNodeWSUrl,
   };
 }
 
