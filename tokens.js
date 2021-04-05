@@ -484,14 +484,14 @@ const getAllWithdrawsDeposits = contractName => async chainName => {
       toBlock: 'latest',
     })),
     _log('getAllWithdrawsDeposits 5', getPastEvents({
-      chainName: sidechainChainName,
+      chainName: polygonChainName,
       contractName: contractName + 'Proxy',
       eventName: 'Deposited',
       fromBlock: 0,
       toBlock: 'latest',
     })),
     _log('getAllWithdrawsDeposits 6', getPastEvents({
-      chainName: sidechainChainName,
+      chainName: polygonChainName,
       contractName: contractName + 'Proxy',
       eventName: 'Withdrew',
       fromBlock: 0,
