@@ -234,9 +234,6 @@ const _copy = o => {
   return newO;
 };
 const getChainNft = contractName => chainName => async (tokenId, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
-  // const isSidechain = chainName.includes('sidechain');
-  // const isTestnet = chainName.includes('testnet');
-
   if (!storeEntries || !mainnetDepositedEntries || !mainnetWithdrewEntries || !sidechainDepositedEntries || !sidechainWithdrewEntries || !polygonDepositedEntries || !polygonWithdrewEntries) {
     console.warn('bad arguments were', {
       storeEntries,
@@ -291,29 +288,34 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
   
   console.log('get chain nft 2', tokenId, token, contractName);
   
-  if (contractName === 'NFT') {
-    return await formatToken(contractName)(chainName)(
-      token,
-      storeEntries,
-      mainnetDepositedEntries,
-      mainnetWithdrewEntries,
-      sidechainDepositedEntries,
-      sidechainWithdrewEntries,
-      polygonDepositedEntries,
-      polygonWithdrewEntries,
-    );
-  } else if (contractName === 'LAND') {
-    return await formatLand(contractName)(chainName)(
-      token,
-      storeEntries,
-      mainnetDepositedEntries,
-      mainnetWithdrewEntries,
-      sidechainDepositedEntries,
-      sidechainWithdrewEntries,
-      polygonDepositedEntries,
-      polygonWithdrewEntries,
-    );
-  } else {
+  try {
+    if (contractName === 'NFT') {
+      return await formatToken(contractName)(chainName)(
+        token,
+        storeEntries,
+        mainnetDepositedEntries,
+        mainnetWithdrewEntries,
+        sidechainDepositedEntries,
+        sidechainWithdrewEntries,
+        polygonDepositedEntries,
+        polygonWithdrewEntries,
+      );
+    } else if (contractName === 'LAND') {
+      return await formatLand(contractName)(chainName)(
+        token,
+        storeEntries,
+        mainnetDepositedEntries,
+        mainnetWithdrewEntries,
+        sidechainDepositedEntries,
+        sidechainWithdrewEntries,
+        polygonDepositedEntries,
+        polygonWithdrewEntries,
+      );
+    } else {
+      return null;
+    }
+  } catch(err) {
+    console.warn(err);
     return null;
   }
 };
@@ -341,29 +343,34 @@ const getChainOwnerNft = contractName => chainName => async (address, i, storeEn
     token.unlockable = '';
   }
 
-  if (contractName === 'NFT') {
-    return await formatToken(contractName)(chainName)(
-      token,
-      storeEntries,
-      mainnetDepositedEntries,
-      mainnetWithdrewEntries,
-      sidechainDepositedEntries,
-      sidechainWithdrewEntries,
-      polygonDepositedEntries,
-      polygonWithdrewEntries,
-    );
-  } else if (contractName === 'LAND') {
-    return await formatLand(contractName)(chainName)(
-      token,
-      storeEntries,
-      mainnetDepositedEntries,
-      mainnetWithdrewEntries,
-      sidechainDepositedEntries,
-      sidechainWithdrewEntries,
-      polygonDepositedEntries,
-      polygonWithdrewEntries,
-    );
-  } else {
+  try {
+    if (contractName === 'NFT') {
+      return await formatToken(contractName)(chainName)(
+        token,
+        storeEntries,
+        mainnetDepositedEntries,
+        mainnetWithdrewEntries,
+        sidechainDepositedEntries,
+        sidechainWithdrewEntries,
+        polygonDepositedEntries,
+        polygonWithdrewEntries,
+      );
+    } else if (contractName === 'LAND') {
+      return await formatLand(contractName)(chainName)(
+        token,
+        storeEntries,
+        mainnetDepositedEntries,
+        mainnetWithdrewEntries,
+        sidechainDepositedEntries,
+        sidechainWithdrewEntries,
+        polygonDepositedEntries,
+        polygonWithdrewEntries,
+      );
+    } else {
+      return null;
+    }
+  } catch(err) {
+    console.warn(err);
     return null;
   }
 };

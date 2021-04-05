@@ -159,7 +159,7 @@ async function processEventNft({contract, wsContracts, event, isMainnet, chainNa
         polygonWithdrewEntries,
       );
 
-      if (token.properties.hash) {
+      if (token?.properties.hash) {
         tokenId = parseInt(tokenId, 10);
 
         await putDynamoItem(tokenId, token, isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft);
@@ -242,7 +242,7 @@ async function processEventsNft({events, currentBlockNumber, chainName}) {
       polygonWithdrewEntries,
     );
 
-    if (token.properties.hash) {
+    if (token?.properties.hash) {
       await putDynamoItem(tokenId, token, tableNames[chainName + 'Nft']);
     }
   }

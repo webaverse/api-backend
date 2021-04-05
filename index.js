@@ -1593,7 +1593,24 @@ try {
       const tokenId = parseInt(match[1], 10);
 
       const storeEntries = await _maybeGetStoreEntries();
-      const token = await getChainNft(contractName)(chainName, isAll)(tokenId, storeEntries);
+      const {
+        mainnetDepositedEntries,
+        mainnetWithdrewEntries,
+        sidechainDepositedEntries,
+        sidechainWithdrewEntries,
+        polygonDepositedEntries,
+        polygonWithdrewEntries,
+      } = await getAllWithdrawsDeposits(chainName);
+      const token = await getChainNft(contractName)(chainName)(
+        tokenId,
+        storeEntries,
+        mainnetDepositedEntries,
+        mainnetWithdrewEntries,
+        sidechainDepositedEntries,
+        sidechainWithdrewEntries,
+        polygonDepositedEntries,
+        polygonWithdrewEntries,
+      );
 
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
@@ -1634,11 +1651,28 @@ try {
 
       if (startTokenId >= 1 && endTokenId > startTokenId && (endTokenId - startTokenId) <= 100) {
         const storeEntries = await _maybeGetStoreEntries();
+        const {
+          mainnetDepositedEntries,
+          mainnetWithdrewEntries,
+          sidechainDepositedEntries,
+          sidechainWithdrewEntries,
+          polygonDepositedEntries,
+          polygonWithdrewEntries,
+        } = await getAllWithdrawsDeposits(chainName);
         
         const numTokens = endTokenId - startTokenId;
         const promises = Array(numTokens);
         for (let i = 0; i < numTokens; i++) {
-          promises[i] = getChainNft(contractName)(chainName, isAll)(startTokenId + i, storeEntries);
+          promises[i] = getChainNft(contractName)(chainName)(
+            startTokenId + i,
+            storeEntries,
+            mainnetDepositedEntries,
+            mainnetWithdrewEntries,
+            sidechainDepositedEntries,
+            sidechainWithdrewEntries,
+            polygonDepositedEntries,
+            polygonWithdrewEntries,
+          );
         }
         let tokens = await Promise.all(promises);
         tokens = tokens.filter(token => token !== null);

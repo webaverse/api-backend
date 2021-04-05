@@ -95,39 +95,37 @@ const loadPromise = (async() => {
     )),
   };
   
-  web3socketProviders = {
-    mainnet: new Web3.providers.WebsocketProvider(
-      `wss://mainnet.infura.io/ws/v3/${infuraProjectId}`
-    ),
-    mainnetsidechain: new Web3.providers.WebsocketProvider(
-      `${gethNodeWSUrl}:${ports.mainnetsidechainWs}`
-    ),
+  web3socketProviderUrls = {
+    mainnet: `wss://mainnet.infura.io/ws/v3/${infuraProjectId}`,
+    mainnetsidechain: `${gethNodeWSUrl}:${ports.mainnetsidechainWs}`,
 
-    testnet: new Web3.providers.WebsocketProvider(
-      `wss://rinkeby.infura.io/ws/v3/${infuraProjectId}`
-    ),
-    testnetsidechain: new Web3.providers.WebsocketProvider(
-      `${gethNodeWSUrl}:${ports.testnetsidechainWs}`
-    ),
+    testnet: `wss://rinkeby.infura.io/ws/v3/${infuraProjectId}`,
+    testnetsidechain: `${gethNodeWSUrl}:${ports.testnetsidechainWs}`,
     
-    polygon: new Web3.providers.WebsocketProvider(
-      `wss://rpc-mainnet.maticvigil.com/ws/v1/${polygonVigilKey}`
-    ),
-    testnetpolygon: new Web3.providers.WebsocketProvider(
-      `wss://rpc-mumbai.maticvigil.com/ws/v1/${polygonVigilKey}`
-    ),
+    polygon: `wss://rpc-mainnet.maticvigil.com/ws/v1/${polygonVigilKey}`,
+    testnetpolygon: `wss://rpc-mumbai.maticvigil.com/ws/v1/${polygonVigilKey}`,
   };
+  
+  web3socketProviders = {};
+  for (const k in web3socketProviderUrls) {
+    web3socketProviders[k] = new Web3.providers.WebsocketProvider(web3socketProviderUrls[k]);
+  }
 
   web3sockets = {};
-  for (const k in web3socketProviders) {
-    const v = web3socketProviders[k];
-    v.on('error', err => {
+  const _makeWeb3Socket = k => {
+    const provider = web3socketProviders[k];
+    provider.on('error', err => {
       console.log('provider error', k, err);
     });
-    v.on('end', () => {
+    provider.on('end', () => {
       console.log('provider end', k);
+
+      web3sockets[k] = _makeWeb3Socket(k);
     });
-    web3sockets[k] = new Web3(v);
+    return new Web3(provider);
+  };
+  for (const k in web3socketProviders) {
+    web3sockets[k] = _makeWeb3Socket(k);
   }
   
   contracts = {};
