@@ -78,7 +78,6 @@ const stripe = Stripe(stripeClientSecret);
 // const accountManager = require('./account-manager.js');
 // const eventsManager = require('./events-manager.js');
 const storageHost = 'https://ipfs.exokit.org';
-const ethereumHost = 'ethereum.exokit.org';
 const mainnetSignatureMessage = `Connecting mainnet address.`;
 
 const Discord = require('discord.js');
