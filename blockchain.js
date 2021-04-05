@@ -27,12 +27,14 @@ const BlockchainNetworks = [
 ];
 
 const loadPromise = (async() => {
-  addresses = await fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
-  abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const [
+    newAddresses,
+    newAbis,
     ethereumHostAddress,
     newPorts,
   ] = await Promise.all([
+    fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, ''))),
+    fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, ''))),
     new Promise((accept, reject) => {
       dns.resolve4(ethereumHost, (err, addresses) => {
         if (!err) {
@@ -65,6 +67,8 @@ const loadPromise = (async() => {
       return j;
     })(),
   ]);
+  addresses = newAddresses;
+  abis = newAbis;
   
   // console.log('ports', {ethereumHostAddress, newPorts});
   
