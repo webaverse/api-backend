@@ -68,7 +68,6 @@ const loadPromise = (async () => {
     });
     return result;
   })();
-
   const wallets = {
     mainnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mainnetMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
     testnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(testnetMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
@@ -93,19 +92,23 @@ const _handleSignRequest = async (req, res) => {
     
     const request = url.parse(req.url);
     // const path = request.path.split('/')[1];
+
     try {
         res = _setCorsHeaders(res);
         const {method} = req;
         if (method === 'OPTIONS') {
             res.end();
         } else if (method === 'GET') {
-            const match = request.path.match(/^\/(.+?)\/(.+?)\/(.+?)$/);
+            const match = request.path.match(/^\/(.+?)\/(.+?)\/(.+?)\/(.+?)$/);
             if (match) {
                 const chainName = match[1];
                 const contractName = match[2];
-                const txid = match[3];
+                const destinationChainName = match[3];
+                const txid = match[4];
                 const chainId = chainIds?.[chainName]?.[contractName];
-                if (typeof chainId === 'number') {
+                const destinationChainId = chainIds?.[destinationChainName]?.[contractName];
+                // console.log('thick plot', {destinationChainId}, JSON.stringify(chainIds, null, 2), destinationChainName, contractName);
+                if (typeof chainId === 'number' && typeof destinationChainId === 'number') {
                     try {
                       const txr = await web3[chainName].eth.getTransactionReceipt(txid);
                       const proxyContractName = contractName + 'Proxy';
@@ -113,6 +116,7 @@ const _handleSignRequest = async (req, res) => {
                       if (txr && txr.to.toLowerCase() === addresses[chainName][proxyContractName].toLowerCase()) {
                         
                         const {logs} = txr;
+                        console.log('got txr logs', logs);
                         const log = logs.find(log =>
                           (contractName === 'FT' && log.topics[0] === '0x2da466a7b24304f47e87fa2e1e5a81b9831ce54fec19055ce277ca2f39ba42c4') || // WebaverseERC20Proxy Deposited
                           (contractName === 'LAND' && log.topics[0] === '0x2da466a7b24304f47e87fa2e1e5a81b9831ce54fec19055ce277ca2f39ba42c4') || // WebaverseERC721Proxy Deposited
@@ -121,20 +125,20 @@ const _handleSignRequest = async (req, res) => {
                         // console.log('got log', logs, log);
                         if (log) {
 
-                          const wallet = wallets[chainName];
-                          const proxyContractAddress = addresses[chainName][proxyContractName];
+                          const wallet = wallets[destinationChainName];
+                          const proxyContractAddress = addresses[destinationChainName][proxyContractName];
                           
                           // const {returnValues} = log;
                           // const {from, to: toInverse} = returnValues;
                           const to = {
                             t: 'address',
-                            v: '0x' + web3[chainName].utils.padLeft(new web3[chainName].utils.BN(log.topics[1].slice(2), 16), 40),
+                            v: '0x' + web3[destinationChainName].utils.padLeft(new web3[destinationChainName].utils.BN(log.topics[1].slice(2), 16), 40),
                           };
                           // signable
                           if (contractName === 'FT') {
                             const amount = {
                               t: 'uint256',
-                              v: new web3[chainName].utils.BN(log.topics[2].slice(2), 16),
+                              v: new web3[destinationChainName].utils.BN(log.topics[2].slice(2), 16),
                             };
                             const timestamp = {
                               t: 'uint256',
@@ -142,11 +146,11 @@ const _handleSignRequest = async (req, res) => {
                             };
                             const chainId = {
                               t: 'uint256',
-                              v: new web3[chainName].utils.BN(chainIds[oppositeChainName][contractName]),
+                              v: new web3[destinationChainName].utils.BN(chainIds[oppositeChainName][contractName]),
                             };
-                            const message = web3[chainName].utils.encodePacked(to, amount, timestamp, chainId);
-                            const hashedMessage = web3[chainName].utils.sha3(message);
-                            const sgn = web3[chainName].eth.accounts.sign(hashedMessage, wallet.getPrivateKeyString());
+                            const message = web3[destinationChainName].utils.encodePacked(to, amount, timestamp, chainId);
+                            const hashedMessage = web3[destinationChainName].utils.sha3(message);
+                            const sgn = web3[destinationChainName].eth.accounts.sign(hashedMessage, wallet.getPrivateKeyString());
                             // console.log('signed', sgn);
                             const {r, s, v} = sgn;
                             /* const r = sgn.slice(0, 66);
@@ -156,7 +160,7 @@ const _handleSignRequest = async (req, res) => {
 
                             res.end(JSON.stringify({
                               to: to.v,
-                              amount: '0x' + web3[chainName].utils.padLeft(amount.v.toString(16), 32),
+                              amount: '0x' + web3[destinationChainName].utils.padLeft(amount.v.toString(16), 32),
                               timestamp: timestamp.v,
                               chainId: chainId.v.toNumber(),
                               r,
@@ -166,7 +170,7 @@ const _handleSignRequest = async (req, res) => {
                           } else if (contractName === 'NFT' || contractName === 'LAND') {
                             const tokenId = {
                               t: 'uint256',
-                              v: new web3[chainName].utils.BN(log.topics[2].slice(2), 16),
+                              v: new web3[destinationChainName].utils.BN(log.topics[2].slice(2), 16),
                             };
                             
                             // get sidechain deposit receipt signature
@@ -176,12 +180,12 @@ const _handleSignRequest = async (req, res) => {
                             };
                             const chainId = {
                               t: 'uint256',
-                              v: new web3[chainName].utils.BN(chainIds[oppositeChainName][contractName]),
+                              v: new web3[destinationChainName].utils.BN(destinationChainId),
                             };
 
-                            const message = web3[chainName].utils.encodePacked(to, tokenId, timestamp, chainId);
-                            const hashedMessage = web3[chainName].utils.sha3(message);
-                            const sgn = web3[chainName].eth.accounts.sign(hashedMessage, wallet.getPrivateKeyString()); // await web3.eth.personal.sign(hashedMessage, address);
+                            const message = web3[destinationChainName].utils.encodePacked(to, tokenId, timestamp, chainId);
+                            const hashedMessage = web3[destinationChainName].utils.sha3(message);
+                            const sgn = web3[destinationChainName].eth.accounts.sign(hashedMessage, wallet.getPrivateKeyString()); // await web3.eth.personal.sign(hashedMessage, address);
                             const {r, s, v} = sgn;
                             /* const r = sgn.slice(0, 66);
                             const s = '0x' + sgn.slice(66, 130);
@@ -189,7 +193,7 @@ const _handleSignRequest = async (req, res) => {
                             // console.log('got', JSON.stringify({r, s, v}, null, 2));
                             res.end(JSON.stringify({
                               to: to.v,
-                              tokenId: '0x' + web3[chainName].utils.padLeft(tokenId.v.toString(16), 32),
+                              tokenId: '0x' + web3[destinationChainName].utils.padLeft(tokenId.v.toString(16), 32),
                               timestamp: timestamp.v,
                               chainId: chainId.v.toNumber(),
                               r,
