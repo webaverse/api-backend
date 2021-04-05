@@ -59,43 +59,127 @@ const _filterByTokenId = tokenId => entry => {
   // console.log('got entry', entry);
   return parseInt(entry.returnValues.tokenId, 10) === tokenId;
 };
-const _cancelEntries = (deposits, withdraws) => {
-  let changed = true;
-  while (changed) {
-    changed = false;
-    
-    let candidateWithdrawIndex = -1, candidateDepositIndex = -1;
-    withdraws.find((w, i) => {
-      const candidateDeposit = deposits.find((d, i) => {
-        if (d.returnValues['to'] === w.returnValues['to']) {
-          candidateDepositIndex = i;
-          return true;
-        } else {
-          return false;
-        }
-      });
-      if (candidateDeposit) {
-        candidateWithdrawIndex = i;
+const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation) => {
+  let candidateWithdrawIndex = -1, candidateDepositIndex = -1;
+  withdraws.find((w, i) => {
+    const candidateDeposit = deposits.find((d, i) => {
+      if (d.returnValues['to'] === w.returnValues['to']) {
+        candidateDepositIndex = i;
         return true;
       } else {
         return false;
       }
     });
-    if (candidateWithdrawIndex !== -1 && candidateDepositIndex !== -1) {
-      deposits.splice(candidateDepositIndex, 1);
-      withdraws.splice(candidateWithdrawIndex, 1);
-      
-      changed = true;
+    if (candidateDeposit) {
+      candidateWithdrawIndex = i;
+      return true;
+    } else {
+      return false;
+    }
+  });
+  if (candidateWithdrawIndex !== -1 && candidateDepositIndex !== -1) {
+    deposits.splice(candidateDepositIndex, 1);
+    withdraws.splice(candidateWithdrawIndex, 1);
+    currentLocation = nextLocation;
+
+    // console.log('sliced 1');
+
+    return [
+      deposits,
+      withdraws,
+      currentLocation,
+      true,
+    ];
+  } else if (deposits.length > 0) {
+    currentLocation = currentLocation + '-stuck';
+
+    // console.log('sliced 2');
+
+    return [
+      deposits,
+      withdraws,
+      currentLocation,
+      false,
+    ];
+  } else {
+    // console.log('sliced 3');
+    
+    return null;
+  }
+};
+const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
+  let currentLocation = 'sidechain';
+  let changed = true;
+  while (changed) {
+    changed = false;
+    
+    // sidechain -> mainnet
+    {
+      const result = _cancelEntry(sidechainDepositedEntries, mainnetWithdrewEntries, currentLocation, 'mainnet');
+      if (result) {
+        sidechainDepositedEntries = result[0];
+        mainnetWithdrewEntries = result[1];
+        currentLocation = result[2];
+        const ok = result[3];
+        if (!ok) {
+          break;
+        }
+        changed = true;
+        
+        {
+          const result2 = _cancelEntry(mainnetDepositedEntries, sidechainWithdrewEntries, currentLocation, 'sidechain');
+          mainnetDepositedEntries = result2[0];
+          sidechainWithdrewEntries = result2[1];
+          currentLocation = result2[2];
+          const ok = result2[3];
+          if (!ok) {
+            break;
+          }
+          changed = true;
+        }
+      }
+    }
+    
+    // sidechain -> polygon
+    {
+      const result = _cancelEntry(sidechainDepositedEntries, polygonWithdrewEntries, currentLocation, 'polygon');
+      if (result) {
+        polygonDepositedEntries = result[0];
+        polygonWithdrewEntries = result[1];
+        currentLocation = result[2];
+        const ok = result[3];
+        if (!ok) {
+          break;
+        }
+        changed = true;
+        
+        const result2 = _cancelEntry(polygonDepositedEntries, sidechainWithdrewEntries, currentLocation, 'sidechain');
+        if (result2) {
+          polygonDepositedEntries = result2[0];
+          sidechainWithdrewEntries = result2[1];
+          currentLocation = result2[2];
+          const ok = result2[3];
+          if (!ok) {
+            break;
+          }
+          changed = true;
+        }
+      }
     }
   }
   return [
-    deposits,
-    withdraws,
+    mainnetDepositedEntries,
+    mainnetWithdrewEntries,
+    sidechainDepositedEntries,
+    sidechainWithdrewEntries,
+    polygonDepositedEntries,
+    polygonWithdrewEntries,
+    currentLocation,
   ];
 };
 
 const formatToken = contractName => chainName => async (token, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
-  console.log('format token', {id: token.id});
+  // console.log('format token', {id: token.id});
   
   const tokenId = parseInt(token.id, 10);
   const {name, ext, unlockable, hash} = token;
@@ -131,30 +215,29 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     polygonWithdrewEntries,
   }); */
 
-  const _filterbyTokenIdLocal = _filterByTokenId(tokenId);
-  mainnetDepositedEntries = mainnetDepositedEntries.filter(_filterbyTokenIdLocal);
-  mainnetWithdrewEntries = mainnetWithdrewEntries.filter(_filterbyTokenIdLocal);
-  sidechainDepositedEntries = sidechainDepositedEntries.filter(_filterbyTokenIdLocal);
-  sidechainWithdrewEntries = sidechainWithdrewEntries.filter(_filterbyTokenIdLocal);
-  // console.log('bad entries?', polygonDepositedEntries);
-  polygonDepositedEntries = polygonDepositedEntries.filter(_filterbyTokenIdLocal);
-  polygonWithdrewEntries = polygonWithdrewEntries.filter(_filterbyTokenIdLocal);
+  const _filterByTokenIdLocal = _filterByTokenId(tokenId);
+  mainnetDepositedEntries = mainnetDepositedEntries.filter(_filterByTokenIdLocal);
+  mainnetWithdrewEntries = mainnetWithdrewEntries.filter(_filterByTokenIdLocal);
+  sidechainDepositedEntries = sidechainDepositedEntries.filter(_filterByTokenIdLocal);
+  sidechainWithdrewEntries = sidechainWithdrewEntries.filter(_filterByTokenIdLocal);
+  polygonDepositedEntries = polygonDepositedEntries.filter(_filterByTokenIdLocal);
+  polygonWithdrewEntries = polygonWithdrewEntries.filter(_filterByTokenIdLocal);
 
-  {
-    const result = _cancelEntries(mainnetDepositedEntries, sidechainWithdrewEntries.concat(polygonWithdrewEntries));
-    mainnetDepositedEntries = result[0];
-    mainnetWithdrewEntries = result[1];
-  }
-  {
-    const result = _cancelEntries(sidechainDepositedEntries, mainnetWithdrewEntries.concat(polygonWithdrewEntries));
-    sidechainDepositedEntries = result[0];
-    sidechainWithdrewEntries = result[1];
-  }
-  {
-    const result = _cancelEntries(polygonDepositedEntries, mainnetWithdrewEntries.concat(sidechainWithdrewEntries));
-    polygonDepositedEntries = result[0];
-    polygonWithdrewEntries = result[1];
-  }
+  const result = _cancelEntries(
+    mainnetDepositedEntries,
+    mainnetWithdrewEntries,
+    sidechainDepositedEntries,
+    sidechainWithdrewEntries,
+    polygonDepositedEntries,
+    polygonWithdrewEntries,
+  );
+  mainnetDepositedEntries = result[0];
+  mainnetWithdrewEntries = result[1];
+  sidechainWithdrewEntries = result[2];
+  sidechainWithdrewEntries = result[3];
+  polygonDepositedEntries = result[4];
+  polygonWithdrewEntries = result[5];
+  const currentLocation = result[6];
 
   /* console.log('got entries 2', {
     mainnetDepositedEntries,
@@ -167,9 +250,21 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
   
   // console.log('mainnet withdrew entries', sidechainDepositedEntries);
 
-  const isStuckForward = sidechainDepositedEntries.length > 0;
+  /* const isStuckForward = sidechainDepositedEntries.length > 0;
   const isStuckBackwardMainnet = mainnetDepositedEntries.length > 0;
   const isStuckBackwardPolygon = polygonDepositedEntries.length > 0;
+
+  if (tokenId === 1) {
+    console.log('entries for token 1', {
+      mainnetDepositedEntries,
+      mainnetWithdrewEntries,
+      sidechainDepositedEntries,
+      sidechainWithdrewEntries,
+      polygonDepositedEntries,
+      polygonWithdrewEntries,
+      currentLocation,
+    });
+  } */
 
   const storeEntry = storeEntries.find(entry => entry.tokenId === tokenId);
   const buyPrice = storeEntry ? storeEntry.price : null;
@@ -195,9 +290,10 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     totalSupply: parseInt(token.totalSupply, 10),
     buyPrice,
     storeId,
-    isStuckForward,
-    isStuckBackwardMainnet,
-    isStuckBackwardPolygon,
+    // isStuckForward,
+    // isStuckBackwardMainnet,
+    // isStuckBackwardPolygon,
+    currentLocation,
   };
 };
 const formatLand = contractName => chainName => async (token, storeEntries) => {
