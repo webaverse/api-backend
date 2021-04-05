@@ -56,7 +56,7 @@ const _fetchAccount = async (address, chainName) => {
   };
 };
 const _filterByTokenId = tokenId => entry => {
-  console.log('got entry', entry);
+  // console.log('got entry', entry);
   return parseInt(entry.returnValues.tokenId, 10) === tokenId;
 };
 
@@ -79,14 +79,10 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
   let [
     minter,
     owner,
-    mainnetToken,
-    polygonToken,
     description,
   ] = await Promise.all([
     _log('formatToken 1' + JSON.stringify({id: token.id}), _fetchAccount(token.minter, sidechainChainName)),
     _log('formatToken 2' + JSON.stringify({id: token.id}), _fetchAccount(token.owner, sidechainChainName)),
-    _log('formatToken 3' + JSON.stringify({id: token.id}), contracts[mainnetChainName][contractName].methods.tokenByIdFull(token.id).call()),
-    _log('formatToken 4' + JSON.stringify({id: token.id}), contracts[polygonChainName][contractName].methods.tokenByIdFull(token.id).call()),
     _log('formatToken 5' + JSON.stringify({id: token.id}), contracts[sidechainChainName].NFT.methods.getMetadata(token.hash, 'description').call()),
   ]);
   
@@ -118,31 +114,12 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     polygonDepositedEntries,
     polygonWithdrewEntries,
   }); */
+  
+  console.log('mainnet withdrew entries', sidechainDepositedEntries);
 
   const isStuckForward = sidechainDepositedEntries.length > (mainnetWithdrewEntries.length + polygonWithdrewEntries.length);
   const isStuckBackward = (mainnetDepositedEntries.length + polygonDepositedEntries.length) > sidechainWithdrewEntries.length;
   const isUnstuck = !isStuckForward && !isStuckBackward;
-
-  let isMainnet;
-  if (mainnetToken && mainnetToken.owner !== zeroAddress && isUnstuck) {
-    isMainnet = true;
-    owner.address = mainnetToken.owner;
-  } else {
-    isMainnet = false;
-  }
-
-  let isPolygon;
-  if (
-    polygonToken &&
-    polygonToken.owner !== zeroAddress &&
-    contracts[polygonChainName][contractName] &&
-    isUnstuck
-  ) {
-    isPolygon = true;
-    owner.address = polygonToken.owner;
-  } else {
-    isPolygon = false;
-  }
 
   const storeEntry = storeEntries.find(entry => entry.tokenId === tokenId);
   const buyPrice = storeEntry ? storeEntry.price : null;
@@ -170,8 +147,6 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     storeId,
     isStuckForward,
     isStuckBackward,
-    isMainnet,
-    isPolygon,
   };
 };
 const formatLand = contractName => chainName => async (token, storeEntries) => {
@@ -286,7 +261,7 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
     })(), */
   ]);
   
-  console.log('get chain nft 2', tokenId, token, contractName);
+  // console.log('get chain nft 2', tokenId, token, contractName);
   
   try {
     if (contractName === 'NFT') {
