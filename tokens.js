@@ -44,10 +44,16 @@ const _fetchAccount = async (address, chainName) => {
     monetizationPointer,
   };
 };
-const _filterByTokenId = entry => parseInt(entry.returnValues.tokenId, 10) === tokenId;
+const _filterByTokenId = tokenId => entry => {
+  console.log('got entry', entry);
+  return parseInt(entry.returnValues.tokenId, 10) === tokenId;
+};
 
 const formatToken = contractName => chainName => async (token, storeEntries) => {
   console.log('format token', {id: token.id});
+  
+  const tokenId = parseInt(token.id, 10);
+  const {name, ext, unlockable, hash} = token;
   
   const {
     contracts,
@@ -58,21 +64,32 @@ const formatToken = contractName => chainName => async (token, storeEntries) => 
   if (mainnetChainName === '') {
     mainnetChainName = 'mainnet';
   }
-  const sidechainChainName = mainnetChainName.replace(/mainnet/, '') + 'sidechain';
+  const sidechainChainName = mainnetChainName + 'sidechain';
   const polygonChainName = mainnetChainName.replace(/mainnet/, '') + 'polygon';
-  
-  console.log('check chain names', {id: token.id}, {
-    mainnetChainName,
-    sidechainChainName,
-    polygonChainName,
-  });
 
   const mainnetContract = contracts[mainnetChainName];
   const mainnetProxyContract = mainnetContract[contractName + 'Proxy'];
   const sidechainContract = contracts[sidechainChainName];
+  console.log('check chain names', {id: token.id}, {
+    mainnetChainName,
+    sidechainChainName,
+    polygonChainName,
+  }, contracts && Object.keys(contracts), sidechainContract && Object.keys(sidechainContract));
   const sidechainProxyContract = sidechainContract[contractName + 'Proxy'];
   const polygonContract = contracts[polygonChainName];
   const polygonProxyContract = polygonContract[contractName + 'Proxy'];
+
+  const _log = async (text, p) => {
+    console.log('start pull', text);
+    try {
+      const r = await p;
+      console.log('ok pull', text);
+      return r;
+    } catch(err) {
+      console.log('error pull', text, err);
+    }
+    console.log('end pull', text);
+  };
 
   let [
     minter,
@@ -87,27 +104,35 @@ const formatToken = contractName => chainName => async (token, storeEntries) => 
     polygonToken,
     description,
   ] = await Promise.all([
-    _fetchAccount(token.minter, sidechainChainName),
-    _fetchAccount(token.owner, sidechainChainName),
-    mainnetProxyContract.getPastEvents('Deposited', {
+    _log('part 1' + JSON.stringify({id: token.id}), _fetchAccount(token.minter, sidechainChainName)),
+    _log('part 2' + JSON.stringify({id: token.id}), _fetchAccount(token.owner, sidechainChainName)),
+    _log('part 3' + JSON.stringify({id: token.id}), mainnetProxyContract.getPastEvents('Deposited', {
       fromBlock: 0,
       toBlock: 'latest',
-    }),
-    mainnetProxyContract.getPastEvents('Withdrew', {
+    })),
+    _log('part 4' + JSON.stringify({id: token.id}), mainnetProxyContract.getPastEvents('Withdrew', {
       fromBlock: 0,
       toBlock: 'latest',
-    }),
-    sidechainProxyContract.getPastEvents('Deposited', {
+    })),
+    _log('part 5' + JSON.stringify({id: token.id}), sidechainProxyContract.getPastEvents('Deposited', {
       fromBlock: 0,
       toBlock: 'latest',
-    }),
-    sidechainProxyContract.getPastEvents('Withdrew', {
+    })),
+    _log('part 6' + JSON.stringify({id: token.id}), sidechainProxyContract.getPastEvents('Withdrew', {
       fromBlock: 0,
       toBlock: 'latest',
-    }),
-    contracts[mainnetChainName][contractName].methods.tokenByIdFull(token.id).call(),
-    contracts[polygonChainName][contractName].methods.tokenByIdFull(token.id).call(),
-    contracts[sidechainChainName].NFT.methods.getMetadata(hash, 'description').call(),
+    })),
+    _log('part 7' + JSON.stringify({id: token.id}), polygonProxyContract.getPastEvents('Deposited', {
+      fromBlock: 0,
+      toBlock: 'latest',
+    })),
+    _log('part 8' + JSON.stringify({id: token.id}), polygonProxyContract.getPastEvents('Withdrew', {
+      fromBlock: 0,
+      toBlock: 'latest',
+    })),
+    _log('part 9' + JSON.stringify({id: token.id}), contracts[mainnetChainName][contractName].methods.tokenByIdFull(token.id).call()),
+    _log('part 10' + JSON.stringify({id: token.id}), contracts[polygonChainName][contractName].methods.tokenByIdFull(token.id).call()),
+    _log('part 11' + JSON.stringify({id: token.id}), contracts[sidechainChainName].NFT.methods.getMetadata(token.hash, 'description').call()),
   ]);
   
   console.log('got all contract sources', {id: token.id});
@@ -121,12 +146,14 @@ const formatToken = contractName => chainName => async (token, storeEntries) => 
     polygonWithdrewEntries,
   }); */
 
-  mainnetDepositedEntries = mainnetDepositedEntries.filter(_filterByTokenId);
-  mainnetWithdrewEntries = mainnetWithdrewEntries.filter(_filterByTokenId);
-  sidechainDepositedEntries = sidechainDepositedEntries.filter(_filterByTokenId);
-  sidechainWithdrewEntries = sidechainWithdrewEntries.filter(_filterByTokenId);
-  polygonDepositedEntries = polygonDepositedEntries.filter(_filterByTokenId);
-  polygonWithdrewEntries = polygonWithdrewEntries.filter(_filterByTokenId);
+  const _filterbyTokenIdLocal = _filterByTokenId(tokenId);
+  mainnetDepositedEntries = mainnetDepositedEntries.filter(_filterbyTokenIdLocal);
+  mainnetWithdrewEntries = mainnetWithdrewEntries.filter(_filterbyTokenIdLocal);
+  sidechainDepositedEntries = sidechainDepositedEntries.filter(_filterbyTokenIdLocal);
+  sidechainWithdrewEntries = sidechainWithdrewEntries.filter(_filterbyTokenIdLocal);
+  // console.log('bad entries?', polygonDepositedEntries);
+  polygonDepositedEntries = polygonDepositedEntries.filter(_filterbyTokenIdLocal);
+  polygonWithdrewEntries = polygonWithdrewEntries.filter(_filterbyTokenIdLocal);
 
   /* console.log('got entries 2', {
     mainnetDepositedEntries,
@@ -162,13 +189,11 @@ const formatToken = contractName => chainName => async (token, storeEntries) => 
     isPolygon = false;
   }
 
-  const id = parseInt(token.id, 10);
-  const {name, ext, unlockable, hash} = token;
-  const storeEntry = storeEntries.find(entry => entry.tokenId === id);
+  const storeEntry = storeEntries.find(entry => entry.tokenId === tokenId);
   const buyPrice = storeEntry ? storeEntry.price : null;
   const storeId = storeEntry ? storeEntry.id : null;
   return {
-    id,
+    id: tokenId,
     name,
     description,
     image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
