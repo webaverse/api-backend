@@ -120,7 +120,7 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     _log('formatToken 5' + JSON.stringify({id: token.id}), contracts[sidechainChainName].NFT.methods.getMetadata(token.hash, 'description').call()),
   ]);
   
-  console.log('got all contract sources', {id: token.id});
+  // console.log('got all contract sources', {id: token.id});
 
   /* console.log('got entries 1', {
     mainnetDepositedEntries,
