@@ -108,7 +108,7 @@ const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation) => {
   }
 };
 const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
-  let currentLocation = 'sidechain';
+  let currentLocation = 'mainnetsidechain';
   let changed = true;
   while (changed) {
     changed = false;
@@ -127,7 +127,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
         changed = true;
         
         {
-          const result2 = _cancelEntry(mainnetDepositedEntries, sidechainWithdrewEntries, currentLocation, 'sidechain');
+          const result2 = _cancelEntry(mainnetDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain');
           mainnetDepositedEntries = result2[0];
           sidechainWithdrewEntries = result2[1];
           currentLocation = result2[2];
@@ -153,7 +153,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
         }
         changed = true;
         
-        const result2 = _cancelEntry(polygonDepositedEntries, sidechainWithdrewEntries, currentLocation, 'sidechain');
+        const result2 = _cancelEntry(polygonDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain');
         if (result2) {
           polygonDepositedEntries = result2[0];
           sidechainWithdrewEntries = result2[1];
