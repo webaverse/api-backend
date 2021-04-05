@@ -1654,6 +1654,10 @@ try {
           polygonWithdrewEntries,
         } = await getAllWithdrawsDeposits(chainName);
         
+        if (!mainnetDepositedEntries) {
+          throw new Error('fail');
+        }
+        
         const numTokens = endTokenId - startTokenId;
         const promises = Array(numTokens);
         for (let i = 0; i < numTokens; i++) {
