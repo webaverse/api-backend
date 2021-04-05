@@ -203,11 +203,17 @@ async function processEventNft({contract, wsContracts, event, isMainnet, chainNa
 }
 
 async function processEventsNft({events, currentBlockNumber, chainName}) {
+  const seenTokenIds = {};
   const tokenIds = events.map(event => {
     let {tokenId} = event.returnValues;
     if (typeof tokenId === 'string') {
       tokenId = parseInt(tokenId, 10);
-      return tokenId;
+      if (!seenTokenIds[tokenId]) {
+        seenTokenIds[tokenId] = true;
+        return tokenId;
+      } else {
+        return null;
+      }
     } else {
       return null;
     }
