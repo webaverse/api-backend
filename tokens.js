@@ -4,7 +4,11 @@ const {getBlockchain} = require('./blockchain.js');
 const zeroAddress = '0x0000000000000000000000000000000000000000';
 const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
 
-const _fetchAccount = async address => {
+const _fetchAccount = async (address, chainName) => {
+  const {
+    contracts,
+  } = await getBlockchain();
+  
   const [
     username,
     avatarPreview,
@@ -57,7 +61,7 @@ const formatToken = contractName => chainName => async (token, storeEntries) => 
   const sidechainChainName = mainnetChainName.replace(/mainnet/, '') + 'sidechain';
   const polygonChainName = mainnetChainName.replace(/mainnet/, '') + 'polygon';
   
-  console.log('check chain names', {
+  console.log('check chain names', {id: token.id}, {
     mainnetChainName,
     sidechainChainName,
     polygonChainName,
@@ -81,9 +85,10 @@ const formatToken = contractName => chainName => async (token, storeEntries) => 
     polygonWithdrewEntries,
     mainnetToken,
     polygonToken,
+    description,
   ] = await Promise.all([
-    _fetchAccount(token.minter),
-    _fetchAccount(token.owner),
+    _fetchAccount(token.minter, sidechainChainName),
+    _fetchAccount(token.owner, sidechainChainName),
     mainnetProxyContract.getPastEvents('Deposited', {
       fromBlock: 0,
       toBlock: 'latest',
@@ -102,7 +107,10 @@ const formatToken = contractName => chainName => async (token, storeEntries) => 
     }),
     contracts[mainnetChainName][contractName].methods.tokenByIdFull(token.id).call(),
     contracts[polygonChainName][contractName].methods.tokenByIdFull(token.id).call(),
+    contracts[sidechainChainName].NFT.methods.getMetadata(hash, 'description').call(),
   ]);
+  
+  console.log('got all contract sources', {id: token.id});
 
   /* console.log('got entries 1', {
     mainnetDepositedEntries,
@@ -156,7 +164,6 @@ const formatToken = contractName => chainName => async (token, storeEntries) => 
 
   const id = parseInt(token.id, 10);
   const {name, ext, unlockable, hash} = token;
-  const description = await contracts[chainName].NFT.methods.getMetadata(hash, 'description').call();
   const storeEntry = storeEntries.find(entry => entry.tokenId === id);
   const buyPrice = storeEntry ? storeEntry.price : null;
   const storeId = storeEntry ? storeEntry.id : null;
@@ -192,7 +199,7 @@ const formatLand = contractName => chainName => async (token, storeEntries) => {
     contracts,
   } = await getBlockchain();
 
-  const owner = await _fetchAccount(token.owner);
+  const owner = await _fetchAccount(token.owner, chainName);
 
   const id = parseInt(token.id, 10);
   // console.log('got token', token);
