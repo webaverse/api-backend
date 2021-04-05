@@ -32,6 +32,7 @@ const {getDynamoItem, getDynamoAllItems, putDynamoItem} = require('./aws.js');
 const {initCaches} = require('./cache.js');
 const {getExt, makePromise} = require('./utils.js');
 const Timer = require('./timer.js');
+const {getStoreEntries} = require('./tokens.js');
 const {getBlockchain} = require('./blockchain.js');
 // const browserManager = require('./browser-manager.js');
 const {tableNames, accountKeys, ids, polygonVigilKey, storageHost, mainnetSignatureMessage} = require('./constants.js');
