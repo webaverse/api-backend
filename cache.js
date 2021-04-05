@@ -1,5 +1,5 @@
 const {ddbd, getDynamoItem, putDynamoItem} = require('./aws.js');
-const {getChainNft, getChainAccount} = require('./tokens.js');
+const {getChainNft, getChainAccount, getAllWithdrawsDeposits} = require('./tokens.js');
 const {ids, tableNames, accountKeys} = require('./constants.js');
 const {getBlockchain, getPastEvents} = require('./blockchain.js');
 
@@ -138,7 +138,26 @@ async function processEventNft({contract, wsContracts, event, isMainnet, chainNa
 
   if (tokenId) {
     try {
-      const token = await getChainNft('NFT')(chainName)(tokenId);
+      const storeEntries = [];
+      const {
+        mainnetDepositedEntries,
+        mainnetWithdrewEntries,
+        sidechainDepositedEntries,
+        sidechainWithdrewEntries,
+        polygonDepositedEntries,
+        polygonWithdrewEntries,
+      } = await getAllWithdrawsDeposits('NFT')(chainName);
+      
+      const token = await getChainNft('NFT')(chainName)(
+        tokenId,
+        storeEntries,
+        mainnetDepositedEntries,
+        mainnetWithdrewEntries,
+        sidechainDepositedEntries,
+        sidechainWithdrewEntries,
+        polygonDepositedEntries,
+        polygonWithdrewEntries,
+      );
 
       if (token.properties.hash) {
         tokenId = parseInt(tokenId, 10);
@@ -194,8 +213,28 @@ async function processEventsNft({events, currentBlockNumber, chainName}) {
     }
   }).filter(tokenId => tokenId !== null);
 
+  console.log('process events', tokenIds.length);
+
+  const storeEntries = [];
+  const {
+    mainnetDepositedEntries,
+    mainnetWithdrewEntries,
+    sidechainDepositedEntries,
+    sidechainWithdrewEntries,
+    polygonDepositedEntries,
+    polygonWithdrewEntries,
+  } = await getAllWithdrawsDeposits('NFT')(chainName);
   for (const tokenId of tokenIds) {
-    const token = await getChainNft('NFT')(chainName)(tokenId);
+    const token = await getChainNft('NFT')(chainName)(
+      tokenId,
+      storeEntries,
+      mainnetDepositedEntries,
+      mainnetWithdrewEntries,
+      sidechainDepositedEntries,
+      sidechainWithdrewEntries,
+      polygonDepositedEntries,
+      polygonWithdrewEntries,
+    );
 
     if (token.properties.hash) {
       await putDynamoItem(tokenId, token, tableNames[chainName + 'Nft']);

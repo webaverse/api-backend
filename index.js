@@ -1487,15 +1487,6 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
                 IndexName: 'ownerAddress-index',
               }).promise();
               return (o && o.Items) || [];
-
-              /* const nftMainnetBalance = await contracts[otherChainName][contractName].methods.balanceOf(mainnetAddress).call();
-              const mainnetPromises = Array(nftMainnetBalance);
-              for (let i = 0; i < nftMainnetBalance; i++) {
-                let id = await getChainOwnerNft(contractName)(isMainChain, true, isAll)(address, i, storeEntries);
-                mainnetPromises[i] = _getChainNft(contractName)(isMainChain, isFront, isAll)(id.id, storeEntries);
-              }
-              let mainnetTokens = await Promise.all(mainnetPromises);
-              return mainnetTokens; */
             } else {
               return [];
             }
@@ -1717,14 +1708,23 @@ try {
       const [
         nftBalance,
         storeEntries,
+        {
+          mainnetDepositedEntries,
+          mainnetWithdrewEntries,
+          sidechainDepositedEntries,
+          sidechainWithdrewEntries,
+          polygonDepositedEntries,
+          polygonWithdrewEntries,
+        },
       ] = await Promise.all([
         contracts[chainName][contractName].methods.balanceOf(address).call(),
         _maybeGetStoreEntries(),
+        getAllWithdrawsDeposits(chainName),
       ]);
 
       const promises = Array(nftBalance);
       for (let i = 0; i < nftBalance; i++) {
-        promises[i] = getChainOwnerNft(contractName)(chainName)(address, i, storeEntries);
+        promises[i] = getChainOwnerNft(contractName)(chainName)(address, i, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries);
       }
       let tokens = await Promise.all(promises);
 
@@ -1732,8 +1732,8 @@ try {
         const nftMainnetBalance = await contracts[otherChainName][contractName].methods.balanceOf(mainnetAddress).call();
         const mainnetPromises = Array(nftMainnetBalance);
         for (let i = 0; i < nftMainnetBalance; i++) {
-          let id = await getChainOwnerNft(contractName)(chainName, isAll)(address, i, storeEntries);
-          mainnetPromises[i] = getChainNft(contractName)(chainName, isAll)(id.id, storeEntries);
+          let id = await getChainOwnerNft(contractName)(chainName)(address, i, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries);
+          mainnetPromises[i] = getChainNft(contractName)(chainName)(id.id, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries);
         }
         let mainnetTokens = await Promise.all(mainnetPromises);
 
