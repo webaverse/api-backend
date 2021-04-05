@@ -117,7 +117,7 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
   ] = await Promise.all([
     _log('formatToken 1' + JSON.stringify({id: token.id}), _fetchAccount(token.minter, sidechainChainName)),
     _log('formatToken 2' + JSON.stringify({id: token.id}), _fetchAccount(token.owner, sidechainChainName)),
-    _log('formatToken 5' + JSON.stringify({id: token.id}), contracts[sidechainChainName].NFT.methods.getMetadata(token.hash, 'description').call()),
+    _log('formatToken 3' + JSON.stringify({id: token.id}), contracts[sidechainChainName].NFT.methods.getMetadata(token.hash, 'description').call()),
   ]);
   
   // console.log('got all contract sources', {id: token.id});
