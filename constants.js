@@ -30,7 +30,7 @@ const tableNames = {
   testnetpolygonAccount: 'testnetpolygon-cache-account',
   testnetpolygonNft: 'testnetpolygon-cache-nft',
 };
-const polygonVigilKey = `0937c004ab133135c86586b55ca212a6c9ecd224`;
+const polygonVigilKey = `1bdde9289621d9d420488a9804254f4a958e128b`;
 const ethereumHost = 'ethereum.exokit.org';
 const storageHost = 'https://ipfs.exokit.org';
 const mainnetSignatureMessage = `Connecting mainnet address.`;
