@@ -1655,6 +1655,7 @@ try {
         } = await getAllWithdrawsDeposits(chainName);
         
         if (!mainnetDepositedEntries) {
+          console.log('fetch from chain name', chainName);
           throw new Error('fail');
         }
         
