@@ -2099,15 +2099,12 @@ const _ws = protocol => (req, socket, head) => {
     socket.destroy();
   }
 };
-initCaches({
-  contracts,
-  wsContracts,
-  webSockets: web3sockets,
-}).then(() => {
-  console.log('caches initialized');
-}, err => {
-  console.warn('failed to initialize caches', err);
-});
+initCaches()
+  .then(() => {
+    console.log('caches initialized');
+  }, err => {
+    console.warn('failed to initialize caches', err);
+  });
 
 const server = http.createServer(_req('http:'));
 server.on('upgrade', _ws('http:'));
