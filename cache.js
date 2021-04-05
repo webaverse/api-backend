@@ -43,7 +43,6 @@ async function initNftCache({chainName}) {
     });
     if (events.length > 0) {
       await processEventsNft({
-        contract,
         events,
         currentBlockNumber,
         chainName,
@@ -184,7 +183,7 @@ async function processEventNft({contract, wsContracts, event, isMainnet, chainNa
   await putDynamoItem(ids.lastCachedBlockNft, {number: blockNumber}, isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft);
 }
 
-async function processEventsNft({contract, events, currentBlockNumber, chainName}) {
+async function processEventsNft({events, currentBlockNumber, chainName}) {
   const responses = {};
 
   // Get tokenId from each event and add it to the URI table.
