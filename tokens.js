@@ -14,6 +14,13 @@ const _log = async (text, p) => {
   }
   // console.log('end pull', text);
 };
+function _jsonParse(s) {
+  try {
+    return JSON.parse(s);
+  } catch(err) {
+    return null;
+  }
+}
 
 const _fetchAccount = async (address, chainName) => {
   const {
