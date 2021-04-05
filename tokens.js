@@ -4,15 +4,15 @@ const {getBlockchain, getPastEvents} = require('./blockchain.js');
 const zeroAddress = '0x0000000000000000000000000000000000000000';
 const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
 const _log = async (text, p) => {
-  console.log('start pull', text);
+  // console.log('start pull', text);
   try {
     const r = await p;
-    console.log('ok pull', text, JSON.stringify(r).slice(0, 80));
+    // console.log('ok pull', text, JSON.stringify(r).slice(0, 80));
     return r;
   } catch(err) {
     console.log('error pull', text, err);
   }
-  console.log('end pull', text);
+  // console.log('end pull', text);
 };
 
 const _fetchAccount = async (address, chainName) => {
