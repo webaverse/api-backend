@@ -1594,7 +1594,7 @@ try {
         sidechainWithdrewEntries,
         polygonDepositedEntries,
         polygonWithdrewEntries,
-      } = await getAllWithdrawsDeposits(chainName);
+      } = await getAllWithdrawsDeposits(contractName)(chainName);
       const token = await getChainNft(contractName)(chainName)(
         tokenId,
         storeEntries,
@@ -1652,7 +1652,7 @@ try {
           sidechainWithdrewEntries,
           polygonDepositedEntries,
           polygonWithdrewEntries,
-        } = await getAllWithdrawsDeposits(chainName);
+        } = await getAllWithdrawsDeposits(contractName)(chainName);
         
         if (!mainnetDepositedEntries) {
           console.log('fetch from chain name', chainName);
@@ -1752,7 +1752,7 @@ try {
       ] = await Promise.all([
         contracts[chainName][contractName].methods.balanceOf(address).call(),
         _maybeGetStoreEntries(),
-        getAllWithdrawsDeposits(chainName),
+        getAllWithdrawsDeposits(contractName)(chainName),
       ]);
 
       const promises = Array(nftBalance);
