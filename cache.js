@@ -102,12 +102,6 @@ async function initAccountCache({chainName}) {
   });
 }
 async function initCaches({wsContracts, webSockets}) {
-  /* const {
-    contracts,
-    web3sockets,
-    wsContracts,
-  } = await getBlockchain(); */
-  
   const _logCache = async (name, p) => {
     console.log('started init cache', name);
     try {
