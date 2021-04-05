@@ -101,7 +101,7 @@ async function initAccountCache({chainName}) {
     });
   });
 }
-async function initCaches({wsContracts, webSockets}) {
+async function initCaches() {
   const _logCache = async (name, p) => {
     console.log('started init cache', name);
     try {
