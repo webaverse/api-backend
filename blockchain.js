@@ -110,10 +110,10 @@ const loadPromise = (async() => {
     )),
     
     polygon: new Web3(new Web3.providers.WebsocketProvider(
-      `wss://ws-mainnet.matic.network`
+      `wss://rpc-mainnet.maticvigil.com/ws/v1/${polygonVigilKey}`
     )),
     testnetpolygon: new Web3(new Web3.providers.WebsocketProvider(
-      `wss://ws-mumbai.matic.today`
+      `wss://rpc-mumbai.maticvigil.com/ws/v1/${polygonVigilKey}`
     )),
   };
   
@@ -146,6 +146,30 @@ const loadPromise = (async() => {
   });
 })();
 
+async function getPastEvents({
+  chainName,
+  contractName,
+  eventName = 'allEvents',
+  fromBlock = 0,
+  toBlock = 'latest',
+} = {}) {
+  const {wsContracts} = await getBlockchain();
+  // console.log('got contracts', Object.keys(wsContracts), chainName, !!wsContracts[chainName]);
+  const chainContracts = wsContracts[chainName];
+  try {
+    return await chainContracts[contractName].getPastEvents(
+      eventName,
+      {
+        fromBlock,
+        toBlock,
+      }
+    );
+  } catch(e) {
+    console.error(e);
+    return [];
+  }
+}
+
 async function getBlockchain() {
   await loadPromise;
   return {
@@ -160,4 +184,5 @@ async function getBlockchain() {
 
 module.exports = {
   getBlockchain,
+  getPastEvents,
 };
