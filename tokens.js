@@ -277,7 +277,7 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
     contracts,
   } = await getBlockchain();
 
-  console.log('get chain nft 1', tokenId);
+  // console.log('get chain nft 1', tokenId);
 
   const [
     token,
