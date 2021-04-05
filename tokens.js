@@ -1,5 +1,5 @@
-const {accountKeys} = require('./constants.js');
-const {getBlockchain} = require('./blockchain.js');
+const {accountKeys, storageHost} = require('./constants.js');
+const {getBlockchain, getPastEvents} = require('./blockchain.js');
 
 const zeroAddress = '0x0000000000000000000000000000000000000000';
 const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
@@ -106,27 +106,45 @@ const formatToken = contractName => chainName => async (token, storeEntries) => 
   ] = await Promise.all([
     _log('part 1' + JSON.stringify({id: token.id}), _fetchAccount(token.minter, sidechainChainName)),
     _log('part 2' + JSON.stringify({id: token.id}), _fetchAccount(token.owner, sidechainChainName)),
-    _log('part 3' + JSON.stringify({id: token.id}), mainnetProxyContract.getPastEvents('Deposited', {
+    _log('part 3' + JSON.stringify({id: token.id}), getPastEvents({
+      chainName: mainnetChainName,
+      contractName: contractName + 'Proxy',
+      eventName: 'Deposited',
       fromBlock: 0,
       toBlock: 'latest',
     })),
-    _log('part 4' + JSON.stringify({id: token.id}), mainnetProxyContract.getPastEvents('Withdrew', {
+    _log('part 4' + JSON.stringify({id: token.id}), getPastEvents({
+      chainName: mainnetChainName,
+      contractName: contractName + 'Proxy',
+      eventName: 'Withdrew',
       fromBlock: 0,
       toBlock: 'latest',
     })),
-    _log('part 5' + JSON.stringify({id: token.id}), sidechainProxyContract.getPastEvents('Deposited', {
+    _log('part 5' + JSON.stringify({id: token.id}), getPastEvents({
+      chainName: sidechainChainName,
+      contractName: contractName + 'Proxy',
+      eventName: 'Deposited',
       fromBlock: 0,
       toBlock: 'latest',
     })),
-    _log('part 6' + JSON.stringify({id: token.id}), sidechainProxyContract.getPastEvents('Withdrew', {
+    _log('part 6' + JSON.stringify({id: token.id}), getPastEvents({
+      chainName: sidechainChainName,
+      contractName: contractName + 'Proxy',
+      eventName: 'Withdrew',
       fromBlock: 0,
       toBlock: 'latest',
     })),
-    _log('part 7' + JSON.stringify({id: token.id}), polygonProxyContract.getPastEvents('Deposited', {
+    _log('part 7' + JSON.stringify({id: token.id}), getPastEvents({
+      chainName: sidechainChainName,
+      contractName: contractName + 'Proxy',
+      eventName: 'Deposited',
       fromBlock: 0,
       toBlock: 'latest',
     })),
-    _log('part 8' + JSON.stringify({id: token.id}), polygonProxyContract.getPastEvents('Withdrew', {
+    _log('part 8' + JSON.stringify({id: token.id}), getPastEvents({
+      chainName: sidechainChainName,
+      contractName: contractName + 'Proxy',
+      eventName: 'Withdrew',
       fromBlock: 0,
       toBlock: 'latest',
     })),
@@ -369,6 +387,9 @@ async function getChainAccount({
   
   return account;
 }
+async function getChainAllAccounts() {
+  // XXX
+}
 
 const getStoreEntries = async chainName => {
   const numStores = await contracts[chainName].Trade.methods.numStores().call();
@@ -404,6 +425,7 @@ const getStoreEntries = async chainName => {
 module.exports = {
   getChainNft,
   getChainAccount,
+  getChainAllAccounts,
   getChainToken,
   formatToken,
   formatLand,
