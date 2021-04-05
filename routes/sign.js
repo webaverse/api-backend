@@ -116,7 +116,7 @@ const _handleSignRequest = async (req, res) => {
                       if (txr && txr.to.toLowerCase() === addresses[chainName][proxyContractName].toLowerCase()) {
                         
                         const {logs} = txr;
-                        console.log('got txr logs', logs);
+                        // console.log('got txr logs', logs);
                         const log = logs.find(log =>
                           (contractName === 'FT' && log.topics[0] === '0x2da466a7b24304f47e87fa2e1e5a81b9831ce54fec19055ce277ca2f39ba42c4') || // WebaverseERC20Proxy Deposited
                           (contractName === 'LAND' && log.topics[0] === '0x2da466a7b24304f47e87fa2e1e5a81b9831ce54fec19055ce277ca2f39ba42c4') || // WebaverseERC721Proxy Deposited
