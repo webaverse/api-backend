@@ -17,7 +17,7 @@ async function initNftCache({chainName}) {
     console.debug('nft event', event);
     if (error) {
       console.log('Error getting event: ' + error);
-      reject(error);
+      // reject(error);
     } else {
       await processEventNft({
         contract,
