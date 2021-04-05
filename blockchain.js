@@ -13,6 +13,7 @@ let addresses,
   abis,
   web3,
   web3sockets,
+  web3socketProviders,
   contracts,
   wsContracts;
 
@@ -93,29 +94,41 @@ const loadPromise = (async() => {
       `https://rpc-mumbai.maticvigil.com/v1/${polygonVigilKey}`
     )),
   };
-
-  web3sockets = {
-    mainnet: new Web3(new Web3.providers.WebsocketProvider(
+  
+  web3socketProviders = {
+    mainnet: new Web3.providers.WebsocketProvider(
       `wss://mainnet.infura.io/ws/v3/${infuraProjectId}`
-    )),
-    mainnetsidechain: new Web3(new Web3.providers.WebsocketProvider(
+    ),
+    mainnetsidechain: new Web3.providers.WebsocketProvider(
       `${gethNodeWSUrl}:${ports.mainnetsidechainWs}`
-    )),
+    ),
 
-    testnet: new Web3(new Web3.providers.WebsocketProvider(
+    testnet: new Web3.providers.WebsocketProvider(
       `wss://rinkeby.infura.io/ws/v3/${infuraProjectId}`
-    )),
-    testnetsidechain: new Web3(new Web3.providers.WebsocketProvider(
+    ),
+    testnetsidechain: new Web3.providers.WebsocketProvider(
       `${gethNodeWSUrl}:${ports.testnetsidechainWs}`
-    )),
+    ),
     
-    polygon: new Web3(new Web3.providers.WebsocketProvider(
+    polygon: new Web3.providers.WebsocketProvider(
       `wss://rpc-mainnet.maticvigil.com/ws/v1/${polygonVigilKey}`
-    )),
-    testnetpolygon: new Web3(new Web3.providers.WebsocketProvider(
+    ),
+    testnetpolygon: new Web3.providers.WebsocketProvider(
       `wss://rpc-mumbai.maticvigil.com/ws/v1/${polygonVigilKey}`
-    )),
+    ),
   };
+
+  web3sockets = {};
+  for (const k in web3socketProviders) {
+    const v = web3socketProviders[k];
+    v.on('error', err => {
+      console.log('provider error', k, err);
+    });
+    v.on('end', () => {
+      console.log('provider end', k);
+    });
+    web3sockets[k] = new Web3(v);
+  }
   
   contracts = {};
   BlockchainNetworks.forEach(network => {
@@ -176,6 +189,7 @@ async function getBlockchain() {
     addresses,
     abis,
     web3,
+    web3socketProviders,
     web3sockets,
     contracts,
     wsContracts,
