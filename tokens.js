@@ -59,6 +59,40 @@ const _filterByTokenId = tokenId => entry => {
   // console.log('got entry', entry);
   return parseInt(entry.returnValues.tokenId, 10) === tokenId;
 };
+const _cancelEntries = (deposits, withdraws) => {
+  let changed = true;
+  while (changed) {
+    changed = false;
+    
+    let candidateWithdrawIndex = -1, candidateDepositIndex = -1;
+    withdraws.find((w, i) => {
+      const candidateDeposit = deposits.find((d, i) => {
+        if (d.returnValues['to'] === w.returnValues['to']) {
+          candidateDepositIndex = i;
+          return true;
+        } else {
+          return false;
+        }
+      });
+      if (candidateDeposit) {
+        candidateWithdrawIndex = i;
+        return true;
+      } else {
+        return false;
+      }
+    });
+    if (candidateWithdrawIndex !== -1 && candidateDepositIndex !== -1) {
+      deposits.splice(candidateDepositIndex, 1);
+      withdraws.splice(candidateWithdrawIndex, 1);
+      
+      changed = true;
+    }
+  }
+  return [
+    deposits,
+    withdraws,
+  ];
+};
 
 const formatToken = contractName => chainName => async (token, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
   console.log('format token', {id: token.id});
@@ -106,6 +140,22 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
   polygonDepositedEntries = polygonDepositedEntries.filter(_filterbyTokenIdLocal);
   polygonWithdrewEntries = polygonWithdrewEntries.filter(_filterbyTokenIdLocal);
 
+  {
+    const result = _cancelEntries(mainnetDepositedEntries, sidechainWithdrewEntries.concat(polygonWithdrewEntries));
+    mainnetDepositedEntries = result[0];
+    mainnetWithdrewEntries = result[1];
+  }
+  {
+    const result = _cancelEntries(sidechainDepositedEntries, mainnetWithdrewEntries.concat(polygonWithdrewEntries));
+    sidechainDepositedEntries = result[0];
+    sidechainWithdrewEntries = result[1];
+  }
+  {
+    const result = _cancelEntries(polygonDepositedEntries, mainnetWithdrewEntries.concat(sidechainWithdrewEntries));
+    polygonDepositedEntries = result[0];
+    polygonWithdrewEntries = result[1];
+  }
+
   /* console.log('got entries 2', {
     mainnetDepositedEntries,
     mainnetWithdrewEntries,
@@ -115,11 +165,11 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     polygonWithdrewEntries,
   }); */
   
-  console.log('mainnet withdrew entries', sidechainDepositedEntries);
+  // console.log('mainnet withdrew entries', sidechainDepositedEntries);
 
-  const isStuckForward = sidechainDepositedEntries.length > (mainnetWithdrewEntries.length + polygonWithdrewEntries.length);
-  const isStuckBackward = (mainnetDepositedEntries.length + polygonDepositedEntries.length) > sidechainWithdrewEntries.length;
-  const isUnstuck = !isStuckForward && !isStuckBackward;
+  const isStuckForward = sidechainDepositedEntries.length > 0;
+  const isStuckBackwardMainnet = mainnetDepositedEntries.length > 0;
+  const isStuckBackwardPolygon = polygonDepositedEntries.length > 0;
 
   const storeEntry = storeEntries.find(entry => entry.tokenId === tokenId);
   const buyPrice = storeEntry ? storeEntry.price : null;
@@ -146,7 +196,8 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     buyPrice,
     storeId,
     isStuckForward,
-    isStuckBackward,
+    isStuckBackwardMainnet,
+    isStuckBackwardPolygon,
   };
 };
 const formatLand = contractName => chainName => async (token, storeEntries) => {
