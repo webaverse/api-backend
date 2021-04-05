@@ -1,7 +1,7 @@
 const {ddbd, getDynamoItem, putDynamoItem} = require('./aws.js');
 const {getChainNft, getChainAccount} = require('./tokens.js');
 const {ids, tableNames, accountKeys} = require('./constants.js');
-const {getBlockchain} = require('./blockchain.js');
+const {getBlockchain, getPastEvents} = require('./blockchain.js');
 
 async function initNftCache({chainName}) {
   const {
@@ -37,7 +37,7 @@ async function initNftCache({chainName}) {
   // Catch up on missing blocks.
   if (currentBlockNumber !== lastBlockNumber) {
     const events = await getPastEvents({
-      contract,
+      chainName,
       contractName: 'NFT',
       lastBlockNumber,
     });
@@ -69,7 +69,7 @@ async function initAccountCache({chainName}) {
   if (currentBlockNumber !== lastBlockNumber) {
     const {web3sockets} = await getBlockchain();
     const events = await getPastEvents({
-      contract,
+      chainName,
       contractName: 'Account',
       lastBlockNumber,
     });
@@ -194,13 +194,13 @@ async function processEventsNft({events, currentBlockNumber, chainName}) {
     }
   }).filter(tokenId => tokenId !== null);
 
-  await Promise.all(tokenIds.map(async tokenId => {
+  for (const tokenId of tokenIds) {
     const token = await getChainNft('NFT')(chainName)(tokenId);
 
     if (token.properties.hash) {
       await putDynamoItem(tokenId, token, tableNames[chainName + 'Nft']);
     }
-  }));
+  }
   
   await putDynamoItem(ids.lastCachedBlockNft, {number: currentBlockNumber}, tableNames.mainnetsidechainNft);
 }
@@ -230,57 +230,21 @@ async function processEventAccount({contract, event, chainName}) {
   await putDynamoItem(ids.lastCachedBlockAccount, {number: blockNumber}, tableNames[chainName + 'Account']);
 }
 async function processEventsAccount({contract, events, currentBlockNumber, chainName}) {
-  const responses = {};
-
-  // Get tokenId from each event and add it to the URI table.
-  for (const event of events) {
-    let {owner} = event.returnValues;
+  const owners = events.map(e => {
+    let {owner} = e.returnValues;
     owner = owner.toLowerCase();
+    return owner;
+  });
 
-    if (owner) {
-      try {
-        const res = getDynamoItem(owner, tableNames[chainName + 'Account']);
-        if (res) {
-          responses[owner] = res;
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  }
-
-  // Map each response to a token.
-  await Promise.all(Object.entries(responses).map(async entry => {
+  for (const owner of owners) {
     const account = await getChainAccount({
-      address: entry[0],
+      address: owner,
       chainName,
     });
-
-    // Cache each token.
-    // XXX possible race condition with different versions of tokens + timing?
-    await putDynamoItem(entry[0], account, tableNames[chainName + 'Account']);
-  }));
+    await putDynamoItem(owner, account, tableNames[chainName + 'Account']);
+  }
   
   await putDynamoItem(ids.lastCachedBlockAccount, {number: currentBlockNumber}, tableNames[chainName + 'Account']);
-}
-
-async function getPastEvents({
-  contract,
-  contractName,
-  fromBlock = 0,
-  toBlock = 'latest',
-} = {}) {
-  try {
-    return await contract[contractName].getPastEvents(
-      'allEvents',
-      {fromBlock, toBlock}
-    );
-  }
-
-  catch ( e ) {
-    console.error(e);
-    return [];
-  }
 }
 
 module.exports = {
