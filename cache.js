@@ -1,10 +1,16 @@
 const {ddbd, getDynamoItem, putDynamoItem} = require('./aws.js');
 const {getChainNft, getChainAccount} = require('./tokens.js');
 const {ids, tableNames, accountKeys} = require('./constants.js');
+const {getBlockchain} = require('./blockchain.js');
 
-async function initNftCache({addresses, wsContracts, webSockets, chainName}) {
-  const webSocketWeb3 = webSockets[chainName];
-  const webSocketContract = wsContracts[chainName];
+async function initNftCache({chainName}) {
+  const {
+    web3sockets,
+    wsContracts,
+  } = await getBlockchain();
+  
+  const webSocketWeb3 = web3sockets[chainName];
+  const contract = wsContracts[chainName];
 
   // Watch for new events.
   wsContracts[chainName].NFT.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
@@ -14,8 +20,8 @@ async function initNftCache({addresses, wsContracts, webSockets, chainName}) {
       reject(error);
     } else {
       await processEventNft({
-        addresses,
-        contract: webSocketContract,
+        contract,
+        wsContracts,
         event,
         chainName,
       });
@@ -31,14 +37,13 @@ async function initNftCache({addresses, wsContracts, webSockets, chainName}) {
   // Catch up on missing blocks.
   if (currentBlockNumber !== lastBlockNumber) {
     const events = await getPastEvents({
-      contract: webSocketContract,
+      contract,
       contractName: 'NFT',
       lastBlockNumber,
     });
     if (events.length > 0) {
       await processEventsNft({
-        addresses,
-        contract: webSocketContract,
+        contract,
         events,
         currentBlockNumber,
         chainName,
@@ -46,36 +51,32 @@ async function initNftCache({addresses, wsContracts, webSockets, chainName}) {
     }
   }
 }
-async function initAccountCache({addresses, wsContracts, webSockets, chainName}) {
-  const webSocketWeb3 = webSockets[chainName];
-  const webSocketContract = wsContracts[chainName];
-
+async function initAccountCache({chainName}) {
+  const {
+    web3sockets,
+    wsContracts,
+  } = await getBlockchain();
+  
+  const webSocketWeb3 = web3sockets[chainName];
+  const contract = wsContracts[chainName];
+  
   const currentBlockNumber = await webSocketWeb3.eth.getBlockNumber();
   const lastBlockNumber = (await getDynamoItem(
     ids.lastCachedBlockAccount,
     tableNames[chainName + 'Account']
   )).number || 0;
 
-  /* console.log('initAccountCache 1', {
-    currentBlockNumber,
-    lastBlockNumber,
-    // webSocketContract,
-  }); */
-
   // Catch up on missing blocks.
   if (currentBlockNumber !== lastBlockNumber) {
-    // console.log('initAccountCache 2');
-    
+    const {web3sockets} = await getBlockchain();
     const events = await getPastEvents({
-      contract: webSocketContract,
+      contract,
       contractName: 'Account',
       lastBlockNumber,
     });
-    // console.log('initAccountCache 3', events.length);
     if (events.length > 0) {
       await processEventsAccount({
-        addresses,
-        contract: webSocketContract,
+        // contract: webSocketContract,
         events,
         currentBlockNumber,
         chainName,
@@ -92,8 +93,7 @@ async function initAccountCache({addresses, wsContracts, webSockets, chainName})
         reject(error);
       } else {
         await processEventAccount({
-          addresses,
-          contract: webSocketContract,
+          // contract: webSocketContract,
           event,
           chainName,
         });
@@ -102,7 +102,13 @@ async function initAccountCache({addresses, wsContracts, webSockets, chainName})
     });
   });
 }
-async function initCaches({addresses, wsContracts, webSockets}) {
+async function initCaches({wsContracts, webSockets}) {
+  /* const {
+    contracts,
+    web3sockets,
+    wsContracts,
+  } = await getBlockchain(); */
+  
   const _logCache = async (name, p) => {
     console.log('started init cache', name);
     try {
@@ -122,23 +128,18 @@ async function initCaches({addresses, wsContracts, webSockets}) {
     'testnetpolygon',
   ].map(chainName => {
     return Promise.all([
-      _logCache(chainName + ' NFT', initNftCache({addresses, wsContracts, webSockets, chainName})),
-      _logCache(chainName + ' Account', initAccountCache({addresses, wsContracts, webSockets, chainName})),
+      _logCache(chainName + ' NFT', initNftCache({chainName})),
+      _logCache(chainName + ' Account', initAccountCache({chainName})),
     ]);
   }));
 }
 
-async function processEventNft({addresses, contract, event, isMainnet, chainName}) {
+async function processEventNft({contract, wsContracts, event, isMainnet, chainName}) {
   let {tokenId, hash, key, value} = event.returnValues;
 
   if (tokenId) {
     try {
-      const token = await getChainNft({
-        addresses,
-        contract,
-        tokenId,
-        chainName,
-      });
+      const token = await getChainNft('NFT')(chainName)(tokenId);
 
       if (token.properties.hash) {
         tokenId = parseInt(tokenId, 10);
@@ -183,7 +184,7 @@ async function processEventNft({addresses, contract, event, isMainnet, chainName
   await putDynamoItem(ids.lastCachedBlockNft, {number: blockNumber}, isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft);
 }
 
-async function processEventsNft({addresses, contract, events, currentBlockNumber, chainName}) {
+async function processEventsNft({contract, events, currentBlockNumber, chainName}) {
   const responses = {};
 
   // Get tokenId from each event and add it to the URI table.
@@ -205,12 +206,8 @@ async function processEventsNft({addresses, contract, events, currentBlockNumber
 
   // Map each response to a token.
   await Promise.all(Object.entries(responses).map(async entry => {
-    const token = await getChainNft({
-      addresses,
-      contract,
-      tokenId: entry[0],
-      chainName,
-    });
+    const tokenId = entry[0];
+    const token = await getChainNft('NFT')(chainName)(tokenId);
 
     // Cache each token.
     if (token.properties.hash) {
@@ -222,16 +219,15 @@ async function processEventsNft({addresses, contract, events, currentBlockNumber
   await putDynamoItem(ids.lastCachedBlockNft, {number: currentBlockNumber}, tableNames.mainnetsidechainNft);
 }
 
-async function processEventAccount({addresses, contract, event, chainName}) {
+async function processEventAccount({contract, event, chainName}) {
   // console.log('got account event', event);
   const {owner} = event.returnValues;
 
   if (owner) {
     try {
       const account = await getChainAccount({
-        addresses,
-        contract,
         address: owner,
+        chainName,
       });
       
       // console.log('load account into cache', owner, account);
@@ -247,7 +243,7 @@ async function processEventAccount({addresses, contract, event, chainName}) {
   const {blockNumber} = event;
   await putDynamoItem(ids.lastCachedBlockAccount, {number: blockNumber}, tableNames[chainName + 'Account']);
 }
-async function processEventsAccount({addresses, contract, events, currentBlockNumber, chainName}) {
+async function processEventsAccount({contract, events, currentBlockNumber, chainName}) {
   const responses = {};
 
   // Get tokenId from each event and add it to the URI table.
@@ -270,9 +266,8 @@ async function processEventsAccount({addresses, contract, events, currentBlockNu
   // Map each response to a token.
   await Promise.all(Object.entries(responses).map(async entry => {
     const account = await getChainAccount({
-      addresses,
-      contract,
       address: entry[0],
+      chainName,
     });
 
     // Cache each token.
