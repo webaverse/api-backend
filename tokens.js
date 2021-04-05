@@ -635,7 +635,7 @@ const getAllWithdrawsDeposits = contractName => async chainName => {
       toBlock: 'latest',
     })),
   ]);
-  console.log('latched', {
+  /* console.log('latched', {
     chainName,
     mainnetDepositedEntries,
     mainnetWithdrewEntries,
@@ -643,7 +643,7 @@ const getAllWithdrawsDeposits = contractName => async chainName => {
     sidechainWithdrewEntries,
     polygonDepositedEntries,
     polygonWithdrewEntries,
-  });
+  }); */
   return {
     mainnetDepositedEntries,
     mainnetWithdrewEntries,
