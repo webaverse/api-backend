@@ -26,16 +26,15 @@ const Base64Encoder = require('./encoder.js').Encoder;
 const fetch = require('node-fetch');
 const {SHA3} = require('sha3');
 const {default: formurlencoded} = require('form-urlencoded');
-const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {getDynamoItem, getDynamoAllItems, putDynamoItem} = require('./aws.js');
-// const blockchain = require('./blockchain.js');
 const {initCaches} = require('./cache.js');
 const {getExt, makePromise} = require('./utils.js');
 const Timer = require('./timer.js');
+const {getBlockchain} = require('./blockchain.js');
 // const browserManager = require('./browser-manager.js');
-const {tableNames, accountKeys, ids, polygonVigilKey} = require('./constants.js');
+const {tableNames, accountKeys, ids, polygonVigilKey, storageHost, mainnetSignatureMessage} = require('./constants.js');
 
 const config = require('./config.json');
 const {
@@ -77,9 +76,6 @@ const ses = new AWS.SES(new AWS.Config({
 const stripe = Stripe(stripeClientSecret);
 // const accountManager = require('./account-manager.js');
 // const eventsManager = require('./events-manager.js');
-const storageHost = 'https://ipfs.exokit.org';
-const ethereumHost = 'ethereum.exokit.org';
-const mainnetSignatureMessage = `Connecting mainnet address.`;
 
 const Discord = require('discord.js');
 
@@ -832,6 +828,7 @@ try {
       if (match) {
         const address = match[1];
         const result = await _getAccount(address);
+        console.log('fetched account', address, result);
         _respond(200, JSON.stringify(result));
       } else {
         _respond(404, '');
@@ -1236,8 +1233,8 @@ try {
       }
       const balance = await contracts[chainName].FT.methods.balanceOf(address).call();
 
-      const storeEntries = await _getStoreEntries(chainName);
-      const tokens = await Promise.all(tokenIds.map(tokenId => _getChainToken(chainName)(tokenId, storeEntries)));
+      const storeEntries = await getStoreEntries(chainName);
+      const tokens = await Promise.all(tokenIds.map(tokenId => getChainToken(chainName)(tokenId, storeEntries)));
 
       const tokens2 = [];
       for (const token of tokens) {
@@ -1333,254 +1330,6 @@ const _handleProxyApp = (() => {
     });
   };
 })();
-
-const _formatToken = chainName => async (token, storeEntries, mainnetToken) => {
-  const _fetchAccount = async address => {
-    const [
-      username,
-      avatarPreview,
-      monetizationPointer,
-    ] = await Promise.all([
-      (async () => {
-        let username = await contracts[chainName].Account.methods.getMetadata(address, 'name').call();
-        if (!username) {
-          username = 'Anonymous';
-        }
-        return username;
-      })(),
-      (async () => {
-        let avatarPreview = await contracts[chainName].Account.methods.getMetadata(address, 'avatarPreview').call();
-        if (!avatarPreview) {
-          avatarPreview = defaultAvatarPreview;
-        }
-        return avatarPreview;
-      })(),
-      (async () => {
-        let monetizationPointer = await contracts[chainName].Account.methods.getMetadata(address, 'monetizationPointer').call();
-        if (!monetizationPointer) {
-          monetizationPointer = '';
-        }
-        return monetizationPointer;
-      })(),
-    ]);
-
-    return {
-      address,
-      username,
-      avatarPreview,
-      monetizationPointer,
-    };
-  };
-  let [minter, owner] = await Promise.all([
-    _fetchAccount(token.minter),
-    _fetchAccount(token.owner),
-  ]);
-
-  let isMainnet = false;
-  if (mainnetToken && owner.address === addresses[chainName]['NFTProxy'] && mainnetToken.owner !== "0x0000000000000000000000000000000000000000") {
-    isMainnet = true;
-    owner.address = mainnetToken.owner;
-  }
-
-  const id = parseInt(token.id, 10);
-  const {name, ext, unlockable, hash} = token;
-  const description = await contracts[chainName].NFT.methods.getMetadata(hash, 'description').call();
-  const storeEntry = storeEntries.find(entry => entry.tokenId === id);
-  const buyPrice = storeEntry ? storeEntry.price : null;
-  const storeId = storeEntry ? storeEntry.id : null;
-  return {
-    id,
-    name,
-    description,
-    image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
-    external_url: 'https://app.webaverse.com?h=' + hash,
-    animation_url: `${storageHost}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
-    properties: {
-      name,
-      hash,
-      ext,
-      unlockable,
-    },
-    minter,
-    owner,
-    balance: parseInt(token.balance, 10),
-    totalSupply: parseInt(token.totalSupply, 10),
-    buyPrice,
-    storeId,
-    isMainnet,
-  };
-};
-const _formatLand = chainName => async (token, storeEntries) => {
-  const _fetchAccount = async address => {
-    const [
-      username,
-      avatarPreview,
-      monetizationPointer,
-    ] = await Promise.all([
-      (async () => {
-        let username = await contracts[chainName].Account.methods.getMetadata(address, 'name').call();
-        if (!username) {
-          username = 'Anonymous';
-        }
-        return username;
-      })(),
-      (async () => {
-        let avatarPreview = await contracts[chainName].Account.methods.getMetadata(address, 'avatarPreview').call();
-        if (!avatarPreview) {
-          avatarPreview = defaultAvatarPreview;
-        }
-        return avatarPreview;
-      })(),
-      (async () => {
-        let monetizationPointer = await contracts[chainName].Account.methods.getMetadata(address, 'monetizationPointer').call();
-        if (!monetizationPointer) {
-          monetizationPointer = '';
-        }
-        return monetizationPointer;
-      })(),
-    ]);
-
-    return {
-      address,
-      username,
-      avatarPreview,
-      monetizationPointer,
-    };
-  };
-  const owner = await _fetchAccount(token.owner);
-
-  const id = parseInt(token.id, 10);
-  // console.log('got token', token);
-  const {name, hash, ext, unlockable} = token;
-  const [
-    description,
-    rarity,
-    extents,
-  ] = await Promise.all([
-    contracts[chainName].LAND.methods.getSingleMetadata(id, 'description').call(),
-    contracts[chainName].LAND.methods.getMetadata(name, 'rarity').call(),
-    contracts[chainName].LAND.methods.getMetadata(name, 'extents').call(),
-  ]);
-  const extentsJson = _jsonParse(extents);
-  const coord = (
-    extentsJson && extentsJson[0] &&
-    typeof extentsJson[0][0] === 'number' && typeof extentsJson[0][1] === 'number' && typeof extentsJson[0][2] === 'number' &&
-    typeof extentsJson[1][0] === 'number' && typeof extentsJson[1][1] === 'number' && typeof extentsJson[1][2] === 'number'
-  ) ? [
-    (extentsJson[1][0] + extentsJson[0][0])/2,
-    (extentsJson[1][1] + extentsJson[0][1])/2,
-    (extentsJson[1][2] + extentsJson[0][2])/2,
-  ] : null;
-  return {
-    id,
-    name,
-    description,
-    image: coord ? `https://land-preview.exokit.org/32/${coord[0]}/${coord[2]}?${extentsJson ? `e=${JSON.stringify(extentsJson)}` : ''}` : null,
-    external_url: `https://app.webaverse.com?${coord ? `c=${JSON.stringify(coord)}` : ''}`,
-    // animation_url: `${storageHost}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
-    properties: {
-      name,
-      hash,
-      rarity,
-      extents,
-      ext,
-      unlockable,
-    },
-    owner,
-    balance: parseInt(token.balance, 10),
-    totalSupply: parseInt(token.totalSupply, 10)
-  };
-};
-const _copy = o => {
-  const oldO = o;
-  // copy array
-  const newO = JSON.parse(JSON.stringify(oldO));
-  // decorate array
-  for (const k in oldO) {
-    newO[k] = oldO[k];
-  }
-  return newO;
-};
-const _getChainNft = contractName => (chainName, isAll) => async (tokenId, storeEntries) => {
-
-  const isFront = !chainName.includes('sidechain')
-
-  const tokenSrc = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
-  const token = _copy(tokenSrc);
-  const {hash} = token;
-  token.unlockable = await contracts[chainName].NFT.methods.getMetadata(hash, 'unlockable').call();
-  if (!token.unlockable) {
-    token.unlockable = '';
-  }
-  let mainnetToken;
-  
-  if (!isFront && isAll) {
-    mainnetToken = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
-  }
-  if (contractName === 'NFT') {
-    return await _formatToken(chainName)(token, storeEntries, mainnetToken);
-  } else if (contractName === 'LAND') {
-    return await _formatLand(chainName)(token, storeEntries, mainnetToken);
-  } else {
-    return null;
-  }
-};
-const _getChainToken = _getChainNft('NFT');
-const _getChainLand = _getChainNft('LAND');
-const _getChainOwnerNft = contractName => (chainName, isAll) => async (address, i, storeEntries) => {
-  const tokenSrc = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
-  const token = _copy(tokenSrc);
-  const {hash} = token;
-  token.unlockable = await contracts[chainName][contractName].methods.getMetadata(hash, 'unlockable').call();
-  if (!token.unlockable) {
-    token.unlockable = '';
-  }
-  let mainnetToken;
-  const isFront = !chainName.includes('sidechain')
-
-  if (!isFront && isAll) {
-    mainnetToken = await contracts[chainName][contractName].methods.tokenByIdFull(token.id).call();
-  }
-  if (contractName === 'NFT') {
-    return await _formatToken(chainName)(token, storeEntries, mainnetToken);
-  } else if (contractName === 'LAND') {
-    return await _formatLand(chainName)(token, storeEntries, mainnetToken);
-  } else {
-    return null;
-  }
-};
-
-const _getStoreEntries = async chainName => {
-  // console.log('get store entries', contracts, chainName, !!contracts[chainName]);
-  const numStores = await contracts[chainName].Trade.methods.numStores().call();
-
-  const promises = Array(numStores);
-
-  for (let i = 0; i < numStores; i++) {
-    promises[i] =
-      contracts[chainName].Trade.methods.getStoreByIndex(i + 1)
-      .call()
-      .then(store => {
-        if (store.live) {
-          const id = parseInt(store.id, 10);
-          const seller = store.seller.toLowerCase();
-          const tokenId = parseInt(store.tokenId, 10);
-          const price = parseInt(store.price, 10);
-          return {
-            id,
-            seller,
-            tokenId,
-            price,
-          };
-        } else {
-          return null;
-        }
-      });
-  }
-  let storeEntries = await Promise.all(promises);
-  storeEntries = storeEntries.filter(store => store !== null);
-  return storeEntries;
-};
 const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -1596,7 +1345,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
   };
   /* const _maybeGetStoreEntries = () =>
     (contractName === 'NFT' && !isFront)
-      ? _getStoreEntries(isMainChain)
+      ? getStoreEntries(isMainChain)
       : Promise.resolve([]); */
 
   try {
@@ -1738,15 +1487,6 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
                 IndexName: 'ownerAddress-index',
               }).promise();
               return (o && o.Items) || [];
-
-              /* const nftMainnetBalance = await contracts[otherChainName][contractName].methods.balanceOf(mainnetAddress).call();
-              const mainnetPromises = Array(nftMainnetBalance);
-              for (let i = 0; i < nftMainnetBalance; i++) {
-                let id = await _getChainOwnerNft(contractName)(isMainChain, true, isAll)(address, i, storeEntries);
-                mainnetPromises[i] = _getChainNft(contractName)(isMainChain, isFront, isAll)(id.id, storeEntries);
-              }
-              let mainnetTokens = await Promise.all(mainnetPromises);
-              return mainnetTokens; */
             } else {
               return [];
             }
@@ -1841,7 +1581,7 @@ const _handleChainNft = contractName => (chainName, isAll) => async (req, res) =
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
   };
-  const _maybeGetStoreEntries = () => (contractName === 'NFT' && !chainName.includes('testnet')) ? _getStoreEntries(chainName) : Promise.resolve([]);
+  const _maybeGetStoreEntries = () => (contractName === 'NFT' && !chainName.includes('testnet')) ? getStoreEntries(chainName) : Promise.resolve([]);
 
 try {
   const {method} = req;
@@ -1853,7 +1593,24 @@ try {
       const tokenId = parseInt(match[1], 10);
 
       const storeEntries = await _maybeGetStoreEntries();
-      const token = await _getChainNft(contractName)(chainName, isAll)(tokenId, storeEntries);
+      const {
+        mainnetDepositedEntries,
+        mainnetWithdrewEntries,
+        sidechainDepositedEntries,
+        sidechainWithdrewEntries,
+        polygonDepositedEntries,
+        polygonWithdrewEntries,
+      } = await getAllWithdrawsDeposits(chainName);
+      const token = await getChainNft(contractName)(chainName)(
+        tokenId,
+        storeEntries,
+        mainnetDepositedEntries,
+        mainnetWithdrewEntries,
+        sidechainDepositedEntries,
+        sidechainWithdrewEntries,
+        polygonDepositedEntries,
+        polygonWithdrewEntries,
+      );
 
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
@@ -1894,11 +1651,28 @@ try {
 
       if (startTokenId >= 1 && endTokenId > startTokenId && (endTokenId - startTokenId) <= 100) {
         const storeEntries = await _maybeGetStoreEntries();
+        const {
+          mainnetDepositedEntries,
+          mainnetWithdrewEntries,
+          sidechainDepositedEntries,
+          sidechainWithdrewEntries,
+          polygonDepositedEntries,
+          polygonWithdrewEntries,
+        } = await getAllWithdrawsDeposits(chainName);
         
         const numTokens = endTokenId - startTokenId;
         const promises = Array(numTokens);
         for (let i = 0; i < numTokens; i++) {
-          promises[i] = _getChainNft(contractName)(chainName, isAll)(startTokenId + i, storeEntries);
+          promises[i] = getChainNft(contractName)(chainName)(
+            startTokenId + i,
+            storeEntries,
+            mainnetDepositedEntries,
+            mainnetWithdrewEntries,
+            sidechainDepositedEntries,
+            sidechainWithdrewEntries,
+            polygonDepositedEntries,
+            polygonWithdrewEntries,
+          );
         }
         let tokens = await Promise.all(promises);
         tokens = tokens.filter(token => token !== null);
@@ -1968,14 +1742,23 @@ try {
       const [
         nftBalance,
         storeEntries,
+        {
+          mainnetDepositedEntries,
+          mainnetWithdrewEntries,
+          sidechainDepositedEntries,
+          sidechainWithdrewEntries,
+          polygonDepositedEntries,
+          polygonWithdrewEntries,
+        },
       ] = await Promise.all([
         contracts[chainName][contractName].methods.balanceOf(address).call(),
         _maybeGetStoreEntries(),
+        getAllWithdrawsDeposits(chainName),
       ]);
 
       const promises = Array(nftBalance);
       for (let i = 0; i < nftBalance; i++) {
-        promises[i] = _getChainOwnerNft(contractName)(chainName)(address, i, storeEntries);
+        promises[i] = getChainOwnerNft(contractName)(chainName)(address, i, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries);
       }
       let tokens = await Promise.all(promises);
 
@@ -1983,8 +1766,8 @@ try {
         const nftMainnetBalance = await contracts[otherChainName][contractName].methods.balanceOf(mainnetAddress).call();
         const mainnetPromises = Array(nftMainnetBalance);
         for (let i = 0; i < nftMainnetBalance; i++) {
-          let id = await _getChainOwnerNft(contractName)(chainName, isAll)(address, i, storeEntries);
-          mainnetPromises[i] = _getChainNft(contractName)(chainName, isAll)(id.id, storeEntries);
+          let id = await getChainOwnerNft(contractName)(chainName)(address, i, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries);
+          mainnetPromises[i] = getChainNft(contractName)(chainName)(id.id, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries);
         }
         let mainnetTokens = await Promise.all(mainnetPromises);
 
@@ -2042,7 +1825,7 @@ try {
   const {pathname: p} = url.parse(req.url);
 
   const _getBooths = async () => {
-    const storeEntries = await _getStoreEntries(chainName);
+    const storeEntries = await getStoreEntries(chainName);
 
     const booths = [];
     for (let i = 0; i < storeEntries.length; i++) {
@@ -2050,7 +1833,7 @@ try {
       const {tokenId, seller} = store;
 
       if (tokenId) {
-        const token = await _getChainToken(chainName)(tokenId, storeEntries);
+        const token = await getChainToken(chainName)(tokenId, storeEntries);
 
         let booth = booths.find(booth => booth.seller === seller);
         if (!booth) {
@@ -2322,157 +2105,15 @@ const _ws = protocol => (req, socket, head) => {
     socket.destroy();
   }
 };
-
-{
-  addresses = await fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
-  abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
-  const [
-    ethereumHostAddress,
-    newPorts,
-  ] = await Promise.all([
-    new Promise((accept, reject) => {
-      dns.resolve4(ethereumHost, (err, addresses) => {
-        if (!err) {
-          if (addresses.length > 0) {
-            accept(addresses[0]);
-          } else {
-            reject(new Error('no addresses resolved for ' + ethereumHost));
-          }
-        } else {
-          reject(err);
-        }
-      });
-    }),
-    (async () => {
-      const j = await new Promise((accept, reject) => {
-        const proxyReq = https.request('https://contracts.webaverse.com/config/ports.js', proxyRes => {
-          const bs = [];
-          proxyRes.on('data', b => {
-            bs.push(b);
-          });
-          proxyRes.on('end', () => {
-            accept(JSON.parse(Buffer.concat(bs).toString('utf8').slice('export default'.length)));
-          });
-          proxyRes.on('error', err => {
-            reject(err);
-          });
-        });
-        proxyReq.end();
-      });
-      return j;
-    })(),
-  ]);
-  
-  // console.log('ports', {ethereumHostAddress, newPorts});
-  
-  ports = newPorts;
-  gethNodeUrl = `http://${ethereumHostAddress}`;
-  gethNodeWSUrl = `ws://${ethereumHostAddress}`;
-
-  web3 = {
-    mainnet: new Web3(new Web3.providers.HttpProvider(
-      `https://mainnet.infura.io/v3/${infuraProjectId}`
-    )),
-    mainnetsidechain: new Web3(new Web3.providers.HttpProvider(
-      `${gethNodeUrl}:${ports.mainnetsidechain}`
-    )),
-
-    testnet: new Web3(new Web3.providers.HttpProvider(
-      `https://rinkeby.infura.io/v3/${infuraProjectId}`
-    )),
-    testnetsidechain: new Web3(new Web3.providers.HttpProvider(
-      `${gethNodeUrl}:${ports.testnetsidechain}`
-    )),
-    
-    polygon: new Web3(new Web3.providers.HttpProvider(
-      `https://rpc-mainnet.maticvigil.com/v1/${polygonVigilKey}`
-    )),
-    testnetpolygon: new Web3(new Web3.providers.HttpProvider(
-      `https://rpc-mumbai.maticvigil.com/v1/${polygonVigilKey}`
-    )),
-  };
-
-  web3sockets = {
-    mainnet: new Web3(new Web3.providers.WebsocketProvider(
-      `wss://mainnet.infura.io/ws/v3/${infuraProjectId}`
-    )),
-    mainnetsidechain: new Web3(new Web3.providers.WebsocketProvider(
-      `${gethNodeWSUrl}:${ports.mainnetsidechainWs}`
-    )),
-
-    testnet: new Web3(new Web3.providers.WebsocketProvider(
-      `wss://rinkeby.infura.io/ws/v3/${infuraProjectId}`
-    )),
-    testnetsidechain: new Web3(new Web3.providers.WebsocketProvider(
-      `${gethNodeWSUrl}:${ports.testnetsidechainWs}`
-    )),
-    
-    polygon: new Web3(new Web3.providers.WebsocketProvider(
-      `wss://ws-mainnet.matic.network`
-    )),
-    testnetpolygon: new Web3(new Web3.providers.WebsocketProvider(
-      `wss://ws-mumbai.matic.today`
-    )),
-  };
-
-  const BlockchainNetwork = [
-    "mainnet",
-    "mainnetsidechain",
-    "polygon",
-    "testnet",
-    "testnetsidechain",
-    "testnetpolygon",
-  ];
-  
-  contracts = {};
-  BlockchainNetwork.forEach(network => {
-    contracts[network] = {
-      Account: new web3[network].eth.Contract(abis.Account, addresses[network].Account),
-      FT: new web3[network].eth.Contract(abis.FT, addresses[network].FT),
-      FTProxy: new web3[network].eth.Contract(abis.FTProxy, addresses[network].FTProxy),
-      NFT: new web3[network].eth.Contract(abis.NFT, addresses[network].NFT),
-      NFTProxy: new web3[network].eth.Contract(abis.NFTProxy, addresses[network].NFTProxy),
-      Trade: new web3[network].eth.Contract(abis.Trade, addresses[network].Trade),
-      LAND: new web3[network].eth.Contract(abis.LAND, addresses[network].LAND),
-      LANDProxy: new web3[network].eth.Contract(abis.LANDProxy, addresses[network].LANDProxy),
-    }
-  })
-  
-  wsContracts = {};
-  BlockchainNetwork.forEach(network => {
-    wsContracts[network] = {
-      Account: new web3sockets[network].eth.Contract(abis.Account, addresses[network].Account),
-      FT: new web3sockets[network].eth.Contract(abis.FT, addresses[network].FT),
-      FTProxy: new web3sockets[network].eth.Contract(abis.FTProxy, addresses[network].FTProxy),
-      NFT: new web3sockets[network].eth.Contract(abis.NFT, addresses[network].NFT),
-      NFTProxy: new web3sockets[network].eth.Contract(abis.NFTProxy, addresses[network].NFTProxy),
-      Trade: new web3sockets[network].eth.Contract(abis.Trade, addresses[network].Trade),
-      LAND: new web3sockets[network].eth.Contract(abis.LAND, addresses[network].LAND),
-      LANDProxy: new web3sockets[network].eth.Contract(abis.LANDProxy, addresses[network].LANDProxy),
-    }
-  })
-
-  // Initialize DynamoDB cache.
-  console.log('initializing caches...');
-  initCaches({
-    addresses,
-    contracts,
-    wsContracts,
-    webSockets: web3sockets,
-  }).then(() => {
-    console.log('caches initialized');
-  }, err => {
-    console.warn('failed to initialize caches', err);
-  });
-
-  /* web3.mainnetsidechain.eth.getPastLogs({
-    fromBlock: 0,
-    toBlock: 'latest',
-    address: FTAddressSidechain,
-  }).then(result => {
-    console.log('got res', result);
-  }); */
-}
+initCaches({
+  contracts,
+  wsContracts,
+  webSockets: web3sockets,
+}).then(() => {
+  console.log('caches initialized');
+}, err => {
+  console.warn('failed to initialize caches', err);
+});
 
 const server = http.createServer(_req('http:'));
 server.on('upgrade', _ws('http:'));
