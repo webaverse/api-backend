@@ -87,7 +87,7 @@ const loadPromise = (async () => {
 })();
 
 const _handleSignRequest = async (req, res) => {
-    console.log('sign request', req.url);
+    // console.log('sign request', req.url);
     
     const {web3, addresses, abis, chainIds, contracts, wallets} = await loadPromise;
     
