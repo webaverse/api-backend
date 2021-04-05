@@ -184,33 +184,20 @@ async function processEventNft({contract, wsContracts, event, isMainnet, chainNa
 }
 
 async function processEventsNft({events, currentBlockNumber, chainName}) {
-  const responses = {};
-
-  // Get tokenId from each event and add it to the URI table.
-  for (const event of events) {
+  const tokenIds = events.map(event => {
     let {tokenId} = event.returnValues;
-    tokenId = parseInt(tokenId, 10);
-
-    if (!isNaN(tokenId)) {
-      try {
-        const res = getDynamoItem(tokenId, tableNames[chainName + 'Nft']);
-        if (res) {
-          responses[tokenId] = res;
-        }
-      } catch (e) {
-        console.error(e);
-      }
+    if (typeof tokenId === 'string') {
+      tokenId = parseInt(tokenId, 10);
+      return tokenId;
+    } else {
+      return null;
     }
-  }
+  }).filter(tokenId => tokenId !== null);
 
-  // Map each response to a token.
-  await Promise.all(Object.entries(responses).map(async entry => {
-    const tokenId = entry[0];
+  await Promise.all(tokenIds.map(async tokenId => {
     const token = await getChainNft('NFT')(chainName)(tokenId);
 
-    // Cache each token.
     if (token.properties.hash) {
-      const tokenId = parseInt(entry[0], 10);
       await putDynamoItem(tokenId, token, tableNames[chainName + 'Nft']);
     }
   }));
