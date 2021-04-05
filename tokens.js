@@ -421,6 +421,10 @@ async function getChainAccount({
 }
 
 const getStoreEntries = async chainName => {
+  const {
+    contracts,
+  } = await getBlockchain();
+  
   const numStores = await contracts[chainName].Trade.methods.numStores().call();
 
   const promises = Array(numStores);
