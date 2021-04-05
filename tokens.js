@@ -1,76 +1,165 @@
 const {accountKeys} = require('./constants.js');
+const {getBlockchain} = require('./blockchain.js');
 
-const storageHost = 'https://ipfs.exokit.org';
+const zeroAddress = '0x0000000000000000000000000000000000000000';
 const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
 
-async function formatToken({
-  token,
-  storeEntries,
-  mainnetToken,
-  contract,
-  addresses,
-  chainName,
-} = {}) {
-  if (!chainName) {
-    throw new Error('no chain name');
-  }
-  
-  const _fetchAccount = async address => {
-    const [
-      username,
-      avatarPreview,
-      monetizationPointer,
-    ] = await Promise.all([
-      (async () => {
-        let username = await contract.Account.methods.getMetadata(address, 'name').call();
-        if (!username) {
-          username = 'Anonymous';
-        }
-        return username;
-      })(),
-      (async () => {
-        let avatarPreview = await contract.Account.methods.getMetadata(address, 'avatarPreview').call();
-        if (!avatarPreview) {
-          avatarPreview = defaultAvatarPreview;
-        }
-        return avatarPreview;
-      })(),
-      (async () => {
-        let monetizationPointer = await contract.Account.methods.getMetadata(address, 'monetizationPointer').call();
-        if (!monetizationPointer) {
-          monetizationPointer = '';
-        }
-        return monetizationPointer;
-      })(),
-    ]);
-
-    return {
-      address,
-      username,
-      avatarPreview,
-      monetizationPointer,
-    };
-  };
-
-  let [minter, owner] = await Promise.all([
-    _fetchAccount(token.minter),
-    _fetchAccount(token.owner),
+const _fetchAccount = async address => {
+  const [
+    username,
+    avatarPreview,
+    monetizationPointer,
+  ] = await Promise.all([
+    (async () => {
+      let username = await contracts[chainName].Account.methods.getMetadata(address, 'name').call();
+      if (!username) {
+        username = 'Anonymous';
+      }
+      return username;
+    })(),
+    (async () => {
+      let avatarPreview = await contracts[chainName].Account.methods.getMetadata(address, 'avatarPreview').call();
+      if (!avatarPreview) {
+        avatarPreview = defaultAvatarPreview;
+      }
+      return avatarPreview;
+    })(),
+    (async () => {
+      let monetizationPointer = await contracts[chainName].Account.methods.getMetadata(address, 'monetizationPointer').call();
+      if (!monetizationPointer) {
+        monetizationPointer = '';
+      }
+      return monetizationPointer;
+    })(),
   ]);
 
-  let isMainnet = false;
-  // console.log('got addressess', addresses, chainName, !!addresses[chainName]);
-  if (mainnetToken && owner.address === addresses[chainName]['NFTProxy'] && mainnetToken.owner !== "0x0000000000000000000000000000000000000000") {
+  return {
+    address,
+    username,
+    avatarPreview,
+    monetizationPointer,
+  };
+};
+const _filterByTokenId = entry => parseInt(entry.returnValues.tokenId, 10) === tokenId;
+
+const formatToken = contractName => chainName => async (token, storeEntries) => {
+  console.log('format token', {id: token.id});
+  
+  const {
+    contracts,
+  } = await getBlockchain();
+  
+  // mainnet/polygon detection
+  let mainnetChainName = chainName.replace(/sidechain/, '');
+  if (mainnetChainName === '') {
+    mainnetChainName = 'mainnet';
+  }
+  const sidechainChainName = mainnetChainName.replace(/mainnet/, '') + 'sidechain';
+  const polygonChainName = mainnetChainName.replace(/mainnet/, '') + 'polygon';
+  
+  console.log('check chain names', {
+    mainnetChainName,
+    sidechainChainName,
+    polygonChainName,
+  });
+
+  const mainnetContract = contracts[mainnetChainName];
+  const mainnetProxyContract = mainnetContract[contractName + 'Proxy'];
+  const sidechainContract = contracts[sidechainChainName];
+  const sidechainProxyContract = sidechainContract[contractName + 'Proxy'];
+  const polygonContract = contracts[polygonChainName];
+  const polygonProxyContract = polygonContract[contractName + 'Proxy'];
+
+  let [
+    minter,
+    owner,
+    mainnetDepositedEntries,
+    mainnetWithdrewEntries,
+    sidechainDepositedEntries,
+    sidechainWithdrewEntries,
+    polygonDepositedEntries,
+    polygonWithdrewEntries,
+    mainnetToken,
+    polygonToken,
+  ] = await Promise.all([
+    _fetchAccount(token.minter),
+    _fetchAccount(token.owner),
+    mainnetProxyContract.getPastEvents('Deposited', {
+      fromBlock: 0,
+      toBlock: 'latest',
+    }),
+    mainnetProxyContract.getPastEvents('Withdrew', {
+      fromBlock: 0,
+      toBlock: 'latest',
+    }),
+    sidechainProxyContract.getPastEvents('Deposited', {
+      fromBlock: 0,
+      toBlock: 'latest',
+    }),
+    sidechainProxyContract.getPastEvents('Withdrew', {
+      fromBlock: 0,
+      toBlock: 'latest',
+    }),
+    contracts[mainnetChainName][contractName].methods.tokenByIdFull(token.id).call(),
+    contracts[polygonChainName][contractName].methods.tokenByIdFull(token.id).call(),
+  ]);
+
+  /* console.log('got entries 1', {
+    mainnetDepositedEntries,
+    mainnetWithdrewEntries,
+    sidechainDepositedEntries,
+    sidechainWithdrewEntries,
+    polygonDepositedEntries,
+    polygonWithdrewEntries,
+  }); */
+
+  mainnetDepositedEntries = mainnetDepositedEntries.filter(_filterByTokenId);
+  mainnetWithdrewEntries = mainnetWithdrewEntries.filter(_filterByTokenId);
+  sidechainDepositedEntries = sidechainDepositedEntries.filter(_filterByTokenId);
+  sidechainWithdrewEntries = sidechainWithdrewEntries.filter(_filterByTokenId);
+  polygonDepositedEntries = polygonDepositedEntries.filter(_filterByTokenId);
+  polygonWithdrewEntries = polygonWithdrewEntries.filter(_filterByTokenId);
+
+  /* console.log('got entries 2', {
+    mainnetDepositedEntries,
+    mainnetWithdrewEntries,
+    sidechainWithdrewEntries,
+    sidechainWithdrewEntries,
+    polygonDepositedEntries,
+    polygonWithdrewEntries,
+  }); */
+
+  const isStuckForward = sidechainDepositedEntries.length > (mainnetWithdrewEntries.length + polygonWithdrewEntries.length);
+  const isStuckBackward = (mainnetDepositedEntries.length + polygonDepositedEntries.length) > sidechainWithdrewEntries.length;
+  const isUnstuck = !isStuckForward && !isStuckBackward;
+
+  let isMainnet;
+  if (mainnetToken && mainnetToken.owner !== zeroAddress && isUnstuck) {
     isMainnet = true;
     owner.address = mainnetToken.owner;
+  } else {
+    isMainnet = false;
+  }
+
+  let isPolygon;
+  if (
+    polygonToken &&
+    polygonToken.owner !== zeroAddress &&
+    contracts[polygonChainName][contractName] &&
+    isUnstuck
+  ) {
+    isPolygon = true;
+    owner.address = polygonToken.owner;
+  } else {
+    isPolygon = false;
   }
 
   const id = parseInt(token.id, 10);
-  const {name, ext, hash} = token;
-  const description = await contract.NFT.methods.getMetadata(hash, 'description').call();
+  const {name, ext, unlockable, hash} = token;
+  const description = await contracts[chainName].NFT.methods.getMetadata(hash, 'description').call();
   const storeEntry = storeEntries.find(entry => entry.tokenId === id);
   const buyPrice = storeEntry ? storeEntry.price : null;
   const storeId = storeEntry ? storeEntry.id : null;
-
   return {
     id,
     name,
@@ -82,8 +171,8 @@ async function formatToken({
       name,
       hash,
       ext,
+      unlockable,
     },
-    hash,
     minterAddress: minter.address.toLowerCase(),
     minter,
     ownerAddress: owner.address.toLowerCase(),
@@ -92,42 +181,150 @@ async function formatToken({
     totalSupply: parseInt(token.totalSupply, 10),
     buyPrice,
     storeId,
+    isStuckForward,
+    isStuckBackward,
     isMainnet,
+    isPolygon,
   };
-}
+};
+const formatLand = contractName => chainName => async (token, storeEntries) => {
+  const {
+    contracts,
+  } = await getBlockchain();
 
-async function getChainNft({
-  addresses,
-  tokenId,
-  contract,
-  chainName,
-  isFront = false,
-  isAll = true,
-} = {}) {
+  const owner = await _fetchAccount(token.owner);
+
+  const id = parseInt(token.id, 10);
+  // console.log('got token', token);
+  const {name, hash, ext, unlockable} = token;
+  const [
+    description,
+    rarity,
+    extents,
+  ] = await Promise.all([
+    contracts[chainName].LAND.methods.getSingleMetadata(id, 'description').call(),
+    contracts[chainName].LAND.methods.getMetadata(name, 'rarity').call(),
+    contracts[chainName].LAND.methods.getMetadata(name, 'extents').call(),
+  ]);
+  const extentsJson = _jsonParse(extents);
+  const coord = (
+    extentsJson && extentsJson[0] &&
+    typeof extentsJson[0][0] === 'number' && typeof extentsJson[0][1] === 'number' && typeof extentsJson[0][2] === 'number' &&
+    typeof extentsJson[1][0] === 'number' && typeof extentsJson[1][1] === 'number' && typeof extentsJson[1][2] === 'number'
+  ) ? [
+    (extentsJson[1][0] + extentsJson[0][0])/2,
+    (extentsJson[1][1] + extentsJson[0][1])/2,
+    (extentsJson[1][2] + extentsJson[0][2])/2,
+  ] : null;
+  return {
+    id,
+    name,
+    description,
+    image: coord ? `https://land-preview.exokit.org/32/${coord[0]}/${coord[2]}?${extentsJson ? `e=${JSON.stringify(extentsJson)}` : ''}` : null,
+    external_url: `https://app.webaverse.com?${coord ? `c=${JSON.stringify(coord)}` : ''}`,
+    // animation_url: `${storageHost}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+    properties: {
+      name,
+      hash,
+      rarity,
+      extents,
+      ext,
+      unlockable,
+    },
+    owner,
+    balance: parseInt(token.balance, 10),
+    totalSupply: parseInt(token.totalSupply, 10)
+  };
+};
+const _copy = o => {
+  const oldO = o;
+  // copy array
+  const newO = JSON.parse(JSON.stringify(oldO));
+  // decorate array
+  for (const k in oldO) {
+    newO[k] = oldO[k];
+  }
+  return newO;
+};
+const getChainNft = contractName => chainName => async (tokenId, storeEntries = []) => {
+  // const isSidechain = chainName.includes('sidechain');
+  // const isTestnet = chainName.includes('testnet');
+
+  const {
+    contracts,
+  } = await getBlockchain();
+
+  console.log('get chain nft 1', tokenId);
+
   const [
     token,
-    storeEntries,
-    // hash,
+    /* mainnetToken,
+    polygonToken, */
   ] = await Promise.all([
-    contract.NFT.methods.tokenByIdFull(tokenId).call(),
-    getStoreEntries(contract),
-    // contract.NFT.methods.getHash(tokenId).call(),
+    (async () => {
+      const tokenSrc = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
+      const token = _copy(tokenSrc);
+      const {hash} = token;
+      token.unlockable = await contracts[chainName].NFT.methods.getMetadata(hash, 'unlockable').call();
+      if (!token.unlockable) {
+        token.unlockable = '';
+      }
+      return token;
+    })(),
+    /* (async () => {
+      if (isSidechain && isAll) {
+        const mainnetToken = await contracts[isTestnet ? 'testnet' : 'mainnet'][contractName].methods.tokenByIdFull(tokenId).call();
+        return mainnetToken;
+      } else {
+        return null;
+      }
+    })(),
+    (async () => {
+      if (isSidechain && isAll) {
+        const polygonToken = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call(isTestnet ? 'testnetpolygon' : 'polygon');
+        return polygonToken;
+      } else {
+        return null;
+      }
+    })(), */
   ]);
-
-  let mainnetToken = null;
-  if (!isFront && isAll) {
-    mainnetToken = await contract.NFT.methods.tokenByIdFull(tokenId).call();
+  
+  console.log('get chain nft 2', tokenId, token, contractName);
+  
+  if (contractName === 'NFT') {
+    return await formatToken(contractName)(chainName)(token, storeEntries);
+  } else if (contractName === 'LAND') {
+    return await formatLand(contractName)(chainName)(token, storeEntries);
+  } else {
+    return null;
   }
-  return await formatToken({addresses, token, storeEntries, mainnetToken, contract, chainName});
-}
+};
+const getChainToken = getChainNft('NFT');
+const getChainLand = getChainNft('LAND');
+const getChainOwnerNft = contractName => chainName => async (address, i, storeEntries = []) => {
+  const tokenSrc = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
+  const token = _copy(tokenSrc);
+  const {hash} = token;
+  token.unlockable = await contracts[chainName][contractName].methods.getMetadata(hash, 'unlockable').call();
+  if (!token.unlockable) {
+    token.unlockable = '';
+  }
 
+  if (contractName === 'NFT') {
+    return await formatToken(contractName)(chainName)(token, storeEntries);
+  } else if (contractName === 'LAND') {
+    return await formatLand(contractName)(chainName)(token, storeEntries);
+  } else {
+    return null;
+  }
+};
 async function getChainAccount({
-  addresses,
   address,
-  contract,
-  isFront = false,
-  isAll = true,
+  chainName,
 } = {}) {
+  const {contracts} = await getBlockchain();
+  const contract = contracts[chainName];
+  
   const account = {
     address,
   };
@@ -141,39 +338,42 @@ async function getChainAccount({
   return account;
 }
 
-async function getStoreEntries(contract) {
-  const numStores =
-    await contract.Trade.methods.numStores().call();
+const getStoreEntries = async chainName => {
+  const numStores = await contracts[chainName].Trade.methods.numStores().call();
 
   const promises = Array(numStores);
 
   for (let i = 0; i < numStores; i++) {
     promises[i] =
-      contract.Trade.methods.getStoreByIndex(i + 1)
-        .call()
-        .then(store => {
-          if (store.live) {
-            const id = parseInt(store.id, 10);
-            const seller = store.seller.toLowerCase();
-            const tokenId = parseInt(store.tokenId, 10);
-            const price = parseInt(store.price, 10);
-            return {
-              id,
-              seller,
-              tokenId,
-              price,
-            };
-          } else {
-            return null;
-          }
-        });
+      contracts[chainName].Trade.methods.getStoreByIndex(i + 1)
+      .call()
+      .then(store => {
+        if (store.live) {
+          const id = parseInt(store.id, 10);
+          const seller = store.seller.toLowerCase();
+          const tokenId = parseInt(store.tokenId, 10);
+          const price = parseInt(store.price, 10);
+          return {
+            id,
+            seller,
+            tokenId,
+            price,
+          };
+        } else {
+          return null;
+        }
+      });
   }
   let storeEntries = await Promise.all(promises);
   storeEntries = storeEntries.filter(store => store !== null);
   return storeEntries;
-}
+};
 
 module.exports = {
   getChainNft,
   getChainAccount,
-}
+  getChainToken,
+  formatToken,
+  formatLand,
+  getStoreEntries,
+};
