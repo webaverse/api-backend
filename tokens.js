@@ -22,11 +22,12 @@ function _jsonParse(s) {
   }
 }
 
-const _fetchAccount = async (address, chainName) => {
+const _fetchAccount = async (tokenId, chainName) => {
   const {
     contracts,
   } = await getBlockchain();
   
+  const address = await contracts[chainName].NFT.methods.getMinter(tokenId).call();
   const [
     username,
     avatarPreview,
@@ -230,10 +231,12 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     minter,
     owner,
     description,
+    sidechainMinterAddress,
   ] = await Promise.all([
-    _log('formatToken 1' + JSON.stringify({id: token.id}), _fetchAccount(token.minter, sidechainChainName)),
-    _log('formatToken 2' + JSON.stringify({id: token.id}), _fetchAccount(token.owner, sidechainChainName)),
+    _log('formatToken 1' + JSON.stringify({id: token.id}), _fetchAccount(tokenId, sidechainChainName)),
+    _log('formatToken 2' + JSON.stringify({id: token.id}), _fetchAccount(tokenId, sidechainChainName)),
     _log('formatToken 3' + JSON.stringify({id: token.id}), contracts[sidechainChainName].NFT.methods.getMetadata(token.hash, 'description').call()),
+    contracts[sidechainChainName].NFT.methods.getMinter(tokenId).call(),
   ]);
   
   // console.log('got all contract sources', {id: token.id});
@@ -262,7 +265,7 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     sidechainWithdrewEntries,
     polygonDepositedEntries,
     polygonWithdrewEntries,
-    minter.address,
+    sidechainMinterAddress,
   );
   mainnetDepositedEntries = result[0];
   mainnetWithdrewEntries = result[1];
@@ -271,7 +274,7 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
   polygonDepositedEntries = result[4];
   polygonWithdrewEntries = result[5];
   const currentLocation = result[6];
-  const currentAddress = result[7];
+  sidechainMinterAddress = result[7];
 
   /* console.log('got entries 2', {
     mainnetDepositedEntries,
@@ -318,15 +321,13 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     },
     minterAddress: minter.address.toLowerCase(),
     minter,
-    ownerAddress: currentAddress.toLowerCase(), // owner.address.toLowerCase(),
+    ownerAddress: owner.address.toLowerCase(),
     owner,
+    currentOwnerAddress: sidechainMinterAddress.toLowerCase(),
     balance: parseInt(token.balance, 10),
     totalSupply: parseInt(token.totalSupply, 10),
     buyPrice,
     storeId,
-    // isStuckForward,
-    // isStuckBackwardMainnet,
-    // isStuckBackwardPolygon,
     currentLocation,
   };
 };
