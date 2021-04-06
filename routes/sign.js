@@ -146,7 +146,7 @@ const _handleSignRequest = async (req, res) => {
                             };
                             const chainId = {
                               t: 'uint256',
-                              v: new web3[destinationChainName].utils.BN(chainIds[oppositeChainName][contractName]),
+                              v: new web3[destinationChainName].utils.BN(chainIds[destinationChainName][contractName]),
                             };
                             const message = web3[destinationChainName].utils.encodePacked(to, amount, timestamp, chainId);
                             const hashedMessage = web3[destinationChainName].utils.sha3(message);
