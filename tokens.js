@@ -271,6 +271,7 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
   polygonDepositedEntries = result[4];
   polygonWithdrewEntries = result[5];
   const currentLocation = result[6];
+  const currentAddress = result[7];
 
   /* console.log('got entries 2', {
     mainnetDepositedEntries,
