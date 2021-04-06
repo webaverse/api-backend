@@ -10,21 +10,30 @@ async function initNftCache({chainName}) {
     wsContracts,
   } = await getBlockchain();
 
-  // Watch for new events.
-  wsContracts[chainName].NFT.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
-    console.debug('nft event', event);
-    if (error) {
-      console.log('Error getting event: ' + error);
-      // reject(error);
-    } else {
-      await processEventNft({
-        event,
-        chainName,
-      });
-    }
-  });
-
   const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
+
+  // Watch for new events.
+  const _recurse = currentBlockNumber => {
+    wsContracts[chainName].NFT.events.allEvents({fromBlock: currentBlockNumber})
+      .on('data', async function(event){
+        console.log('data nft', chainName, event);
+        await processEventNft({
+          event,
+          chainName,
+        });
+      })
+      .on('changed', async function(event){
+        console.log('changed nft', chainName, event);
+      })
+      .on('error', async err => {
+        console.warn('error nft', chainName, err);
+        
+        const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
+        _recurse(currentBlockNumber);
+      })
+  };
+  _recurse(currentBlockNumber);
+
   const lastBlockNumber = (await getDynamoItem(
     ids.lastCachedBlockNft,
     tableNames[chainName + 'Nft']
@@ -53,20 +62,35 @@ async function initAccountCache({chainName}) {
     wsContracts,
   } = await getBlockchain();
   
-  // Watch for new events.
-  wsContracts[chainName].Account.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
-    console.debug('account event', event);
-    if (error) {
-      console.log('Error getting event: ' + error);
-    } else {
-      await processEventAccount({
-        event,
-        chainName,
-      });
-    }
-  });
-  
   const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
+  
+  // Watch for new events.
+  const _recurse = currentBlockNumber => {
+    wsContracts[chainName].Account.events.allEvents({fromBlock: currentBlockNumber})
+      .on('data', async function(event){
+        console.log('data account', chainName, event);
+        await processEventAccount({
+          event,
+          chainName,
+        });
+      })
+      .on('changed', async function(event){
+        console.log('changed account', chainName, event);
+      })
+      .on('error', async err => {
+        console.warn('error account', chainName, err);
+        
+        const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
+        _recurse(currentBlockNumber);
+      })
+      /* .on('end', async () => {
+        console.log('end account', chainName);
+        const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
+        _recurse(currentBlockNumber);
+      }); */
+  };
+  _recurse(currentBlockNumber);
+
   const lastBlockNumber = (await getDynamoItem(
     ids.lastCachedBlockAccount,
     tableNames[chainName + 'Account']
