@@ -7,10 +7,11 @@ async function initNftCache({chainName}) {
   const {
     web3,
     contracts,
+    wsContracts,
   } = await getBlockchain();
 
   // Watch for new events.
-  contracts[chainName].NFT.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
+  wsContracts[chainName].NFT.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
     console.debug('nft event', event);
     if (error) {
       console.log('Error getting event: ' + error);
