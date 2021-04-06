@@ -206,6 +206,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
     polygonDepositedEntries,
     polygonWithdrewEntries,
     currentLocation,
+    currentAddress,
   ];
 };
 
@@ -316,7 +317,7 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     },
     minterAddress: minter.address.toLowerCase(),
     minter,
-    ownerAddress: owner.address.toLowerCase(),
+    ownerAddress: currentAddress.toLowerCase(), // owner.address.toLowerCase(),
     owner,
     balance: parseInt(token.balance, 10),
     totalSupply: parseInt(token.totalSupply, 10),
