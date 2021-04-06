@@ -66,7 +66,7 @@ const _filterByTokenId = tokenId => entry => {
   // console.log('got entry', entry);
   return parseInt(entry.returnValues.tokenId, 10) === tokenId;
 };
-const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation) => {
+const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation, currentAddress) => {
   let candidateWithdrawIndex = -1, candidateDepositIndex = -1;
   withdraws.find((w, i) => {
     const candidateDeposit = deposits.find((d, i) => {
@@ -86,8 +86,9 @@ const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation) => {
   });
   if (candidateWithdrawIndex !== -1 && candidateDepositIndex !== -1) {
     deposits.splice(candidateDepositIndex, 1);
-    withdraws.splice(candidateWithdrawIndex, 1);
+    const withdraw = withdraws.splice(candidateWithdrawIndex, 1)[0];
     currentLocation = nextLocation;
+    currentAddress = withdraw.returnValues['to'];
 
     // console.log('sliced 1');
 
@@ -95,6 +96,7 @@ const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation) => {
       deposits,
       withdraws,
       currentLocation,
+      currentAddress,
       true,
     ];
   } else if (deposits.length > 0) {
@@ -106,6 +108,7 @@ const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation) => {
       deposits,
       withdraws,
       currentLocation,
+      currentAddress,
       false,
     ];
   } else {
@@ -114,7 +117,7 @@ const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation) => {
     return null;
   }
 };
-const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
+const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries, currentAddress) => {
   let currentLocation = 'mainnetsidechain';
   let changed = true;
   while (changed) {
@@ -122,23 +125,25 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
     
     // sidechain -> mainnet
     {
-      const result = _cancelEntry(sidechainDepositedEntries, mainnetWithdrewEntries, currentLocation, 'mainnet');
+      const result = _cancelEntry(sidechainDepositedEntries, mainnetWithdrewEntries, currentLocation, 'mainnet', currentAddress);
       if (result) {
         sidechainDepositedEntries = result[0];
         mainnetWithdrewEntries = result[1];
         currentLocation = result[2];
-        const ok = result[3];
+        currentAddress = result[3];
+        const ok = result[4];
         if (!ok) {
           break;
         }
         changed = true;
         
         {
-          const result2 = _cancelEntry(mainnetDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain');
+          const result2 = _cancelEntry(mainnetDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
           mainnetDepositedEntries = result2[0];
           sidechainWithdrewEntries = result2[1];
           currentLocation = result2[2];
-          const ok = result2[3];
+          currentAddress = result[3];
+          const ok = result2[4];
           if (!ok) {
             break;
           }
@@ -149,23 +154,25 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
     
     // sidechain -> polygon
     {
-      const result = _cancelEntry(sidechainDepositedEntries, polygonWithdrewEntries, currentLocation, 'polygon');
+      const result = _cancelEntry(sidechainDepositedEntries, polygonWithdrewEntries, currentLocation, 'polygon', currentAddress);
       if (result) {
         polygonDepositedEntries = result[0];
         polygonWithdrewEntries = result[1];
         currentLocation = result[2];
-        const ok = result[3];
+        currentAddress = result[3];
+        const ok = result[4];
         if (!ok) {
           break;
         }
         changed = true;
         
-        const result2 = _cancelEntry(polygonDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain');
+        const result2 = _cancelEntry(polygonDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
         if (result2) {
           polygonDepositedEntries = result2[0];
           sidechainWithdrewEntries = result2[1];
           currentLocation = result2[2];
-          const ok = result2[3];
+          currentAddress = result2[3];
+          const ok = result2[4];
           if (!ok) {
             break;
           }
@@ -237,6 +244,7 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     sidechainWithdrewEntries,
     polygonDepositedEntries,
     polygonWithdrewEntries,
+    minter.address,
   );
   mainnetDepositedEntries = result[0];
   mainnetWithdrewEntries = result[1];
