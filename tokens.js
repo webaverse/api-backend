@@ -448,7 +448,7 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
   try {
     if (_isValidToken(token)) {
       if (contractName === 'NFT') {
-        console.log('start call');
+        // console.log('start call');
         const r = await formatToken(contractName)(chainName)(
           token,
           storeEntries,
@@ -459,7 +459,7 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
           polygonDepositedEntries,
           polygonWithdrewEntries,
         );
-        console.log('end call');
+        // console.log('end call');
         return r;
       } else if (contractName === 'LAND') {
         return await formatLand(contractName)(chainName)(
