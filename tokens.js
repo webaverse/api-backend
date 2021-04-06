@@ -593,7 +593,7 @@ const getStoreEntries = async chainName => {
   return storeEntries;
 };
 const getChainNames = chainName => {
-  let mainnetChainName = chainName.replace(/sidechain/, '');
+  let mainnetChainName = chainName.replace(/polygon/, 'mainnet').replace(/sidechain/, '');
   if (mainnetChainName === '') {
     mainnetChainName = 'mainnet';
   }
