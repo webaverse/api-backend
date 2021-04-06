@@ -53,6 +53,19 @@ async function initAccountCache({chainName}) {
     wsContracts,
   } = await getBlockchain();
   
+  // Watch for new events.
+  wsContracts[chainName].Account.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
+    console.debug('account event', event);
+    if (error) {
+      console.log('Error getting event: ' + error);
+    } else {
+      await processEventAccount({
+        event,
+        chainName,
+      });
+    }
+  });
+  
   const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
   const lastBlockNumber = (await getDynamoItem(
     ids.lastCachedBlockAccount,
@@ -74,19 +87,6 @@ async function initAccountCache({chainName}) {
       });
     }
   }
-
-  // Watch for new events.
-  wsContracts[chainName].Account.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
-    console.debug('account event', event);
-    if (error) {
-      console.log('Error getting event: ' + error);
-    } else {
-      await processEventAccount({
-        event,
-        chainName,
-      });
-    }
-  });
 }
 async function initCaches() {
   const _logCache = async (name, p) => {
