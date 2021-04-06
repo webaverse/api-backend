@@ -84,21 +84,17 @@ async function initAccountCache({chainName}) {
   }
 
   // Watch for new events.
-  await new Promise((accept, reject) => {
-    wsContracts[chainName].Account.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
-      console.debug('account event', event);
-      if (error) {
-        console.log('Error getting event: ' + error);
-        reject(error);
-      } else {
-        await processEventAccount({
-          // contract: webSocketContract,
-          event,
-          chainName,
-        });
-        accept();
-      }
-    });
+  wsContracts[chainName].Account.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
+    console.debug('account event', event);
+    if (error) {
+      console.log('Error getting event: ' + error);
+      reject(error);
+    } else {
+      await processEventAccount({
+        event,
+        chainName,
+      });
+    }
   });
 }
 async function initCaches() {
