@@ -388,6 +388,7 @@ const _copy = o => {
   }
   return newO;
 };
+const _isValidToken = token => token.owner !== '0x0000000000000000000000000000000000000000';
 const getChainNft = contractName => chainName => async (tokenId, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
   if (!storeEntries || !mainnetDepositedEntries || !mainnetWithdrewEntries || !sidechainDepositedEntries || !sidechainWithdrewEntries || !polygonDepositedEntries || !polygonWithdrewEntries) {
     console.warn('bad arguments were', {
@@ -444,7 +445,7 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
   // console.log('get chain nft 2', tokenId, token, contractName);
   
   try {
-    if (token.hash) {
+    if (_isValidToken(token)) {
       if (contractName === 'NFT') {
         console.log('start call');
         const r = await formatToken(contractName)(chainName)(
