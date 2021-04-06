@@ -684,8 +684,8 @@ module.exports = {
   getChainNft,
   getChainAccount,
   getChainToken,
-  formatToken,
-  formatLand,
+  // formatToken,
+  // formatLand,
   getStoreEntries,
   getAllWithdrawsDeposits,
 };
