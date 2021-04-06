@@ -1,22 +1,26 @@
 const {ddbd, getDynamoItem, putDynamoItem} = require('./aws.js');
 const {getChainNft, getChainAccount, getAllWithdrawsDeposits} = require('./tokens.js');
-const {ids, tableNames, accountKeys} = require('./constants.js');
-const {getBlockchain, getPastEvents} = require('./blockchain.js');
+const {ids, tableNames, accountKeys, maxNumBlocks} = require('./constants.js');
+const {getBlockchain, getPastEvents, makeWeb3WebsocketContract} = require('./blockchain.js');
 
 async function initNftCache({chainName}) {
   const {
     web3,
     contracts,
-    wsContracts,
+    // wsContracts,
   } = await getBlockchain();
 
   const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
 
   // Watch for new events.
   const _recurse = currentBlockNumber => {
-    wsContracts[chainName].NFT.events.allEvents({fromBlock: currentBlockNumber})
+    const wsContract = makeWeb3WebsocketContract(chainName, 'NFT');
+    wsContract.events.allEvents({fromBlock: currentBlockNumber})
       .on('data', async function(event){
         console.log('data nft', chainName, event);
+        
+        currentBlockNumber = Math.max(currentBlockNumber, blockNumber);
+        
         await processEventNft({
           event,
           chainName,
@@ -27,10 +31,13 @@ async function initNftCache({chainName}) {
       })
       .on('error', async err => {
         console.warn('error nft', chainName, err);
-        
-        const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
-        _recurse(currentBlockNumber);
-      })
+      });
+    wsContract.listener.on('end', async () => {
+      console.log('recurse nft');
+      
+      // const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
+      _recurse(currentBlockNumber);
+    });
   };
   _recurse(currentBlockNumber);
 
@@ -59,16 +66,20 @@ async function initAccountCache({chainName}) {
   const {
     web3,
     contracts,
-    wsContracts,
+    // wsContracts,
   } = await getBlockchain();
   
   const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
   
   // Watch for new events.
   const _recurse = currentBlockNumber => {
-    wsContracts[chainName].Account.events.allEvents({fromBlock: currentBlockNumber})
+    const wsContract = makeWeb3WebsocketContract(chainName, 'Account');
+    wsContract.events.allEvents({fromBlock: currentBlockNumber})
       .on('data', async function(event){
         console.log('data account', chainName, event);
+        
+        currentBlockNumber = Math.max(currentBlockNumber, blockNumber);
+        
         await processEventAccount({
           event,
           chainName,
@@ -82,12 +93,13 @@ async function initAccountCache({chainName}) {
         
         const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
         _recurse(currentBlockNumber);
-      })
-      /* .on('end', async () => {
-        console.log('end account', chainName);
-        const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
-        _recurse(currentBlockNumber);
-      }); */
+      });
+    wsContract.listener.on('end', async () => {
+      console.log('recurse account');
+      
+      // const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
+      _recurse(currentBlockNumber);
+    });
   };
   _recurse(currentBlockNumber);
 

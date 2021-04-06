@@ -1,3 +1,5 @@
+const events = require('events');
+const {EventEmitter} = events;
 const dns = require('dns');
 const https = require('https');
 const fetch = require('node-fetch');
@@ -12,19 +14,20 @@ const {
 let addresses,
   abis,
   web3,
-  web3sockets,
   web3socketProviders,
+  web3sockets,
   contracts,
-  wsContracts,
+  // wsContracts,
   gethNodeUrl,
-  gethNodeWSUrl;
+  gethNodeWSUrl,
+  web3socketProviderUrls;
 
 const BlockchainNetworks = [
   "mainnet",
   "mainnetsidechain",
   "polygon",
-  "testnet",
-  "testnetsidechain",
+  // "testnet",
+  // "testnetsidechain",
   // "testnetpolygon",
 ];
 
@@ -86,12 +89,12 @@ const loadPromise = (async() => {
       `${gethNodeUrl}:${ports.mainnetsidechain}`
     )),
 
-    testnet: new Web3(new Web3.providers.HttpProvider(
+    /* testnet: new Web3(new Web3.providers.HttpProvider(
       `https://rinkeby.infura.io/v3/${infuraProjectId}`
     )),
     testnetsidechain: new Web3(new Web3.providers.HttpProvider(
       `${gethNodeUrl}:${ports.testnetsidechain}`
-    )),
+    )), */
     
     polygon: new Web3(new Web3.providers.HttpProvider(
       `https://rpc-mainnet.maticvigil.com/v1/${polygonVigilKey}`
@@ -105,14 +108,14 @@ const loadPromise = (async() => {
     mainnet: `wss://mainnet.infura.io/ws/v3/${infuraProjectId}`,
     mainnetsidechain: `${gethNodeWSUrl}:${ports.mainnetsidechainWs}`,
 
-    testnet: `wss://rinkeby.infura.io/ws/v3/${infuraProjectId}`,
-    testnetsidechain: `${gethNodeWSUrl}:${ports.testnetsidechainWs}`,
+    // testnet: `wss://rinkeby.infura.io/ws/v3/${infuraProjectId}`,
+    // testnetsidechain: `${gethNodeWSUrl}:${ports.testnetsidechainWs}`,
     
     polygon: `wss://rpc-mainnet.maticvigil.com/ws/v1/${polygonVigilKey}`,
     // testnetpolygon: `wss://rpc-mumbai.maticvigil.com/ws/v1/${polygonVigilKey}`,
   };
   
-  web3socketProviders = {};
+  /* web3socketProviders = {};
   for (const k in web3socketProviderUrls) {
     web3socketProviders[k] = new Web3.providers.WebsocketProvider(web3socketProviderUrls[k]);
   }
@@ -132,7 +135,7 @@ const loadPromise = (async() => {
   };
   for (const k in web3socketProviders) {
     web3sockets[k] = _makeWeb3Socket(k);
-  }
+  } */
   
   contracts = {};
   BlockchainNetworks.forEach(network => {
@@ -148,7 +151,7 @@ const loadPromise = (async() => {
     }
   })
   
-  wsContracts = {};
+  /* wsContracts = {};
   BlockchainNetworks.forEach(network => {
     wsContracts[network] = {
       Account: new web3sockets[network].eth.Contract(abis.Account, addresses[network].Account),
@@ -160,7 +163,7 @@ const loadPromise = (async() => {
       LAND: new web3sockets[network].eth.Contract(abis.LAND, addresses[network].LAND),
       LANDProxy: new web3sockets[network].eth.Contract(abis.LANDProxy, addresses[network].LANDProxy),
     }
-  });
+  }); */
 })();
 
 async function getPastEvents({
@@ -191,13 +194,29 @@ async function getBlockchain() {
     addresses,
     abis,
     web3,
-    web3socketProviders,
+    // web3socketProviders,
     web3sockets,
     contracts,
-    wsContracts,
+    // wsContracts,
     gethNodeUrl,
     gethNodeWSUrl,
+    web3socketProviderUrls,
   };
+}
+
+function makeWeb3WebsocketContract(chainName, contractName) {
+  const web3socketProvider = new Web3.providers.WebsocketProvider(web3socketProviderUrls[chainName])
+  const web3socket = new Web3(web3socketProvider);
+  const web3socketContract = new web3socket.eth.Contract(abis[contractName], addresses[chainName][contractName]);
+
+  web3socketProvider.on('end', () => {
+    listener.emit('end');
+  });
+  
+  const listener = new EventEmitter();
+  web3socketContract.listener = listener;
+
+  return web3socketContract;
 }
 
 module.exports = {
