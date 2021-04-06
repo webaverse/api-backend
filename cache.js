@@ -79,7 +79,6 @@ async function initAccountCache({chainName}) {
     console.debug('account event', event);
     if (error) {
       console.log('Error getting event: ' + error);
-      reject(error);
     } else {
       await processEventAccount({
         event,
