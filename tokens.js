@@ -444,28 +444,35 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
   // console.log('get chain nft 2', tokenId, token, contractName);
   
   try {
-    if (contractName === 'NFT') {
-      return await formatToken(contractName)(chainName)(
-        token,
-        storeEntries,
-        mainnetDepositedEntries,
-        mainnetWithdrewEntries,
-        sidechainDepositedEntries,
-        sidechainWithdrewEntries,
-        polygonDepositedEntries,
-        polygonWithdrewEntries,
-      );
-    } else if (contractName === 'LAND') {
-      return await formatLand(contractName)(chainName)(
-        token,
-        storeEntries,
-        mainnetDepositedEntries,
-        mainnetWithdrewEntries,
-        sidechainDepositedEntries,
-        sidechainWithdrewEntries,
-        polygonDepositedEntries,
-        polygonWithdrewEntries,
-      );
+    if (token.hash) {
+      if (contractName === 'NFT') {
+        console.log('start call');
+        const r = await formatToken(contractName)(chainName)(
+          token,
+          storeEntries,
+          mainnetDepositedEntries,
+          mainnetWithdrewEntries,
+          sidechainDepositedEntries,
+          sidechainWithdrewEntries,
+          polygonDepositedEntries,
+          polygonWithdrewEntries,
+        );
+        console.log('end call');
+        return r;
+      } else if (contractName === 'LAND') {
+        return await formatLand(contractName)(chainName)(
+          token,
+          storeEntries,
+          mainnetDepositedEntries,
+          mainnetWithdrewEntries,
+          sidechainDepositedEntries,
+          sidechainWithdrewEntries,
+          polygonDepositedEntries,
+          polygonWithdrewEntries,
+        );
+      } else {
+        return null;
+      }
     } else {
       return null;
     }
