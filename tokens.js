@@ -336,19 +336,26 @@ const formatLand = contractName => chainName => async (token, storeEntries) => {
     contracts,
   } = await getBlockchain();
 
+  const {
+    mainnetChainName,
+    sidechainChainName,
+    polygonChainName,
+  } = getChainNames(chainName);
+
   const owner = await _fetchAccount(token.owner, chainName);
 
-  const id = parseInt(token.id, 10);
+  const tokenId = parseInt(token.id, 10);
   // console.log('got token', token);
   const {name, hash, ext, unlockable} = token;
   const [
     description,
     rarity,
     extents,
+    sidechainMinterAddress,
   ] = await Promise.all([
-    contracts[chainName].LAND.methods.getSingleMetadata(id, 'description').call(),
     contracts[chainName].LAND.methods.getMetadata(name, 'rarity').call(),
     contracts[chainName].LAND.methods.getMetadata(name, 'extents').call(),
+    contracts[sidechainChainName].LAND.methods.getMinter(tokenId).call(),
   ]);
   const extentsJson = _jsonParse(extents);
   const coord = (
