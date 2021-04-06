@@ -123,6 +123,23 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
   while (changed) {
     changed = false;
     
+    // sidechain -> sidechain
+    {
+      const result = _cancelEntry(sidechainDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
+      if (result) {
+        sidechainDepositedEntries = result[0];
+        sidechainWithdrewEntries = result[1];
+        currentLocation = result[2];
+        currentAddress = result[3];
+        const ok = result[4];
+        if (!ok) {
+          break;
+        }
+        changed = true;
+      }
+    }
+    // TODO: do this for every one of the self-chain pairs
+    
     // sidechain -> mainnet
     {
       const result = _cancelEntry(sidechainDepositedEntries, mainnetWithdrewEntries, currentLocation, 'mainnet', currentAddress);
