@@ -102,10 +102,10 @@ async function initCaches() {
   await Promise.all([
     'mainnet',
     'mainnetsidechain',
-    'testnet',
-    'testnetsidechain',
+    // 'testnet',
+    // 'testnetsidechain',
     'polygon',
-    'testnetpolygon',
+    // 'testnetpolygon',
   ].map(chainName => {
     return Promise.all([
       _logCache(chainName + ' NFT', initNftCache({chainName})),
@@ -200,7 +200,7 @@ async function processEventsNft({events, currentBlockNumber, chainName}) {
     }
   }).filter(tokenId => tokenId !== null);
 
-  console.log('process events', tokenIds.length);
+  console.log('process events', chainName, tokenIds.length);
 
   const storeEntries = [];
   const {

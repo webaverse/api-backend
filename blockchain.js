@@ -25,7 +25,7 @@ const BlockchainNetworks = [
   "polygon",
   "testnet",
   "testnetsidechain",
-  "testnetpolygon",
+  // "testnetpolygon",
 ];
 
 const loadPromise = (async() => {
@@ -96,9 +96,9 @@ const loadPromise = (async() => {
     polygon: new Web3(new Web3.providers.HttpProvider(
       `https://rpc-mainnet.maticvigil.com/v1/${polygonVigilKey}`
     )),
-    testnetpolygon: new Web3(new Web3.providers.HttpProvider(
+    /* testnetpolygon: new Web3(new Web3.providers.HttpProvider(
       `https://rpc-mumbai.maticvigil.com/v1/${polygonVigilKey}`
-    )),
+    )), */
   };
   
   web3socketProviderUrls = {
@@ -109,7 +109,7 @@ const loadPromise = (async() => {
     testnetsidechain: `${gethNodeWSUrl}:${ports.testnetsidechainWs}`,
     
     polygon: `wss://rpc-mainnet.maticvigil.com/ws/v1/${polygonVigilKey}`,
-    testnetpolygon: `wss://rpc-mumbai.maticvigil.com/ws/v1/${polygonVigilKey}`,
+    // testnetpolygon: `wss://rpc-mumbai.maticvigil.com/ws/v1/${polygonVigilKey}`,
   };
   
   web3socketProviders = {};
