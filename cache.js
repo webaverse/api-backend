@@ -5,30 +5,25 @@ const {getBlockchain, getPastEvents} = require('./blockchain.js');
 
 async function initNftCache({chainName}) {
   const {
-    web3sockets,
-    wsContracts,
+    web3,
+    contracts,
   } = await getBlockchain();
-  
-  const webSocketWeb3 = web3sockets[chainName];
-  const contract = wsContracts[chainName];
 
   // Watch for new events.
-  wsContracts[chainName].NFT.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
+  contracts[chainName].NFT.events.allEvents({fromBlock: 'latest'}, async (error, event) => {
     console.debug('nft event', event);
     if (error) {
       console.log('Error getting event: ' + error);
       // reject(error);
     } else {
       await processEventNft({
-        contract,
-        wsContracts,
         event,
         chainName,
       });
     }
   });
 
-  const currentBlockNumber = await webSocketWeb3.eth.getBlockNumber();
+  const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
   const lastBlockNumber = (await getDynamoItem(
     ids.lastCachedBlockNft,
     tableNames[chainName + 'Nft']
@@ -52,14 +47,12 @@ async function initNftCache({chainName}) {
 }
 async function initAccountCache({chainName}) {
   const {
-    web3sockets,
+    web3,
+    contracts,
     wsContracts,
   } = await getBlockchain();
   
-  const webSocketWeb3 = web3sockets[chainName];
-  const contract = wsContracts[chainName];
-  
-  const currentBlockNumber = await webSocketWeb3.eth.getBlockNumber();
+  const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
   const lastBlockNumber = (await getDynamoItem(
     ids.lastCachedBlockAccount,
     tableNames[chainName + 'Account']
@@ -67,7 +60,6 @@ async function initAccountCache({chainName}) {
 
   // Catch up on missing blocks.
   if (currentBlockNumber !== lastBlockNumber) {
-    const {web3sockets} = await getBlockchain();
     const events = await getPastEvents({
       chainName,
       contractName: 'Account',
@@ -75,7 +67,6 @@ async function initAccountCache({chainName}) {
     });
     if (events.length > 0) {
       await processEventsAccount({
-        // contract: webSocketContract,
         events,
         currentBlockNumber,
         chainName,
@@ -123,7 +114,7 @@ async function initCaches() {
   }));
 }
 
-async function processEventNft({contract, wsContracts, event, isMainnet, chainName}) {
+async function processEventNft({event, isMainnet, chainName}) {
   let {tokenId, hash, key, value} = event.returnValues;
 
   if (tokenId) {
