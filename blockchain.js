@@ -222,4 +222,5 @@ function makeWeb3WebsocketContract(chainName, contractName) {
 module.exports = {
   getBlockchain,
   getPastEvents,
+  makeWeb3WebsocketContract,
 };
