@@ -191,8 +191,6 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
           if (result2) {
             polygonDepositedEntries = result2[0];
             sidechainWithdrewEntries = result2[1];
-            currentLocation = result2[2];
-            currentAddress = result2[3];
             if (!/stuck/.test(result2[2])) {
               currentLocation = result2[2];
               currentAddress = result2[3];
