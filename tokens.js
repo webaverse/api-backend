@@ -100,7 +100,7 @@ const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation, curren
       currentAddress,
     ];
   } else if (deposits.length > 0) {
-    currentLocation = currentLocation + '-stuck';
+    currentLocation += '-stuck';
 
     // console.log('sliced 2');
 
