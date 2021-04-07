@@ -132,16 +132,39 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
       {
         const result = _cancelEntry(sidechainDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
         if (result) {
-          sidechainDepositedEntries = result[0];
-          sidechainWithdrewEntries = result[1];
           if (!/stuck/.test(result[2])) {
+            sidechainDepositedEntries = result[0];
+            sidechainWithdrewEntries = result[1];
             currentLocation = result[2];
             currentAddress = result[3];
             changed = true;
           }
         }
       }
-      // TODO: do this for every one of the self-chain pairs
+      {
+        const result = _cancelEntry(mainnetDepositedEntries, mainnetWithdrewEntries, currentLocation, 'mainnet', currentAddress);
+        if (result) {
+          if (!/stuck/.test(result[2])) {
+            mainnetDepositedEntries = result[0];
+            mainnetWithdrewEntries = result[1];
+            currentLocation = result[2];
+            currentAddress = result[3];
+            changed = true;
+          }
+        }
+      }
+      {
+        const result = _cancelEntry(polygonDepositedEntries, polygonWithdrewEntries, currentLocation, 'polygon', currentAddress);
+        if (result) {
+          if (!/stuck/.test(result[2])) {
+            polygonDepositedEntries = result[0];
+            polygonWithdrewEntries = result[1];
+            currentLocation = result[2];
+            currentAddress = result[3];
+            changed = true;
+          }
+        }
+      }
       
       // sidechain -> mainnet
       {
