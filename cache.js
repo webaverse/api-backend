@@ -148,7 +148,7 @@ async function initCaches() {
     // 'testnetpolygon',
   ].map(chainName => {
     return Promise.all([
-      _logCache(chainName + ' NFT', initNftCache({chainName})),
+      // _logCache(chainName + ' NFT', initNftCache({chainName})),
       _logCache(chainName + ' Account', initAccountCache({chainName})),
     ]);
   }));
