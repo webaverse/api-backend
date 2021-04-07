@@ -376,7 +376,7 @@ const formatLand = contractName => chainName => async (token, storeEntries) => {
     polygonChainName,
   } = getChainNames(chainName);
 
-  const owner = await _fetchAccount(token.owner, chainName);
+  const owner = await _fetchAccount(token.owner, sidechainChainName);
 
   const tokenId = parseInt(token.id, 10);
   // console.log('got token', token);
