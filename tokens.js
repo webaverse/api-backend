@@ -169,15 +169,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
       
       // sidechain -> polygon
       {
-        console.log('check start', {
-          sidechainDepositedEntries,
-          polygonWithdrewEntries,
-        });
         const result = _cancelEntry(sidechainDepositedEntries, polygonWithdrewEntries, currentLocation, 'polygon', currentAddress);
-        console.log('check end', {
-          sidechainDepositedEntries,
-          polygonWithdrewEntries,
-        }, result);
         if (result) {
           if (!/stuck/.test(result[2])) {
             polygonDepositedEntries = result[0];
