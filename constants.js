@@ -10,7 +10,8 @@ const accountKeys = [
   'homeSpaceExt',
   'homeSpacePreview',
   'ftu',
-  'mainnetAddress',
+  // 'mainnetAddress',
+  'addressProofs',
 ];
 const ids = {
   lastCachedBlockAccount: 'lastCachedBlock',
