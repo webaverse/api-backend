@@ -121,9 +121,12 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
   
   // direct transfer
   {
+    // console.log('loop start');
     let changed = true;
     while (changed) {
       changed = false;
+      
+      // console.log('loop');
       
       // sidechain -> sidechain
       {
@@ -192,6 +195,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
         }
       }
     }
+    // console.log('loop end');
   }
   if ([
     mainnetDepositedEntries,
