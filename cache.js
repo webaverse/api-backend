@@ -177,9 +177,9 @@ async function processEventNft({event, chainName}) {
       );
 
       if (token?.properties.hash) {
-        tokenId = parseInt(tokenId, 10);
+        const tokenIdNum = parseInt(tokenId, 10);
 
-        await putDynamoItem(tokenId, token, isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft);
+        await putDynamoItem(tokenIdNum, token, tableNames.mainnetsidechainNft);
       }
     } catch (e) {
       console.error(e);
