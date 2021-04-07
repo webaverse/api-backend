@@ -71,7 +71,7 @@ const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation, curren
   let candidateWithdrawIndex = -1, candidateDepositIndex = -1;
   withdraws.find((w, i) => {
     const candidateDeposit = deposits.find((d, i) => {
-      if (d.returnValues['to'] === w.returnValues['to']) {
+      if (d.returnValues['to'] === w.returnValues['from']) {
         candidateDepositIndex = i;
         return true;
       } else {
@@ -89,7 +89,7 @@ const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation, curren
     deposits.splice(candidateDepositIndex, 1);
     const withdraw = withdraws.splice(candidateWithdrawIndex, 1)[0];
     currentLocation = nextLocation;
-    currentAddress = withdraw.returnValues['to'];
+    currentAddress = withdraw.returnValues['from'];
 
     // console.log('sliced 1');
 
@@ -98,7 +98,6 @@ const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation, curren
       withdraws,
       currentLocation,
       currentAddress,
-      true,
     ];
   } else if (deposits.length > 0) {
     currentLocation = currentLocation + '-stuck';
@@ -109,8 +108,6 @@ const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation, curren
       deposits,
       withdraws,
       currentLocation,
-      currentAddress,
-      false,
     ];
   } else {
     // console.log('sliced 3');
@@ -120,85 +117,102 @@ const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation, curren
 };
 const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries, currentAddress) => {
   let currentLocation = 'mainnetsidechain';
-  let changed = true;
-  while (changed) {
-    changed = false;
-    
-    // sidechain -> sidechain
-    {
-      const result = _cancelEntry(sidechainDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
-      if (result) {
-        sidechainDepositedEntries = result[0];
-        sidechainWithdrewEntries = result[1];
-        currentLocation = result[2];
-        currentAddress = result[3];
-        const ok = result[4];
-        if (!ok) {
-          break;
-        }
-        changed = true;
-      }
-    }
-    // TODO: do this for every one of the self-chain pairs
-    
-    // sidechain -> mainnet
-    {
-      const result = _cancelEntry(sidechainDepositedEntries, mainnetWithdrewEntries, currentLocation, 'mainnet', currentAddress);
-      if (result) {
-        sidechainDepositedEntries = result[0];
-        mainnetWithdrewEntries = result[1];
-        currentLocation = result[2];
-        currentAddress = result[3];
-        const ok = result[4];
-        if (!ok) {
-          break;
-        }
-        changed = true;
-        
-        {
-          const result2 = _cancelEntry(mainnetDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
-          mainnetDepositedEntries = result2[0];
-          sidechainWithdrewEntries = result2[1];
-          currentLocation = result2[2];
-          currentAddress = result[3];
-          const ok = result2[4];
-          if (!ok) {
-            break;
+  
+  // direct transfer
+  {
+    let changed = true;
+    while (changed) {
+      changed = false;
+      
+      // sidechain -> sidechain
+      {
+        const result = _cancelEntry(sidechainDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
+        if (result) {
+          sidechainDepositedEntries = result[0];
+          sidechainWithdrewEntries = result[1];
+          if (!/stuck/.test(result[2])) {
+            currentLocation = result[2];
+            currentAddress = result[3];
           }
           changed = true;
         }
       }
-    }
-    
-    // sidechain -> polygon
-    {
-      const result = _cancelEntry(sidechainDepositedEntries, polygonWithdrewEntries, currentLocation, 'polygon', currentAddress);
-      if (result) {
-        polygonDepositedEntries = result[0];
-        polygonWithdrewEntries = result[1];
-        currentLocation = result[2];
-        currentAddress = result[3];
-        const ok = result[4];
-        if (!ok) {
-          break;
-        }
-        changed = true;
-        
-        const result2 = _cancelEntry(polygonDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
-        if (result2) {
-          polygonDepositedEntries = result2[0];
-          sidechainWithdrewEntries = result2[1];
-          currentLocation = result2[2];
-          currentAddress = result2[3];
-          const ok = result2[4];
-          if (!ok) {
-            break;
+      // TODO: do this for every one of the self-chain pairs
+      
+      // sidechain -> mainnet
+      {
+        const result = _cancelEntry(sidechainDepositedEntries, mainnetWithdrewEntries, currentLocation, 'mainnet', currentAddress);
+        if (result) {
+          sidechainDepositedEntries = result[0];
+          mainnetWithdrewEntries = result[1];
+          if (!/stuck/.test(result[2])) {
+            currentLocation = result[2];
+            currentAddress = result[3];
           }
           changed = true;
+          
+          {
+            const result2 = _cancelEntry(mainnetDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
+            if (result2) {
+              mainnetDepositedEntries = result2[0];
+              sidechainWithdrewEntries = result2[1];
+              if (!/stuck/.test(result2[2])) {
+                currentLocation = result2[2];
+                currentAddress = result2[3];
+              }
+              changed = true;
+            }
+          }
+        }
+      }
+      
+      // sidechain -> polygon
+      {
+        console.log('check start', {
+          sidechainDepositedEntries,
+          polygonWithdrewEntries,
+        });
+        const result = _cancelEntry(sidechainDepositedEntries, polygonWithdrewEntries, currentLocation, 'polygon', currentAddress);
+        console.log('check end', {
+          sidechainDepositedEntries,
+          polygonWithdrewEntries,
+        }, result);
+        if (result) {
+          polygonDepositedEntries = result[0];
+          polygonWithdrewEntries = result[1];
+          if (!/stuck/.test(result[2])) {
+            currentLocation = result[2];
+            currentAddress = result[3];
+          }
+          changed = true;
+          
+          const result2 = _cancelEntry(polygonDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
+          if (result2) {
+            polygonDepositedEntries = result2[0];
+            sidechainWithdrewEntries = result2[1];
+            currentLocation = result2[2];
+            currentAddress = result2[3];
+            if (!/stuck/.test(result2[2])) {
+              currentLocation = result2[2];
+              currentAddress = result2[3];
+            }
+            changed = true;
+          }
         }
       }
     }
   }
+  if ([
+    mainnetDepositedEntries,
+    // mainnetWithdrewEntries,
+    sidechainDepositedEntries,
+    // sidechainWithdrewEntries,
+    polygonDepositedEntries,
+    // polygonWithdrewEntries,
+  ].some(depositedEntries => depositedEntries.length > 0)) {
+    currentLocation += '-stuck';
+  }
+
   return [
     mainnetDepositedEntries,
     mainnetWithdrewEntries,
@@ -353,6 +367,7 @@ const formatLand = contractName => chainName => async (token, storeEntries) => {
     extents,
     sidechainMinterAddress,
   ] = await Promise.all([
+    contracts[chainName].LAND.methods.getSingleMetadata(tokenId, 'description').call(),
     contracts[chainName].LAND.methods.getMetadata(name, 'rarity').call(),
     contracts[chainName].LAND.methods.getMetadata(name, 'extents').call(),
     contracts[sidechainChainName].LAND.methods.getMinter(tokenId).call(),
