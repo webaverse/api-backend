@@ -432,7 +432,7 @@ const _copy = o => {
   }
   return newO;
 };
-const _isValidToken = token => token.owner !== '0x0000000000000000000000000000000000000000';
+const _isValidToken = token => token.owner !== zeroAddress;
 const getChainNft = contractName => chainName => async (tokenId, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
   if (!storeEntries || !mainnetDepositedEntries || !mainnetWithdrewEntries || !sidechainDepositedEntries || !sidechainWithdrewEntries || !polygonDepositedEntries || !polygonWithdrewEntries) {
     console.warn('bad arguments were', {
