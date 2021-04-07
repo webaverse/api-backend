@@ -17,7 +17,7 @@ async function initNftCache({chainName}) {
     const wsContract = makeWeb3WebsocketContract(chainName, 'NFT');
     wsContract.events.allEvents({fromBlock: currentBlockNumber})
       .on('data', async function(event){
-        console.log('data nft', chainName, event);
+        console.log('nft event', chainName, event);
         
         currentBlockNumber = Math.max(currentBlockNumber, blockNumber);
         
@@ -76,7 +76,7 @@ async function initAccountCache({chainName}) {
     const wsContract = makeWeb3WebsocketContract(chainName, 'Account');
     wsContract.events.allEvents({fromBlock: currentBlockNumber})
       .on('data', async function(event){
-        console.log('data account', chainName, event);
+        console.log('account event', chainName, event);
         
         currentBlockNumber = Math.max(currentBlockNumber, blockNumber);
         
