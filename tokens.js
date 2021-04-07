@@ -134,8 +134,8 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
           if (!/stuck/.test(result[2])) {
             currentLocation = result[2];
             currentAddress = result[3];
+            changed = true;
           }
-          changed = true;
         }
       }
       // TODO: do this for every one of the self-chain pairs
@@ -144,24 +144,24 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
       {
         const result = _cancelEntry(sidechainDepositedEntries, mainnetWithdrewEntries, currentLocation, 'mainnet', currentAddress);
         if (result) {
-          sidechainDepositedEntries = result[0];
-          mainnetWithdrewEntries = result[1];
           if (!/stuck/.test(result[2])) {
+            sidechainDepositedEntries = result[0];
+            mainnetWithdrewEntries = result[1];
             currentLocation = result[2];
             currentAddress = result[3];
-          }
-          changed = true;
+            changed = true;
           
-          {
-            const result2 = _cancelEntry(mainnetDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
-            if (result2) {
-              mainnetDepositedEntries = result2[0];
-              sidechainWithdrewEntries = result2[1];
-              if (!/stuck/.test(result2[2])) {
-                currentLocation = result2[2];
-                currentAddress = result2[3];
+            {
+              const result2 = _cancelEntry(mainnetDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
+              if (result2) {
+                if (!/stuck/.test(result2[2])) {
+                  mainnetDepositedEntries = result2[0];
+                  sidechainWithdrewEntries = result2[1];
+                  currentLocation = result2[2];
+                  currentAddress = result2[3];
+                  changed = true;
+                }
               }
-              changed = true;
             }
           }
         }
@@ -179,23 +179,23 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
           polygonWithdrewEntries,
         }, result);
         if (result) {
-          polygonDepositedEntries = result[0];
-          polygonWithdrewEntries = result[1];
           if (!/stuck/.test(result[2])) {
+            polygonDepositedEntries = result[0];
+            polygonWithdrewEntries = result[1];
             currentLocation = result[2];
             currentAddress = result[3];
-          }
-          changed = true;
-          
-          const result2 = _cancelEntry(polygonDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
-          if (result2) {
-            polygonDepositedEntries = result2[0];
-            sidechainWithdrewEntries = result2[1];
-            if (!/stuck/.test(result2[2])) {
-              currentLocation = result2[2];
-              currentAddress = result2[3];
-            }
             changed = true;
+          
+            const result2 = _cancelEntry(polygonDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
+            if (result2) {
+              if (!/stuck/.test(result2[2])) {
+                polygonDepositedEntries = result2[0];
+                sidechainWithdrewEntries = result2[1];
+                currentLocation = result2[2];
+                currentAddress = result2[3];
+                changed = true;
+              }
+            }
           }
         }
       }
