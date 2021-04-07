@@ -295,12 +295,23 @@ async function processEventAccount({contract, event, chainName}) {
   const {blockNumber} = event;
   await putDynamoItem(ids.lastCachedBlockAccount, {number: blockNumber}, tableNames.mainnetsidechainAccount);
 }
+const _uniquify = (a, pred = (a, b) => a === b) => {
+  return a.filter((e, i) => {
+    for (let j = 0; j < i; j++) {
+      if (pred(a[j], e)) {
+        return false;
+      }
+    }
+    return true;
+  });
+};
 async function processEventsAccount({contract, events, currentBlockNumber, chainName}) {
-  const owners = events.map(e => {
+  let owners = events.map(e => {
     let {owner} = e.returnValues;
     owner = owner.toLowerCase();
     return owner;
   });
+  owners = _uniquify(owners);
 
   for (const owner of owners) {
     const account = await getChainAccount({
