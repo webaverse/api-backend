@@ -108,6 +108,7 @@ const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation, curren
       deposits,
       withdraws,
       currentLocation,
+      currentAddress,
     ];
   } else {
     // console.log('sliced 3');
