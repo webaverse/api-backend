@@ -19,7 +19,7 @@ async function initNftCache({chainName}) {
       .on('data', async function(event){
         console.log('nft event', chainName, event);
         
-        currentBlockNumber = Math.max(currentBlockNumber, blockNumber);
+        currentBlockNumber = Math.max(currentBlockNumber, event.blockNumber);
         
         await processEventNft({
           event,
@@ -80,7 +80,7 @@ async function initAccountCache({chainName}) {
       .on('data', async function(event){
         console.log('account event', chainName, event);
         
-        currentBlockNumber = Math.max(currentBlockNumber, blockNumber);
+        currentBlockNumber = Math.max(currentBlockNumber, event.blockNumber);
         
         await processEventAccount({
           event,
