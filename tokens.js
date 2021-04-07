@@ -467,6 +467,8 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
     });
     throw new Error('invalid arguments');
   }
+  
+  chainName = 'mainnetsidechain'; // XXX hack; get rid of this argument
 
   const {
     contracts,
