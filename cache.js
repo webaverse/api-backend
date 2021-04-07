@@ -176,7 +176,7 @@ async function processEventNft({event, chainName}) {
         polygonWithdrewEntries,
       );
 
-      if (token?.properties.hash) {
+      if (token.owner.address !== '0x0000000000000000000000000000000000000000') {
         const tokenIdNum = parseInt(tokenId, 10);
 
         await putDynamoItem(tokenIdNum, token, tableNames.mainnetsidechainNft);
@@ -259,8 +259,8 @@ async function processEventsNft({events, currentBlockNumber, chainName}) {
       polygonWithdrewEntries,
     );
 
-    if (token?.properties.hash) {
-      await putDynamoItem(tokenId, token, tableNames[chainName + 'Nft']);
+    if (token.owner.address !== '0x0000000000000000000000000000000000000000') {
+      await putDynamoItem(tokenId, token, tableNames.mainnetsidechainNft);
     }
   }
   
