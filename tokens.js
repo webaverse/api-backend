@@ -22,12 +22,33 @@ function _jsonParse(s) {
   }
 }
 
-const _fetchAccount = async (tokenId, chainName) => {
+const _fetchAccountForMinter = async (tokenId, chainName) => {
   const {
     contracts,
   } = await getBlockchain();
-  
   const address = await contracts[chainName].NFT.methods.getMinter(tokenId).call();
+  if (address !== zeroAddress) {
+    return await _fetchAccount(address, chainName);
+  } else {
+    return null;
+  }
+};
+const _fetchAccountForOwner = async (tokenId, chainName) => {
+  const {
+    contracts,
+  } = await getBlockchain();
+  const address = await contracts[chainName].NFT.methods.ownerOf(tokenId).call();
+  if (address !== zeroAddress) {
+    return await _fetchAccount(address, chainName);
+  } else {
+    return null;
+  }
+};
+const _fetchAccount = async (address, chainName) => {
+  const {
+    contracts,
+  } = await getBlockchain();
+
   const [
     username,
     avatarPreview,
@@ -265,8 +286,8 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     description,
     sidechainMinterAddress,
   ] = await Promise.all([
-    _log('formatToken 1' + JSON.stringify({id: token.id}), _fetchAccount(tokenId, sidechainChainName)),
-    _log('formatToken 2' + JSON.stringify({id: token.id}), _fetchAccount(tokenId, sidechainChainName)),
+    _log('formatToken 1' + JSON.stringify({id: token.id}), _fetchAccountForMinter(tokenId, sidechainChainName)),
+    _log('formatToken 2' + JSON.stringify({id: token.id}), _fetchAccountForOwner(tokenId, sidechainChainName)),
     _log('formatToken 3' + JSON.stringify({id: token.id}), contracts[sidechainChainName].NFT.methods.getMetadata(token.hash, 'description').call()),
     contracts[sidechainChainName].NFT.methods.getMinter(tokenId).call(),
   ]);
