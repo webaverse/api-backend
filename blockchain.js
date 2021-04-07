@@ -217,6 +217,13 @@ function makeWeb3WebsocketContract(chainName, contractName) {
   });
   
   const listener = new EventEmitter();
+  listener.disconnect = () => {
+    try {
+      web3socketProvider.disconnect();
+    } catch(err) {
+      console.warn(err);
+    }
+  };
   web3socketContract.listener = listener;
 
   return web3socketContract;
