@@ -266,6 +266,8 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
   sidechainWithdrewEntries = sidechainWithdrewEntries.filter(_filterByTokenIdLocal);
   polygonDepositedEntries = polygonDepositedEntries.filter(_filterByTokenIdLocal);
   polygonWithdrewEntries = polygonWithdrewEntries.filter(_filterByTokenIdLocal);
+  
+  // console.log('filter by token id', tokenId, JSON.stringify({sidechainDepositedEntries}, null, 2));
 
   const result = _cancelEntries(
     mainnetDepositedEntries,
