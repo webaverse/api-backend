@@ -26,14 +26,16 @@ async function initNftCache({chainName}) {
           chainName,
         });
       })
-      .on('changed', async function(event){
+      /* .on('changed', async function(event){
         console.log('changed nft', chainName, event);
       })
       .on('error', async err => {
         console.warn('error nft', chainName, err);
-      });
+      }); */
     wsContract.listener.on('end', async () => {
-      console.log('recurse nft');
+      console.log('reconnect nft listener');
+      
+      wsContract.listener.disconnect();
       
       // const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
       _recurse(currentBlockNumber);
@@ -85,7 +87,7 @@ async function initAccountCache({chainName}) {
           chainName,
         });
       })
-      .on('changed', async function(event){
+      /* .on('changed', async function(event){
         console.log('changed account', chainName, event);
       })
       .on('error', async err => {
@@ -93,9 +95,11 @@ async function initAccountCache({chainName}) {
         
         const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
         _recurse(currentBlockNumber);
-      });
+      }); */
     wsContract.listener.on('end', async () => {
-      console.log('recurse account');
+      console.log('reconnect account listner');
+      
+      wsContract.listener.disconnect();
       
       // const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
       _recurse(currentBlockNumber);
