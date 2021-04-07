@@ -281,7 +281,7 @@ async function processEventAccount({contract, event, chainName}) {
       // console.log('load account into cache', owner, account);
 
       // if (token.properties.hash) {
-        await putDynamoItem(owner, account, tableNames[chainName + 'Account']);
+        await putDynamoItem(owner, account, tableNames.mainnetsidechainAccount);
       // }
     } catch (e) {
       console.error(e);
@@ -289,7 +289,7 @@ async function processEventAccount({contract, event, chainName}) {
   }
 
   const {blockNumber} = event;
-  await putDynamoItem(ids.lastCachedBlockAccount, {number: blockNumber}, tableNames[chainName + 'Account']);
+  await putDynamoItem(ids.lastCachedBlockAccount, {number: blockNumber}, tableNames.mainnetsidechainAccount);
 }
 async function processEventsAccount({contract, events, currentBlockNumber, chainName}) {
   const owners = events.map(e => {
@@ -303,10 +303,10 @@ async function processEventsAccount({contract, events, currentBlockNumber, chain
       address: owner,
       chainName,
     });
-    await putDynamoItem(owner, account, tableNames[chainName + 'Account']);
+    await putDynamoItem(owner, account, tableNames.mainnetsidechainAccount);
   }
   
-  await putDynamoItem(ids.lastCachedBlockAccount, {number: currentBlockNumber}, tableNames[chainName + 'Account']);
+  await putDynamoItem(ids.lastCachedBlockAccount, {number: currentBlockNumber}, tableNames.mainnetsidechainAccount);
 }
 
 module.exports = {
