@@ -150,7 +150,7 @@ async function initCaches() {
   }));
 }
 
-async function processEventNft({event, isMainnet, chainName}) {
+async function processEventNft({event, chainName}) {
   let {tokenId, hash, key, value} = event.returnValues;
 
   if (tokenId) {
