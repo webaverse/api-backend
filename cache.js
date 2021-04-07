@@ -273,9 +273,10 @@ async function processEventsNft({events, currentBlockNumber, chainName}) {
 
 async function processEventAccount({contract, event, chainName}) {
   // console.log('got account event', event);
-  const {owner} = event.returnValues;
+  let {owner} = event.returnValues;
 
   if (owner) {
+    owner = owner.toLowerCase();
     try {
       const account = await getChainAccount({
         address: owner,
