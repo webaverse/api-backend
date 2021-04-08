@@ -125,7 +125,6 @@ const _handleSignRequest = async (req, res) => {
                         ) || null;
                         // console.log('got log', logs, log);
                         if (log) {
-
                           const wallet = wallets[destinationChainName];
                           const proxyContractAddress = addresses[destinationChainName][proxyContractName];
                           
