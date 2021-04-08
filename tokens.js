@@ -253,13 +253,13 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
             }));
           } else {
             console.log('polygon -> sidechain', null, currentLocation, currentAddress, JSON.stringify({
-              mainnetDepositedEntries: mainnetDepositedEntries.length,
-              mainnetWithdrewEntries: mainnetWithdrewEntries.length,
-              sidechainDepositedEntries: sidechainDepositedEntries.length,
-              sidechainWithdrewEntries: sidechainWithdrewEntries.length,
-              polygonDepositedEntries: polygonDepositedEntries.length,
-              polygonWithdrewEntries: polygonWithdrewEntries.length,
-            }));
+              mainnetDepositedEntries,
+              mainnetWithdrewEntries,
+              sidechainDepositedEntries,
+              sidechainWithdrewEntries,
+              polygonDepositedEntries,
+              polygonWithdrewEntries,
+            }, null, 2));
           }
         } else {
           console.log('sidechain -> polygon', null, currentLocation, currentAddress, JSON.stringify({
