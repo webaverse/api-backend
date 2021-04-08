@@ -140,14 +140,14 @@ const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation, curren
 const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries, currentAddress) => {
   let currentLocation = 'mainnetsidechain';
   
-  /* console.log('cancel entries', JSON.stringify({
+  console.log('cancel entries', JSON.stringify({
     mainnetDepositedEntries,
     mainnetWithdrewEntries,
     sidechainDepositedEntries,
     sidechainWithdrewEntries,
     polygonDepositedEntries,
     polygonWithdrewEntries,
-  }, null, 2)); */
+  }, null, 2));
   
   // swap transfers
   {
@@ -155,63 +155,125 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
     while (changed) {
       changed = false;
       
+      console.log('loop start');
+      
       // sidechain -> mainnet
       {
         const result = _cancelEntry(sidechainDepositedEntries, mainnetWithdrewEntries, currentLocation, 'mainnet', currentAddress);
-        if (result) {
-          // console.log('sidechain -> mainnet', !/stuck/.test(result[2]));
-          if (!/stuck/.test(result[2])) {
-            sidechainDepositedEntries = result[0];
-            mainnetWithdrewEntries = result[1];
-            currentLocation = result[2];
-            currentAddress = result[3];
-            changed = true;
-          
-            {
-              const result2 = _cancelEntry(mainnetDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
-              if (result2) {
-                // console.log('mainnet -> sidechain', !/stuck/.test(result[2]));
-                if (!/stuck/.test(result2[2])) {
-                  mainnetDepositedEntries = result2[0];
-                  sidechainWithdrewEntries = result2[1];
-                  currentLocation = result2[2];
-                  currentAddress = result2[3];
-                  changed = true;
-                }
-              }
+        if (result && !/stuck/.test(result[2])) {
+          sidechainDepositedEntries = result[0];
+          mainnetWithdrewEntries = result[1];
+          currentLocation = result[2];
+          currentAddress = result[3];
+          changed = true;
+        
+          console.log('sidechain -> mainnet', !/stuck/.test(result[2]), currentLocation, currentAddress, JSON.stringify({
+            mainnetDepositedEntries: mainnetDepositedEntries.length,
+            mainnetWithdrewEntries: mainnetWithdrewEntries.length,
+            sidechainDepositedEntries: sidechainDepositedEntries.length,
+            sidechainWithdrewEntries: sidechainWithdrewEntries.length,
+            polygonDepositedEntries: polygonDepositedEntries.length,
+            polygonWithdrewEntries: polygonWithdrewEntries.length,
+          }));
+        
+          {
+            const result2 = _cancelEntry(mainnetDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
+            if (result2 && !/stuck/.test(result2[2])) {
+              mainnetDepositedEntries = result2[0];
+              sidechainWithdrewEntries = result2[1];
+              currentLocation = result2[2];
+              currentAddress = result2[3];
+              changed = true;
+              
+              console.log('mainnet -> sidechain', !/stuck/.test(result[2]), currentLocation, currentAddress, JSON.stringify({
+                mainnetDepositedEntries: mainnetDepositedEntries.length,
+                mainnetWithdrewEntries: mainnetWithdrewEntries.length,
+                sidechainDepositedEntries: sidechainDepositedEntries.length,
+                sidechainWithdrewEntries: sidechainWithdrewEntries.length,
+                polygonDepositedEntries: polygonDepositedEntries.length,
+                polygonWithdrewEntries: polygonWithdrewEntries.length,
+              }));
+            } else {
+              console.log('mainnet -> sidechain', null, currentLocation, currentAddress, JSON.stringify({
+                mainnetDepositedEntries: mainnetDepositedEntries.length,
+                mainnetWithdrewEntries: mainnetWithdrewEntries.length,
+                sidechainDepositedEntries: sidechainDepositedEntries.length,
+                sidechainWithdrewEntries: sidechainWithdrewEntries.length,
+                polygonDepositedEntries: polygonDepositedEntries.length,
+                polygonWithdrewEntries: polygonWithdrewEntries.length,
+              }));
             }
           }
+        } else {
+          console.log('sidechain -> mainnet', null, currentLocation, currentAddress, JSON.stringify({
+            mainnetDepositedEntries: mainnetDepositedEntries.length,
+            mainnetWithdrewEntries: mainnetWithdrewEntries.length,
+            sidechainDepositedEntries: sidechainDepositedEntries.length,
+            sidechainWithdrewEntries: sidechainWithdrewEntries.length,
+            polygonDepositedEntries: polygonDepositedEntries.length,
+            polygonWithdrewEntries: polygonWithdrewEntries.length,
+          }));
         }
       }
       
       // sidechain -> polygon
       {
         const result = _cancelEntry(sidechainDepositedEntries, polygonWithdrewEntries, currentLocation, 'polygon', currentAddress);
-        if (result) {
-          // console.log('sidechain -> polygon', !/stuck/.test(result[2]));
-          if (!/stuck/.test(result[2])) {
-            sidechainDepositedEntries = result[0];
-            polygonWithdrewEntries = result[1];
-            currentLocation = result[2];
-            currentAddress = result[3];
+        if (result && !/stuck/.test(result[2])) {
+          sidechainDepositedEntries = result[0];
+          polygonWithdrewEntries = result[1];
+          currentLocation = result[2];
+          currentAddress = result[3];
+          changed = true;
+        
+          console.log('sidechain -> polygon', !/stuck/.test(result[2]), currentLocation, currentAddress, JSON.stringify({
+            mainnetDepositedEntries: mainnetDepositedEntries.length,
+            mainnetWithdrewEntries: mainnetWithdrewEntries.length,
+            sidechainDepositedEntries: sidechainDepositedEntries.length,
+            sidechainWithdrewEntries: sidechainWithdrewEntries.length,
+            polygonDepositedEntries: polygonDepositedEntries.length,
+            polygonWithdrewEntries: polygonWithdrewEntries.length,
+          }));
+        
+          const result2 = _cancelEntry(polygonDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
+          if (result2 && !/stuck/.test(result2[2])) {
+            polygonDepositedEntries = result2[0];
+            sidechainWithdrewEntries = result2[1];
+            currentLocation = result2[2];
+            currentAddress = result2[3];
             changed = true;
-          
-            const result2 = _cancelEntry(polygonDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
-            if (result2) {
-              // console.log('polygon -> sidechain', !/stuck/.test(result[2]));
-              if (!/stuck/.test(result2[2])) {
-                polygonDepositedEntries = result2[0];
-                sidechainWithdrewEntries = result2[1];
-                currentLocation = result2[2];
-                currentAddress = result2[3];
-                changed = true;
-              }
-            }
+            
+            console.log('polygon -> sidechain', !/stuck/.test(result[2]), currentLocation, currentAddress, JSON.stringify({
+              mainnetDepositedEntries: mainnetDepositedEntries.length,
+              mainnetWithdrewEntries: mainnetWithdrewEntries.length,
+              sidechainDepositedEntries: sidechainDepositedEntries.length,
+              sidechainWithdrewEntries: sidechainWithdrewEntries.length,
+              polygonDepositedEntries: polygonDepositedEntries.length,
+              polygonWithdrewEntries: polygonWithdrewEntries.length,
+            }));
+          } else {
+            console.log('polygon -> sidechain', null, currentLocation, currentAddress, JSON.stringify({
+              mainnetDepositedEntries: mainnetDepositedEntries.length,
+              mainnetWithdrewEntries: mainnetWithdrewEntries.length,
+              sidechainDepositedEntries: sidechainDepositedEntries.length,
+              sidechainWithdrewEntries: sidechainWithdrewEntries.length,
+              polygonDepositedEntries: polygonDepositedEntries.length,
+              polygonWithdrewEntries: polygonWithdrewEntries.length,
+            }));
           }
+        } else {
+          console.log('sidechain -> polygon', null, currentLocation, currentAddress, JSON.stringify({
+            mainnetDepositedEntries: mainnetDepositedEntries.length,
+            mainnetWithdrewEntries: mainnetWithdrewEntries.length,
+            sidechainDepositedEntries: sidechainDepositedEntries.length,
+            sidechainWithdrewEntries: sidechainWithdrewEntries.length,
+            polygonDepositedEntries: polygonDepositedEntries.length,
+            polygonWithdrewEntries: polygonWithdrewEntries.length,
+          }));
         }
       }
     }
-    // console.log('loop end');
+    console.log('loop end');
   }
   // self transfer
   {
@@ -222,43 +284,88 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
       // sidechain -> sidechain
       {
         const result = _cancelEntry(sidechainDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
-        if (result) {
-          // console.log('sidechain -> sidechain', !/stuck/.test(result[2]));
-          if (!/stuck/.test(result[2])) {
-            sidechainDepositedEntries = result[0];
-            sidechainWithdrewEntries = result[1];
-            currentLocation = result[2];
-            currentAddress = result[3];
-            changed = true;
-          }
+        if (result && !/stuck/.test(result[2])) {
+          sidechainDepositedEntries = result[0];
+          sidechainWithdrewEntries = result[1];
+          // currentLocation = result[2];
+          // currentAddress = result[3];
+          changed = true;
+          
+          console.log('sidechain -> sidechain', !/stuck/.test(result[2]), currentLocation, currentAddress, JSON.stringify({
+            mainnetDepositedEntries: mainnetDepositedEntries.length,
+            mainnetWithdrewEntries: mainnetWithdrewEntries.length,
+            sidechainDepositedEntries: sidechainDepositedEntries.length,
+            sidechainWithdrewEntries: sidechainWithdrewEntries.length,
+            polygonDepositedEntries: polygonDepositedEntries.length,
+            polygonWithdrewEntries: polygonWithdrewEntries.length,
+          }));
+        } else {
+          console.log('sidechain -> sidechain', null, currentLocation, currentAddress, JSON.stringify({
+            mainnetDepositedEntries: mainnetDepositedEntries.length,
+            mainnetWithdrewEntries: mainnetWithdrewEntries.length,
+            sidechainDepositedEntries: sidechainDepositedEntries.length,
+            sidechainWithdrewEntries: sidechainWithdrewEntries.length,
+            polygonDepositedEntries: polygonDepositedEntries.length,
+            polygonWithdrewEntries: polygonWithdrewEntries.length,
+          }));
         }
       }
       // mainnet -> mainnet
       {
         const result = _cancelEntry(mainnetDepositedEntries, mainnetWithdrewEntries, currentLocation, 'mainnet', currentAddress);
-        if (result) {
-          // console.log('mainnet -> mainnet', !/stuck/.test(result[2]));
-          if (!/stuck/.test(result[2])) {
-            mainnetDepositedEntries = result[0];
-            mainnetWithdrewEntries = result[1];
-            currentLocation = result[2];
-            currentAddress = result[3];
-            changed = true;
-          }
+        if (result && !/stuck/.test(result[2])) {
+          mainnetDepositedEntries = result[0];
+          mainnetWithdrewEntries = result[1];
+          // currentLocation = result[2];
+          // currentAddress = result[3];
+          changed = true;
+          
+          console.log('mainnet -> mainnet', !/stuck/.test(result[2]), currentLocation, currentAddress, JSON.stringify({
+            mainnetDepositedEntries: mainnetDepositedEntries.length,
+            mainnetWithdrewEntries: mainnetWithdrewEntries.length,
+            sidechainDepositedEntries: sidechainDepositedEntries.length,
+            sidechainWithdrewEntries: sidechainWithdrewEntries.length,
+            polygonDepositedEntries: polygonDepositedEntries.length,
+            polygonWithdrewEntries: polygonWithdrewEntries.length,
+          }));
+        } else {
+          console.log('mainnet -> mainnet', null, currentLocation, currentAddress, JSON.stringify({
+            mainnetDepositedEntries: mainnetDepositedEntries.length,
+            mainnetWithdrewEntries: mainnetWithdrewEntries.length,
+            sidechainDepositedEntries: sidechainDepositedEntries.length,
+            sidechainWithdrewEntries: sidechainWithdrewEntries.length,
+            polygonDepositedEntries: polygonDepositedEntries.length,
+            polygonWithdrewEntries: polygonWithdrewEntries.length,
+          }));
         }
       }
       // polygon -> polygon
       {
         const result = _cancelEntry(polygonDepositedEntries, polygonWithdrewEntries, currentLocation, 'polygon', currentAddress);
-        if (result) {
-          // console.log('polygon -> polygon', !/stuck/.test(result[2]));
-          if (!/stuck/.test(result[2])) {
-            polygonDepositedEntries = result[0];
-            polygonWithdrewEntries = result[1];
-            currentLocation = result[2];
-            currentAddress = result[3];
-            changed = true;
-          }
+        if (result && !/stuck/.test(result[2])) {
+          polygonDepositedEntries = result[0];
+          polygonWithdrewEntries = result[1];
+          // currentLocation = result[2];
+          // currentAddress = result[3];
+          changed = true;
+          
+          console.log('polygon -> polygon', !/stuck/.test(result[2]), currentLocation, currentAddress, JSON.stringify({
+            mainnetDepositedEntries: mainnetDepositedEntries.length,
+            mainnetWithdrewEntries: mainnetWithdrewEntries.length,
+            sidechainDepositedEntries: sidechainDepositedEntries.length,
+            sidechainWithdrewEntries: sidechainWithdrewEntries.length,
+            polygonDepositedEntries: polygonDepositedEntries.length,
+            polygonWithdrewEntries: polygonWithdrewEntries.length,
+          }));
+        } else {
+          console.log('polygon -> polygon', null, currentLocation, currentAddress, JSON.stringify({
+            mainnetDepositedEntries: mainnetDepositedEntries.length,
+            mainnetWithdrewEntries: mainnetWithdrewEntries.length,
+            sidechainDepositedEntries: sidechainDepositedEntries.length,
+            sidechainWithdrewEntries: sidechainWithdrewEntries.length,
+            polygonDepositedEntries: polygonDepositedEntries.length,
+            polygonWithdrewEntries: polygonWithdrewEntries.length,
+          }));
         }
       }
     }
@@ -383,7 +490,7 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
   const storeEntry = storeEntries.find(entry => entry.tokenId === tokenId);
   const buyPrice = storeEntry ? storeEntry.price : null;
   const storeId = storeEntry ? storeEntry.id : null;
-  return {
+  const o = {
     id: tokenId,
     name,
     description,
@@ -407,6 +514,8 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     storeId,
     currentLocation,
   };
+  console.log('got token', JSON.stringify(o, null, 2));
+  return o;
 };
 const formatLand = contractName => chainName => async (token, storeEntries) => {
   const {
