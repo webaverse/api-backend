@@ -555,7 +555,7 @@ const formatLand = contractName => chainName => async (token, storeEntries) => {
     (extentsJson[1][2] + extentsJson[0][2])/2,
   ] : null;
   return {
-    id,
+    id: tokenId,
     name,
     description,
     image: coord ? `https://land-preview.exokit.org/32/${coord[0]}/${coord[2]}?${extentsJson ? `e=${JSON.stringify(extentsJson)}` : ''}` : null,
