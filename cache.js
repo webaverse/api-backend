@@ -199,7 +199,7 @@ async function processEventNft({event, chainName}) {
       ExpressionAttributeValues: {
         ':hash': hash,
       },
-      TableName: isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft,
+      TableName: tableNames.mainnetsidechainNft,
       IndexName: 'hash-index',
     };
     const o = await ddbd.scan(params).promise();
@@ -213,14 +213,14 @@ async function processEventNft({event, chainName}) {
     // console.log('updating hash 3', tokens);
 
     await Promise.all(tokens.map(token => {
-      return putDynamoItem(parseInt(token.id, 10), token, isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft);
+      return putDynamoItem(parseInt(token.id, 10), token, tableNames.mainnetsidechainNft);
     }));
     
     // console.log('updating hash 4');
   }
 
   const {blockNumber} = event;
-  await putDynamoItem(ids.lastCachedBlockNft, {number: blockNumber}, isMainnet ? tableNames.mainnetNft : tableNames.mainnetsidechainNft);
+  await putDynamoItem(ids.lastCachedBlockNft, {number: blockNumber}, tableNames.mainnetsidechainNft);
 }
 
 async function processEventsNft({events, currentBlockNumber, chainName}) {
