@@ -11,7 +11,17 @@ const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {jsonParse, _setCorsHeaders} = require('../utils.js');
 const {polygonVigilKey} = require('../constants.js');
-const {accessKeyId, secretAccessKey, mainnetMnemonic, testnetMnemonic, polygonMnemonic, testnetpolygonMnemonic, infuraProjectId, encryptionMnemonic} = require('../config.json');
+
+let config = require('fs').existsSync('../config.json') ? require('../config.json') : null;
+
+const accessKeyId = process.env.accessKeyId || config.accessKeyId;
+const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
+const mainnetMnemonic = process.env.mainnetMnemonic || config.mainnetMnemonic;
+const testnetMnemonic = process.env.testnetMnemonic || config.testnetMnemonic;
+const polygonMnemonic = process.env.polygonMnemonic || config.polygonMnemonic;
+const testnetpolygonMnemonic = process.env.testnetpolygonMnemonic || config.testnetpolygonMnemonic;
+const infuraProjectId = process.env.infuraProjectId || config.infuraProjectId;
+const encryptionMnemonic = process.env.encryptionMnemonic || config.encryptionMnemonic;
 
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({

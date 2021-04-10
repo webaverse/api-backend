@@ -6,10 +6,9 @@ const fetch = require('node-fetch');
 const Web3 = require('web3');
 const {polygonVigilKey, ethereumHost} = require('./constants.js');
 
-const config = require('./config.json');
-const {
-  infuraProjectId,
-} = config;
+let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
+
+const infuraProjectId = process.env.infuraProjectId || config.infuraProjectId;
 
 let addresses,
   abis,

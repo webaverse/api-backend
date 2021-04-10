@@ -2,8 +2,11 @@ const url = require('url');
 const uuid = require('uuid');
 const { _setCorsHeaders } = require('../utils.js');
 const AWS = require('aws-sdk');
-const config = require('../config.json');
-const {accessKeyId, secretAccessKey} = config;
+let config = require('fs').existsSync('../config.json') ? require('../config.json') : null;
+
+const accessKeyId = process.env.accessKeyId || config.accessKeyId;
+const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
+
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
     accessKeyId,

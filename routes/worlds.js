@@ -9,8 +9,13 @@ const child_process = require('child_process');
 const {_setCorsHeaders, getExt} = require('../utils.js');
 const AWS = require('aws-sdk');
 const ps = require('ps-node');
-const config = require('../config.json');
-const {privateIp, publicIp, accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, discordClientId, discordClientSecret, stripeClientId, stripeClientSecret, infuraNetwork, infuraProjectId} = config;
+let config = require('fs').existsSync('../config.json') ? require('../config.json') : null;
+
+const accessKeyId = process.env.accessKeyId || config.accessKeyId;
+const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
+const privateIp = process.env.privateIp || config.privateIp;
+const publicIp = process.env.publicIp || config.publicIp;
+
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
     accessKeyId,
@@ -116,6 +121,13 @@ class WorldManager {
             await fs.writeFile(dataFilePath, b); 
           }
 
+          const fullchain = path.join('..', 'exokit-backend', 'certs', 'fullchain.pem');
+          let fullChainExists = fs.existsSync(fullchain);       
+          const privkey = path.join('..', 'exokit-backend', 'certs', 'privkey.pem');
+          let privkeyExists = fs.existsSync(privkey);     
+          if(!fullChainExists || !privkeyExists){
+            console.warn("WARNING: Couldn't retrieve SSL certs locally");
+          }
           const port = this.findPort();
           const cp = child_process.spawn(process.argv[0], [
             jsPath,
@@ -129,13 +141,16 @@ class WorldManager {
               PROTOO_LISTEN_PORT: port,
               MEDIASOUP_LISTEN_IP: privateIp,
               MEDIASOUP_ANNOUNCED_IP: publicIp,
-              HTTPS_CERT_FULLCHAIN: path.join('..', 'exokit-backend', 'certs', 'fullchain.pem'),
-              HTTPS_CERT_PRIVKEY: path.join('..', 'exokit-backend', 'certs', 'privkey.pem'),
-              AUTH_KEY: path.join('..', 'exokit-backend', 'certs', 'privkey.pem'),
+              // NOTE: These certs will not be available in CI-produced builds
+              HTTPS_CERT_FULLCHAIN: fullChainExists ? fullchain : null,
+              HTTPS_CERT_PRIVKEY: privkeyExists ? privkey : null,
+              AUTH_KEY: privkeyExists ? privkey : null,
               DATA_FILE: dataFilePath,
               // NUM_WORKERS: 2,
             },
           });
+
+          
           cp.name = name;
           cp.dataFilePath = dataFilePath;
           cp.stdin.end();
