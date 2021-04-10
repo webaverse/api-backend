@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "sudo $(which node) $(which forever) start -a -l forever.log -o stdout.log -e stderr.log index.js",
-    "start-proxied": "node ./ index.js",
+    "start-proxied": "HTTP_PORT=8080 HTTPS_PORT=8443 node index.js",
     "stop": "sudo $(which node) $(which forever) stop index.js",
     "dev": "sudo $(which node) index.js"
   },
