@@ -53,7 +53,7 @@ async function initNftCache({chainName}) {
     const events = await getPastEvents({
       chainName,
       contractName: 'NFT',
-      lastBlockNumber,
+      fromBlock: lastBlockNumber,
     });
     if (events.length > 0) {
       await processEventsNft({
@@ -117,7 +117,7 @@ async function initAccountCache({chainName}) {
     const events = await getPastEvents({
       chainName,
       contractName: 'Account',
-      lastBlockNumber,
+      fromBlock: lastBlockNumber,
     });
     if (events.length > 0) {
       await processEventsAccount({

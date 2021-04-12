@@ -169,12 +169,9 @@ async function getPastEvents({
   chainName,
   contractName,
   eventName,
-  /* fromBlock = 0,
-  toBlock = 'latest', */
+  fromBlock = 0,
+  toBlock = 'latest',
 } = {}) {
-  const fromBlock = 0;
-  const toBlock = 'latest';
-
   try {
     const {contracts} = await getBlockchain();
     return await contracts[chainName][contractName].getPastEvents(
