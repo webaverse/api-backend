@@ -86,6 +86,9 @@ const { _handleAnalyticsRequest } = require('./routes/analytics.js');
 
 let CERT = null;
 let PRIVKEY = null;
+
+const fullchainPath = './certs/fullchain.pem';
+const privkeyPath = './certs/privkey.pem';
 try {
   CERT = fs.readFileSync(fullchainPath);
 } catch (err) {
