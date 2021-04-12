@@ -1,7 +1,10 @@
 const AWS = require('aws-sdk');
 const blockchain = require('./blockchain.js');
-const config = require('./config.json');
-const {accessKeyId, secretAccessKey, /*githubUsername, githubApiKey,*/ githubPagesDomain, githubClientId, githubClientSecret, stripeClientId, stripeClientSecret} = config;
+let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
+
+const accessKeyId = process.env.accessKeyId || config.accessKeyId;
+const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
+
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
     accessKeyId,

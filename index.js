@@ -1,3 +1,5 @@
+require('dotenv').config();
+require('dotenv').config();
 const path = require('path');
 const stream = require('stream');
 const fs = require('fs');
@@ -35,23 +37,16 @@ const Timer = require('./timer.js');
 const {getStoreEntries, getChainNft, getAllWithdrawsDeposits} = require('./tokens.js');
 const {getBlockchain} = require('./blockchain.js');
 // const browserManager = require('./browser-manager.js');
-const {tableNames, accountKeys, ids, polygonVigilKey, storageHost, mainnetSignatureMessage} = require('./constants.js');
+const {tableNames, accountKeys, ids, mainnetSignatureMessage} = require('./constants.js');
 
-const config = require('./config.json');
-const {
-  accessKeyId,
-  secretAccessKey,
-  /*githubUsername, githubApiKey,*/
-  githubPagesDomain,
-  githubClientId,
-  githubClientSecret,
-  discordClientId,
-  discordClientSecret,
-  stripeClientId,
-  stripeClientSecret,
-  infuraNetwork,
-  infuraProjectId,
-} = config;
+let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
+
+const accessKeyId = process.env.accessKeyId || config.accessKeyId;
+const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
+const githubClientId = process.env.githubClientId || config.githubClientId;
+const githubClientSecret = process.env.githubClientSecret || config.githubClientSecret;
+const discordClientId = process.env.discordClientId || config.discordClientId;
+const discordClientSecret = process.env.discordClientSecret || config.discordClientSecret;
 
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
@@ -74,7 +69,7 @@ const ses = new AWS.SES(new AWS.Config({
   max: 1024,
   maxAge: 60 * 1000,
 }); */
-const stripe = Stripe(stripeClientSecret);
+// const stripe = Stripe(stripeClientSecret);
 // const accountManager = require('./account-manager.js');
 // const eventsManager = require('./events-manager.js');
 
@@ -89,8 +84,18 @@ const { _handleSignRequest } = require('./routes/sign.js');
 const { _handleUnlockRequest, _isCollaborator, _isSingleCollaborator} = require('./routes/unlock.js');
 const { _handleAnalyticsRequest } = require('./routes/analytics.js');
 
-const CERT = fs.readFileSync('./certs/fullchain.pem');
-const PRIVKEY = fs.readFileSync('./certs/privkey.pem');
+let CERT = null;
+let PRIVKEY = null;
+try {
+  CERT = fs.readFileSync(fullchainPath);
+} catch (err) {
+  console.warn(`failed to load ${fullchainPath}`);
+}
+try {
+  PRIVKEY = fs.readFileSync(privkeyPath);
+} catch (err) {
+  console.warn(`failed to load ${privkeyPath}`);
+}
 
 const PORT = parseInt(process.env.PORT, 10) || 80;
 // const filterTopic = 'webxr-site';
