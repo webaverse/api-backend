@@ -1,1 +1,1 @@
-web: npm install && npm run start-proxied
+web: npm run setup-chromium && npm install && npm run start-proxied
