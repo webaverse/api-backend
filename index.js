@@ -100,7 +100,7 @@ try {
   console.warn(`failed to load ${privkeyPath}`);
 }
 
-const PORT = parseInt(process.env.PORT, 10) || 80;
+const PORT = parseInt(process.env.HTTP_PORT, 10) || 80;
 // const filterTopic = 'webxr-site';
 const tableName = 'users';
 
