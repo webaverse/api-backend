@@ -1370,11 +1370,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
       const endTokenId = parseInt(match[2], 10);
 
       if (startTokenId >= 1 && endTokenId > startTokenId && (endTokenId - startTokenId) <= 100) {
-        // const numTokens = endTokenId - startTokenId;
-        // const promises = Array(numTokens);
-        
         const params = {
-          // KeyConditionExpression: 'id >= :idLow',
           FilterExpression: "#yr BETWEEN :idLow AND :idHigh",
           ExpressionAttributeNames: {
             "#yr": "id",
@@ -1383,8 +1379,6 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
             ':idLow' : startTokenId,
             ':idHigh' : endTokenId,
           },
-          // ProjectionExpression: 'Episode, Title, Subtitle',
-          // FilterExpression: 'contains (Subtitle, :topic)',
           TableName: tableNames.mainnetsidechainNft,
         };
         const o = await ddbd.scan(params).promise();
