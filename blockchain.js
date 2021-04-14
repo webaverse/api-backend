@@ -208,6 +208,9 @@ function makeWeb3WebsocketContract(chainName, contractName) {
   const web3socket = new Web3(web3socketProvider);
   const web3socketContract = new web3socket.eth.Contract(abis[contractName], addresses[chainName][contractName]);
 
+  web3socketProvider.on('error', err => {
+    listener.emit('error', err);
+  });
   web3socketProvider.on('end', () => {
     listener.emit('end');
   });
