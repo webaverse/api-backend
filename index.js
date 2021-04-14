@@ -1399,20 +1399,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
         }]);
         redisClient.ft_search.apply(redisClient, args);
         const o = await p; 
-        
-        /* const params = {
-          FilterExpression: "#yr BETWEEN :idLow AND :idHigh",
-          ExpressionAttributeNames: {
-            "#yr": "id",
-          },
-          ExpressionAttributeValues: {
-            ':idLow' : startTokenId,
-            ':idHigh' : endTokenId,
-          },
-          TableName: tableNames.mainnetsidechainNft,
-        };
-        const o = await ddbd.scan(params).promise(); */
-        // console.log('got o', o);
+
         let tokens = o.Items;
         tokens = tokens.filter(token => token !== null);
         tokens.sort((a, b) => a.id - b.id);
