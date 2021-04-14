@@ -1395,6 +1395,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
             p.reject(err);
           }
         }]);
+        const redisClient = getRedisClient();
         redisClient.ft_search.apply(redisClient, args);
         const o = await p;
 
