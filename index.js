@@ -1911,8 +1911,10 @@ try {
 }
 };
 
+let redisClient = null;
 redisConnect(undefined, 'cache.webaverse.com')
   .then(() => {
+    redisClient = getRedisClient();
     console.log('connected to redis');
   })
   .catch(err => {
