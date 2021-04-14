@@ -76,9 +76,28 @@ async function getRedisAllItems(TableName = defaultDynamoTable) {
   } */
 }
 
+const parseRedisItems = result => {
+  const [numItems] = result;
+  const items = Array(numItems);
+  for (let i = 0; i < numItems; i++) {
+    // const k = result[1 + i * 2];
+    const args = result[1 + i * 2 + 1];
+    const o = {};
+    for (let j = 0; j < args.length; j += 2) {
+      const k = args[j];
+      const s = args[j + 1];
+      const v = JSON.parse(s);
+      o[k] = v;
+    }
+    items[i] = o;
+  }
+  return items;
+};
+
 module.exports = {
   redisClient,
   getRedisItem,
   putRedisItem,
   getRedisAllItems,
+  parseRedisItems,
 };
