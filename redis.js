@@ -20,14 +20,14 @@ redisClient.auth(redisPassword, err => {
   }
 });
 
-async function getDynamoItem(id, TableName) {
+async function getRedisItem(id, TableName) {
   const p = makePromise();
   redisClient.hgetall(`${TableName}:${id}`, (err, result) => {
     if (!err) {
       for (const k in result) {
         result[k] = JSON.parse(result[k]);
       }
-      console.log('got result', result);
+      // console.log('got result', result);
       p.accept({
         Item: result,
       });
@@ -38,7 +38,7 @@ async function getDynamoItem(id, TableName) {
   return await p;
 }
 
-async function putDynamoItem(id, data, TableName) {
+async function putRedisItem(id, data, TableName) {
   const args = [
     `${TableName}:${id}`,
   ];
@@ -60,7 +60,7 @@ async function putDynamoItem(id, data, TableName) {
   await p;
 }
 
-async function getDynamoAllItems(TableName = defaultDynamoTable) {
+async function getRedisAllItems(TableName = defaultDynamoTable) {
   throw new Error('not implemented');
   /* const params = {
     TableName,
@@ -77,7 +77,8 @@ async function getDynamoAllItems(TableName = defaultDynamoTable) {
 }
 
 module.exports = {
-  getDynamoItem,
-  putDynamoItem,
-  getDynamoAllItems,
-}
+  redisClient,
+  getRedisItem,
+  putRedisItem,
+  getRedisAllItems,
+};
