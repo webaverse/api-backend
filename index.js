@@ -1561,6 +1561,38 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
       _respond(200, JSON.stringify(isSingleCollaborator));
+    } else if (match = req.url.match(/^\/search\?(.+)$/)) {
+      const qs = querystring.parse(match[1]);
+      const {q} = qs;
+      if (q) {
+        const regex = /(\w+)/g;
+        const words = [];
+        let match;
+        while (match = regex.exec(q)) {
+          words.push(`%${match[1]}%`);
+        }
+        
+        // console.log('got words', words, [`idx`].concat(words.join(' ')));
+        
+        const p = makePromise();
+        const args = [`idx`].concat(words.join(' ')).concat([(err, result) => {
+          if (!err) {
+            const items = parseRedisItems(result);
+            // console.log('got result', result);
+            p.accept({
+              Items: items,
+            });
+          } else {
+            p.reject(err);
+          }
+        }]);
+        redisClient.ft_search.apply(redisClient, args);
+        const o = await p;
+        const tokens = (o && o.Items) || [];
+        _respond(200, JSON.stringify(tokens));
+      } else {
+        _respond(400, 'no query string');
+      }
     } else {
       _respond(404, 'not found');
     }
