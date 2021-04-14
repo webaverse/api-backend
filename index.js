@@ -37,7 +37,7 @@ const {getStoreEntries, getChainNft, getAllWithdrawsDeposits} = require('./token
 const {getBlockchain} = require('./blockchain.js');
 // const browserManager = require('./browser-manager.js');
 const {tableNames, accountKeys, ids, mainnetSignatureMessage} = require('./constants.js');
-const {connect: redisConnect, redisClient} = require('./redis');
+const {connect: redisConnect, getRedisClient} = require('./redis');
 
 let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
 
@@ -1911,7 +1911,7 @@ try {
 }
 };
 
-redisConnect()
+redisConnect(undefined, 'cache.webaverse.com')
   .then(() => {
     console.log('connected to redis');
   })
