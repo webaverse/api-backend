@@ -1,5 +1,4 @@
 require('dotenv').config();
-require('dotenv').config();
 const path = require('path');
 const stream = require('stream');
 const fs = require('fs');
