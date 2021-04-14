@@ -16,11 +16,10 @@ async function connect(port, host) {
       redisClient.auth(redisKey, err => {
         if (!err) {
           redisClient.ft_create.apply(redisClient, 'idx SCHEMA id NUMERIC SORTABLE currentOwnerAddress TEXT currentLocation TEXT description TEXT minterAddress TEXT ownerAddress TEXT properties TEXT'.split(' ').concat([err => {
-            if (!err) {
-              accept();
-            } else {
-              reject(err);
+            if (!err) { // cache initialization is a soft error
+              console.warn(err);
             }
+            accept();
           }]));
         } else {
           reject(err);
