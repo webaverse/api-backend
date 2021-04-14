@@ -26,6 +26,9 @@ function connect() {
     });
   });
 }
+function getRedisClient() {
+  return redisClient;
+}
 
 async function getRedisItem(id, TableName) {
   const p = makePromise();
@@ -103,7 +106,7 @@ const parseRedisItems = result => {
 
 module.exports = {
   connect,
-  redisClient,
+  getRedisClient,
   getRedisItem,
   putRedisItem,
   getRedisAllItems,
