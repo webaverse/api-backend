@@ -31,7 +31,6 @@ const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {getDynamoItem, getDynamoAllItems, putDynamoItem} = require('./aws.js');
 const {getRedisItem, getRedisAllItems, putRedisItem, parseRedisItems} = require('./redis.js');
-const {initCaches} = require('./cache.js');
 const {getExt, makePromise} = require('./utils.js');
 const Timer = require('./timer.js');
 const {getStoreEntries, getChainNft, getAllWithdrawsDeposits} = require('./tokens.js');
@@ -2146,12 +2145,6 @@ const _ws = protocol => (req, socket, head) => {
     socket.destroy();
   }
 };
-initCaches()
-  .then(() => {
-    console.log('caches initialized');
-  }, err => {
-    console.warn('failed to initialize caches', err);
-  });
 
 const server = http.createServer(_req('http:'));
 server.on('upgrade', _ws('http:'));
