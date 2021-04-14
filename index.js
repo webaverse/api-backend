@@ -37,7 +37,7 @@ const {getStoreEntries, getChainNft, getAllWithdrawsDeposits} = require('./token
 const {getBlockchain} = require('./blockchain.js');
 // const browserManager = require('./browser-manager.js');
 const {tableNames, accountKeys, ids, mainnetSignatureMessage} = require('./constants.js');
-const {redisClient} = require('./redis');
+const {connect: redisConnect, redisClient} = require('./redis');
 
 let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
 
@@ -1910,6 +1910,14 @@ try {
   }));
 }
 };
+
+redisConnect()
+  .then(() => {
+    console.log('connected to redis');
+  })
+  .catch(err => {
+    console.warn(err);
+  });
 
 const proxy = httpProxy.createProxyServer({});
 proxy.on('proxyRes', (proxyRes, req) => {
