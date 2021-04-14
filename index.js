@@ -1473,7 +1473,6 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
             if (mainnetAddress) {
               const o = await ddbd.scan({
                 TableName: tableNames.mainnetNft,
-                // ProjectionExpression: "#yr, title, info.rating",
                 FilterExpression: "#yr = :end_yr",
                 ExpressionAttributeNames: {
                   "#yr": "ownerAddress",
@@ -1481,15 +1480,6 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
                 ExpressionAttributeValues: {
                   ":end_yr": address,
                 },
-                /* ScanFilter: {
-                  'address': {
-                    ComparisonOperator: 'EQ',
-                    AttributeValueList: [
-                      // someValue
-                      address,
-                    ],
-                  },
-                }, */
                 IndexName: 'ownerAddress-index',
               }).promise();
               return (o && o.Items) || [];
