@@ -168,7 +168,7 @@ const loadPromise = (async() => {
 async function getPastEvents({
   chainName,
   contractName,
-  eventName,
+  eventName = 'allEvents',
   fromBlock = 0,
   toBlock = 'latest',
 } = {}) {
