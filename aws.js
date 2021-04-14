@@ -26,37 +26,6 @@ const ddbd = new AWS.DynamoDB.DocumentClient({
 
 const defaultDynamoTable = 'sidechain-cache';
 
-const getObject = (bucket, key) => {
-    return new Promise(async (resolve, reject) => {
-        const params = { Bucket: bucket, Key: key };
-        s3.getObject(params, (error, data) => {
-            if (error) {
-                reject(error)
-            }
-            else {
-                resolve(data)
-            }
-        });
-    })
-}
-
-const putObject = (bucket, key, data, type) => {
-    return new Promise(async (resolve, reject) => {
-        const params = { Body: data, Bucket: bucket, Key: key, ACL: 'public-read' };
-        if (type) {
-          params['ContentType'] = type;
-        }
-        s3.putObject(params, (error, data) => {
-            if (error) {
-                reject(error)
-            }
-            else {
-                resolve(data)
-            }
-        });
-    })
-}
-
 async function getDynamoItem(id, TableName) {
   const params = {
     TableName,
@@ -128,7 +97,5 @@ module.exports = {
   getDynamoItem,
   putDynamoItem,
   getDynamoAllItems,
-  getObject,
-  putObject,
   uploadFromStream,
 }
