@@ -31,6 +31,7 @@ const {default: formurlencoded} = require('form-urlencoded');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {getDynamoItem, getDynamoAllItems, putDynamoItem} = require('./redis.js');
+const {getRedisItem, getRedisAllItems, putRedisItem} = require('./redis.js');
 const {initCaches} = require('./cache.js');
 const {getExt, makePromise} = require('./utils.js');
 const Timer = require('./timer.js');
@@ -38,6 +39,7 @@ const {getStoreEntries, getChainNft, getAllWithdrawsDeposits} = require('./token
 const {getBlockchain} = require('./blockchain.js');
 // const browserManager = require('./browser-manager.js');
 const {tableNames, accountKeys, ids, mainnetSignatureMessage} = require('./constants.js');
+const {redisClient} = require('./redis');
 
 let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
 
@@ -801,7 +803,7 @@ const _handleAccounts = chainName => async (req, res) => {
     }
     return account;
   };
-  const _getAccount = async address => getDynamoItem(address, tableNames.mainnetsidechainAccount)
+  const _getAccount = async address => getRedisItem(address, tableNames.mainnetsidechainAccount)
     .then(o => o.Item || _makeFakeAccount(address));
 
 try {
@@ -815,7 +817,7 @@ try {
     res.end();
   } else if (method === 'GET') {
     if (p === '/') {
-      let accounts = await getDynamoAllItems(tableNames.mainnetsidechainAccount);
+      let accounts = await getRedisAllItems(tableNames.mainnetsidechainAccount);
       accounts = accounts.filter(a => a.id !== ids.lastCachedBlockAccount);
       _respond(200, JSON.stringify(accounts));
     } else {
@@ -1354,7 +1356,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
 
 
       // const t = new Timer('get nft');
-      let o = await getDynamoItem(tokenId, tableNames.mainnetsidechainNft);
+      let o = await getRedisItem(tokenId, tableNames.mainnetsidechainNft);
       // t.end();
       let token = o.Item;
 
@@ -1370,7 +1372,35 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
       const endTokenId = parseInt(match[2], 10);
 
       if (startTokenId >= 1 && endTokenId > startTokenId && (endTokenId - startTokenId) <= 100) {
-        const params = {
+        const p = makePromise();
+        const args = `idx * filter id ${startTokenId} ${endTokenId}`.split(' ').concat([(err, result) => {
+          if (!err) {
+            const [numItems] = result;
+            const items = Array(numItems);
+            for (let i = 0; i < numItems; i++) {
+              // const k = result[1 + i * 2];
+              const args = result[1 + i * 2 + 1];
+              const o = {};
+              for (let j = 0; j < args.length; j += 2) {
+                const k = args[j];
+                const s = args[j + 1];
+                const v = JSON.parse(s);
+                o[k] = v;
+              }
+              items[i] = o;
+            }
+            // console.log('got result', result);
+            p.accept({
+              Items: items,
+            });
+          } else {
+            p.reject(err);
+          }
+        }]);
+        redisClient.ft_search.apply(redisClient, args);
+        const o = await p; 
+        
+        /* const params = {
           FilterExpression: "#yr BETWEEN :idLow AND :idHigh",
           ExpressionAttributeNames: {
             "#yr": "id",
@@ -1381,7 +1411,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
           },
           TableName: tableNames.mainnetsidechainNft,
         };
-        const o = await ddbd.scan(params).promise();
+        const o = await ddbd.scan(params).promise(); */
         // console.log('got o', o);
         let tokens = o.Items;
         tokens = tokens.filter(token => token !== null);
@@ -1448,7 +1478,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
         (async () => {
           if (isAll) {
             let mainnetAddress = null;
-            const account = await getDynamoItem(address, tableNames.mainnetsidechainAccount);
+            const account = await getRedisItem(address, tableNames.mainnetsidechainAccount);
             const signature = account?.metadata?.['mainnetAddress'];
             if (signature) {
               mainnetAddress = await web3.testnet.eth.accounts.recover(mainnetSignatureMessage, signature);

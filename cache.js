@@ -1,4 +1,4 @@
-const {ddbd, getDynamoItem, putDynamoItem} = require('./redis.js');
+const {ddbd, getRedisItem, putRedisItem} = require('./redis.js');
 const {getChainNft, getChainAccount, getAllWithdrawsDeposits} = require('./tokens.js');
 const {ids, tableNames, accountKeys, maxNumBlocks} = require('./constants.js');
 const {getBlockchain, getPastEvents, makeWeb3WebsocketContract} = require('./blockchain.js');
@@ -43,10 +43,11 @@ async function initNftCache({chainName}) {
   };
   _recurse(currentBlockNumber);
 
-  const lastBlockNumber = ((await getDynamoItem(
+  let o = await getRedisItem(
     ids.lastCachedBlockNft,
     tableNames[chainName + 'Nft']
-  )) || {}).number || 0;
+  );
+  const lastBlockNumber = o?.Item?.number || 0;
 
   // Catch up on missing blocks.
   if (currentBlockNumber !== lastBlockNumber) {
@@ -110,10 +111,11 @@ async function initAccountCache({chainName}) {
   };
   _recurse(currentBlockNumber);
 
-  const lastBlockNumber = ((await getDynamoItem(
+  const o = await getRedisItem(
     ids.lastCachedBlockAccount,
     tableNames[chainName + 'Account']
-  )) || {}).number || 0;
+  );
+  const lastBlockNumber = o?.Item?.number || 0;
 
   // Catch up on missing blocks.
   if (currentBlockNumber !== lastBlockNumber) {
@@ -186,7 +188,7 @@ async function processEventNft({event, chainName}) {
       if (token.owner.address !== '0x0000000000000000000000000000000000000000') {
         const tokenIdNum = parseInt(tokenId, 10);
 
-        await putDynamoItem(tokenIdNum, token, tableNames.mainnetsidechainNft);
+        await putRedisItem(tokenIdNum, token, tableNames.mainnetsidechainNft);
       }
     } catch (e) {
       console.error(e);
@@ -216,14 +218,17 @@ async function processEventNft({event, chainName}) {
     // console.log('updating hash 3', tokens);
 
     await Promise.all(tokens.map(token => {
-      return putDynamoItem(parseInt(token.id, 10), token, tableNames.mainnetsidechainNft);
+      return putRedisItem(parseInt(token.id, 10), token, tableNames.mainnetsidechainNft);
     }));
     
     // console.log('updating hash 4');
   }
 
   const {blockNumber} = event;
-  await putDynamoItem(ids.lastCachedBlockNft, {number: blockNumber}, tableNames.mainnetsidechainNft);
+  await putRedisItem(ids.lastCachedBlockNft, {
+    id: ids.lastCachedBlockNft,
+    number: blockNumber,
+  }, tableNames.mainnetsidechainNft);
 }
 
 async function processEventsNft({events, currentBlockNumber, chainName}) {
@@ -267,11 +272,14 @@ async function processEventsNft({events, currentBlockNumber, chainName}) {
     );
 
     if (token.owner.address !== '0x0000000000000000000000000000000000000000') {
-      await putDynamoItem(tokenId, token, tableNames.mainnetsidechainNft);
+      await putRedisItem(tokenId, token, tableNames.mainnetsidechainNft);
     }
   }
   
-  await putDynamoItem(ids.lastCachedBlockNft, {number: currentBlockNumber}, tableNames.mainnetsidechainNft);
+  await putRedisItem(ids.lastCachedBlockNft, {
+    id: ids.lastCachedBlockNft,
+    number: currentBlockNumber,
+  }, tableNames.mainnetsidechainNft);
 }
 
 async function processEventAccount({contract, event, chainName}) {
@@ -289,7 +297,7 @@ async function processEventAccount({contract, event, chainName}) {
       // console.log('load account into cache', owner, account);
 
       // if (token.properties.hash) {
-        await putDynamoItem(owner, account, tableNames.mainnetsidechainAccount);
+        await putRedisItem(owner, account, tableNames.mainnetsidechainAccount);
       // }
     } catch (e) {
       console.error(e);
@@ -297,7 +305,7 @@ async function processEventAccount({contract, event, chainName}) {
   }
 
   const {blockNumber} = event;
-  await putDynamoItem(ids.lastCachedBlockAccount, {number: blockNumber}, tableNames.mainnetsidechainAccount);
+  await putRedisItem(ids.lastCachedBlockAccount, {number: blockNumber}, tableNames.mainnetsidechainAccount);
 }
 const _uniquify = (a, pred = (a, b) => a === b) => {
   return a.filter((e, i) => {
@@ -322,10 +330,10 @@ async function processEventsAccount({contract, events, currentBlockNumber, chain
       address: owner,
       chainName,
     });
-    await putDynamoItem(owner, account, tableNames.mainnetsidechainAccount);
+    await putRedisItem(owner, account, tableNames.mainnetsidechainAccount);
   }
   
-  await putDynamoItem(ids.lastCachedBlockAccount, {number: currentBlockNumber}, tableNames.mainnetsidechainAccount);
+  await putRedisItem(ids.lastCachedBlockAccount, {number: currentBlockNumber}, tableNames.mainnetsidechainAccount);
 }
 
 module.exports = {
