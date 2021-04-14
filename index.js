@@ -1471,17 +1471,34 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
               mainnetAddress = await web3.testnet.eth.accounts.recover(mainnetSignatureMessage, signature);
             }
             if (mainnetAddress) {
-              const o = await ddbd.scan({
-                TableName: tableNames.mainnetNft,
-                FilterExpression: "#yr = :end_yr",
-                ExpressionAttributeNames: {
-                  "#yr": "ownerAddress",
-                },
-                ExpressionAttributeValues: {
-                  ":end_yr": address,
-                },
-                IndexName: 'ownerAddress-index',
-              }).promise();
+              const p = makePromise();
+              const args = `idx ${JSON.stringify(mainnetAddress)} INFIELDS 1 currentOwnerAddress`.split(' ').concat([(err, result) => {
+                if (!err) {
+                  const [numItems] = result;
+                  const items = Array(numItems);
+                  for (let i = 0; i < numItems; i++) {
+                    // const k = result[1 + i * 2];
+                    const args = result[1 + i * 2 + 1];
+                    const o = {};
+                    for (let j = 0; j < args.length; j += 2) {
+                      const k = args[j];
+                      const s = args[j + 1];
+                      const v = JSON.parse(s);
+                      o[k] = v;
+                    }
+                    items[i] = o;
+                  }
+                  // console.log('got result', result);
+                  p.accept({
+                    Items: items,
+                  });
+                } else {
+                  p.reject(err);
+                }
+              }]);
+              redisClient.ft_search.apply(redisClient, args);
+              const o = await p;
+
               return (o && o.Items) || [];
             } else {
               return [];
@@ -1491,7 +1508,35 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
           }
         })(),
         (async () => {
-          const o = await ddbd.scan({
+          const p = makePromise();
+          const args = `idx ${JSON.stringify(address)} INFIELDS 1 currentOwnerAddress`.split(' ').concat([(err, result) => {
+            if (!err) {
+              const [numItems] = result;
+              const items = Array(numItems);
+              for (let i = 0; i < numItems; i++) {
+                // const k = result[1 + i * 2];
+                const args = result[1 + i * 2 + 1];
+                const o = {};
+                for (let j = 0; j < args.length; j += 2) {
+                  const k = args[j];
+                  const s = args[j + 1];
+                  const v = JSON.parse(s);
+                  o[k] = v;
+                }
+                items[i] = o;
+              }
+              // console.log('got result', result);
+              p.accept({
+                Items: items,
+              });
+            } else {
+              p.reject(err);
+            }
+          }]);
+          redisClient.ft_search.apply(redisClient, args);
+          const o = await p;
+          
+          /* const o = await ddbd.scan({
             TableName: tableNames.mainnetsidechainNft,
             FilterExpression: "#yr = :end_yr",
             ExpressionAttributeNames: {
@@ -1501,7 +1546,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
               ":end_yr": address,
             },
             IndexName: 'ownerAddress-index',
-          }).promise();
+          }).promise(); */
           return (o && o.Items) || [];
         })(),
       ]);
