@@ -1373,20 +1373,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
         const p = makePromise();
         const args = `idx * filter id ${startTokenId} ${endTokenId}`.split(' ').concat([(err, result) => {
           if (!err) {
-            const [numItems] = result;
-            const items = Array(numItems);
-            for (let i = 0; i < numItems; i++) {
-              // const k = result[1 + i * 2];
-              const args = result[1 + i * 2 + 1];
-              const o = {};
-              for (let j = 0; j < args.length; j += 2) {
-                const k = args[j];
-                const s = args[j + 1];
-                const v = JSON.parse(s);
-                o[k] = v;
-              }
-              items[i] = o;
-            }
+            const items = parseRedisItems(result);
             // console.log('got result', result);
             p.accept({
               Items: items,
