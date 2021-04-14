@@ -1,4 +1,4 @@
-const {ddbd, getDynamoItem, putDynamoItem} = require('./aws.js');
+const {ddbd, getDynamoItem, putDynamoItem} = require('./redis.js');
 const {getChainNft, getChainAccount, getAllWithdrawsDeposits} = require('./tokens.js');
 const {ids, tableNames, accountKeys, maxNumBlocks} = require('./constants.js');
 const {getBlockchain, getPastEvents, makeWeb3WebsocketContract} = require('./blockchain.js');
@@ -43,10 +43,10 @@ async function initNftCache({chainName}) {
   };
   _recurse(currentBlockNumber);
 
-  const lastBlockNumber = (await getDynamoItem(
+  const lastBlockNumber = ((await getDynamoItem(
     ids.lastCachedBlockNft,
     tableNames[chainName + 'Nft']
-  )).number || 0;
+  )) || {}).number || 0;
 
   // Catch up on missing blocks.
   if (currentBlockNumber !== lastBlockNumber) {
@@ -110,10 +110,10 @@ async function initAccountCache({chainName}) {
   };
   _recurse(currentBlockNumber);
 
-  const lastBlockNumber = (await getDynamoItem(
+  const lastBlockNumber = ((await getDynamoItem(
     ids.lastCachedBlockAccount,
     tableNames[chainName + 'Account']
-  )).number || 0;
+  )) || {}).number || 0;
 
   // Catch up on missing blocks.
   if (currentBlockNumber !== lastBlockNumber) {
