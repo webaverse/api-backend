@@ -96,6 +96,9 @@ async function initAccountCache({chainName}) {
         const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
         _recurse(currentBlockNumber);
       }); */
+    wsContract.listener.on('error', err => {
+      console.warn(err);
+    });
     wsContract.listener.on('end', async () => {
       console.log('reconnect account listner');
       
