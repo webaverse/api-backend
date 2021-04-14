@@ -8,9 +8,9 @@ const {redisKey} = require('./config.json');
 // c = r.createClient(); c.auth('lol', err => {c.hset('cities', 'id', 'A Town Created from Grafting.', err => { c.hget('cities', 'id', console.log); }); c.on('error', console.warn); }); c.ft_create.apply(c, 'idx SCHEMA id TEXT SORTABLE'.split(' ').concat([console.warn])); 1
 
 let redisClient = null;
-function connect() {
+function connect(port, host) {
   return new Promise((accept, reject) => {
-    redisClient = redis.createClient();
+    redisClient = redis.createClient(port, host);
     redisClient.auth(redisKey, err => {
       if (!err) {
         redisClient.ft_create.apply(redisClient, 'idx SCHEMA id NUMERIC SORTABLE currentOwnerAddress TEXT currentLocation TEXT description TEXT minterAddress TEXT ownerAddress TEXT properties TEXT'.split(' ').concat([err => {
