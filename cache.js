@@ -32,6 +32,9 @@ async function initNftCache({chainName}) {
       .on('error', async err => {
         console.warn('error nft', chainName, err);
       }); */
+    wsContract.listener.on('error', async err => {
+      console.warn(err);
+    });
     wsContract.listener.on('end', async () => {
       console.log('reconnect nft listener');
       
