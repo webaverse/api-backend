@@ -1,6 +1,6 @@
-const {ddbd, getRedisItem, putRedisItem} = require('./redis.js');
+const {getRedisItem, putRedisItem} = require('./redis.js');
 const {getChainNft, getChainAccount, getAllWithdrawsDeposits} = require('./tokens.js');
-const {ids, tableNames, accountKeys, maxNumBlocks} = require('./constants.js');
+const {ids, tableNames} = require('./constants.js');
 const {getBlockchain, getPastEvents, makeWeb3WebsocketContract} = require('./blockchain.js');
 
 async function initNftCache({chainName}) {
