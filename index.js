@@ -1,5 +1,4 @@
 require('dotenv').config();
-require('dotenv').config();
 const path = require('path');
 const stream = require('stream');
 const fs = require('fs');
@@ -31,13 +30,14 @@ const {default: formurlencoded} = require('form-urlencoded');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {getDynamoItem, getDynamoAllItems, putDynamoItem} = require('./aws.js');
-const {initCaches} = require('./cache.js');
+const {getRedisItem, getRedisAllItems, putRedisItem, parseRedisItems} = require('./redis.js');
 const {getExt, makePromise} = require('./utils.js');
 const Timer = require('./timer.js');
 const {getStoreEntries, getChainNft, getAllWithdrawsDeposits} = require('./tokens.js');
 const {getBlockchain} = require('./blockchain.js');
 // const browserManager = require('./browser-manager.js');
-const {tableNames, accountKeys, ids, mainnetSignatureMessage} = require('./constants.js');
+const {tableNames, accountKeys, ids, mainnetSignatureMessage, cacheHostUrl} = require('./constants.js');
+const {connect: redisConnect, getRedisClient} = require('./redis');
 
 let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
 
@@ -801,7 +801,7 @@ const _handleAccounts = chainName => async (req, res) => {
     }
     return account;
   };
-  const _getAccount = async address => getDynamoItem(address, tableNames.mainnetsidechainAccount)
+  const _getAccount = async address => getRedisItem(address, tableNames.mainnetsidechainAccount)
     .then(o => o.Item || _makeFakeAccount(address));
 
 try {
@@ -815,7 +815,7 @@ try {
     res.end();
   } else if (method === 'GET') {
     if (p === '/') {
-      let accounts = await getDynamoAllItems(tableNames.mainnetsidechainAccount);
+      let accounts = await getRedisAllItems(tableNames.mainnetsidechainAccount);
       accounts = accounts.filter(a => a.id !== ids.lastCachedBlockAccount);
       _respond(200, JSON.stringify(accounts));
     } else {
@@ -1354,7 +1354,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
 
 
       // const t = new Timer('get nft');
-      let o = await getDynamoItem(tokenId, tableNames.mainnetsidechainNft);
+      let o = await getRedisItem(tokenId, tableNames.mainnetsidechainNft);
       // t.end();
       let token = o.Item;
 
@@ -1370,25 +1370,22 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
       const endTokenId = parseInt(match[2], 10);
 
       if (startTokenId >= 1 && endTokenId > startTokenId && (endTokenId - startTokenId) <= 100) {
-        // const numTokens = endTokenId - startTokenId;
-        // const promises = Array(numTokens);
-        
-        const params = {
-          // KeyConditionExpression: 'id >= :idLow',
-          FilterExpression: "#yr BETWEEN :idLow AND :idHigh",
-          ExpressionAttributeNames: {
-            "#yr": "id",
-          },
-          ExpressionAttributeValues: {
-            ':idLow' : startTokenId,
-            ':idHigh' : endTokenId,
-          },
-          // ProjectionExpression: 'Episode, Title, Subtitle',
-          // FilterExpression: 'contains (Subtitle, :topic)',
-          TableName: tableNames.mainnetsidechainNft,
-        };
-        const o = await ddbd.scan(params).promise();
-        // console.log('got o', o);
+        const p = makePromise();
+        const args = `idx * filter id ${startTokenId} ${endTokenId} LIMIT 0 1000000`.split(' ').concat([(err, result) => {
+          if (!err) {
+            console.log('got result', result);
+            const items = parseRedisItems(result);
+            p.accept({
+              Items: items,
+            });
+          } else {
+            p.reject(err);
+          }
+        }]);
+        const redisClient = getRedisClient();
+        redisClient.ft_search.apply(redisClient, args);
+        const o = await p;
+
         let tokens = o.Items;
         tokens = tokens.filter(token => token !== null);
         tokens.sort((a, b) => a.id - b.id);
@@ -1454,33 +1451,27 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
         (async () => {
           if (isAll) {
             let mainnetAddress = null;
-            const account = await getDynamoItem(address, tableNames.mainnetsidechainAccount);
+            const account = await getRedisItem(address, tableNames.mainnetsidechainAccount);
             const signature = account?.metadata?.['mainnetAddress'];
             if (signature) {
               mainnetAddress = await web3.testnet.eth.accounts.recover(mainnetSignatureMessage, signature);
             }
             if (mainnetAddress) {
-              const o = await ddbd.scan({
-                TableName: tableNames.mainnetNft,
-                // ProjectionExpression: "#yr, title, info.rating",
-                FilterExpression: "#yr = :end_yr",
-                ExpressionAttributeNames: {
-                  "#yr": "ownerAddress",
-                },
-                ExpressionAttributeValues: {
-                  ":end_yr": address,
-                },
-                /* ScanFilter: {
-                  'address': {
-                    ComparisonOperator: 'EQ',
-                    AttributeValueList: [
-                      // someValue
-                      address,
-                    ],
-                  },
-                }, */
-                IndexName: 'ownerAddress-index',
-              }).promise();
+              const p = makePromise();
+              const args = `idx ${JSON.stringify(mainnetAddress)} INFIELDS 1 currentOwnerAddress LIMIT 0 1000000`.split(' ').concat([(err, result) => {
+                if (!err) {
+                  const items = parseRedisItems(result);
+                  // console.log('got result', result);
+                  p.accept({
+                    Items: items,
+                  });
+                } else {
+                  p.reject(err);
+                }
+              }]);
+              redisClient.ft_search.apply(redisClient, args);
+              const o = await p;
+
               return (o && o.Items) || [];
             } else {
               return [];
@@ -1490,9 +1481,23 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
           }
         })(),
         (async () => {
-          const o = await ddbd.scan({
+          const p = makePromise();
+          const args = `idx ${JSON.stringify(address)} INFIELDS 1 currentOwnerAddress LIMIT 0 1000000`.split(' ').concat([(err, result) => {
+            if (!err) {
+              const items = parseRedisItems(result);
+              // console.log('got result', result);
+              p.accept({
+                Items: items,
+              });
+            } else {
+              p.reject(err);
+            }
+          }]);
+          redisClient.ft_search.apply(redisClient, args);
+          const o = await p;
+          
+          /* const o = await ddbd.scan({
             TableName: tableNames.mainnetsidechainNft,
-            // ProjectionExpression: "#yr, title, info.rating",
             FilterExpression: "#yr = :end_yr",
             ExpressionAttributeNames: {
               "#yr": "ownerAddress",
@@ -1500,17 +1505,8 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
             ExpressionAttributeValues: {
               ":end_yr": address,
             },
-            /* ScanFilter: {
-              'address': {
-                ComparisonOperator: 'EQ',
-                AttributeValueList: [
-                  // someValue
-                  address,
-                ],
-              },
-            }, */
             IndexName: 'ownerAddress-index',
-          }).promise();
+          }).promise(); */
           return (o && o.Items) || [];
         })(),
       ]);
@@ -1551,6 +1547,38 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
       _respond(200, JSON.stringify(isSingleCollaborator));
+    } else if (match = req.url.match(/^\/search\?(.+)$/)) {
+      const qs = querystring.parse(match[1]);
+      const {q} = qs;
+      if (q) {
+        const regex = /(\w+)/g;
+        const words = [];
+        let match;
+        while (match = regex.exec(q)) {
+          words.push(`%${match[1]}%`);
+        }
+        
+        // console.log('got words', words, [`idx`].concat(words.join(' ')));
+        
+        const p = makePromise();
+        const args = [`idx`].concat(words.join(' ')).concat([`LIMIT 0 1000000`.split(' '), (err, result) => {
+          if (!err) {
+            const items = parseRedisItems(result);
+            // console.log('got result', result);
+            p.accept({
+              Items: items,
+            });
+          } else {
+            p.reject(err);
+          }
+        }]);
+        redisClient.ft_search.apply(redisClient, args);
+        const o = await p;
+        const tokens = (o && o.Items) || [];
+        _respond(200, JSON.stringify(tokens));
+      } else {
+        _respond(400, 'no query string');
+      }
     } else {
       _respond(404, 'not found');
     }
@@ -1871,6 +1899,16 @@ try {
 }
 };
 
+let redisClient = null;
+redisConnect(undefined, cacheHostUrl)
+  .then(() => {
+    redisClient = getRedisClient();
+    console.log('connected to redis');
+  })
+  .catch(err => {
+    console.warn(err);
+  });
+
 const proxy = httpProxy.createProxyServer({});
 proxy.on('proxyRes', (proxyRes, req) => {
   if (proxyRes.headers['location']) {
@@ -2105,12 +2143,6 @@ const _ws = protocol => (req, socket, head) => {
     socket.destroy();
   }
 };
-initCaches()
-  .then(() => {
-    console.log('caches initialized');
-  }, err => {
-    console.warn('failed to initialize caches', err);
-  });
 
 const server = http.createServer(_req('http:'));
 server.on('upgrade', _ws('http:'));
