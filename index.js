@@ -1495,18 +1495,6 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
           }]);
           redisClient.ft_search.apply(redisClient, args);
           const o = await p;
-          
-          /* const o = await ddbd.scan({
-            TableName: tableNames.mainnetsidechainNft,
-            FilterExpression: "#yr = :end_yr",
-            ExpressionAttributeNames: {
-              "#yr": "ownerAddress",
-            },
-            ExpressionAttributeValues: {
-              ":end_yr": address,
-            },
-            IndexName: 'ownerAddress-index',
-          }).promise(); */
           return (o && o.Items) || [];
         })(),
       ]);
