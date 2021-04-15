@@ -1549,7 +1549,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
       _respond(200, JSON.stringify(isSingleCollaborator));
     } else if (match = req.url.match(/^\/search\?(.+)$/)) {
       const qs = querystring.parse(match[1]);
-      const {q} = qs;
+      const {q = '*', ext, owner, minter} = qs;
       if (q) {
         const regex = /(\w+)/g;
         const words = [];
@@ -1561,17 +1561,40 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
         // console.log('got words', words, [`idx`].concat(words.join(' ')));
         
         const p = makePromise();
-        const args = [`idx`].concat(words.join(' ')).concat([`LIMIT 0 1000000`.split(' '), (err, result) => {
-          if (!err) {
-            const items = parseRedisItems(result);
-            // console.log('got result', result);
-            p.accept({
-              Items: items,
-            });
-          } else {
-            p.reject(err);
+        let filters = [];
+        if (owner) {
+          if (filters.length > 0) {
+            filters = ['&&'].concat(filters);
           }
-        }]);
+          filters.push(`@currentOwnerAddress==${JSON.stringify(owner)}`);
+        }
+        if (minter) {
+          if (filters.length > 0) {
+            filters = ['&&'].concat(filters);
+          }
+          filters.push(`@minterAddress==${JSON.stringify(minter)}`);
+        }
+        if (filters.length > 0) {
+          filters.push('GROUPBY', '1', '@id', 'filter');
+        }
+        
+        const p = makePromise();
+        const args = [`idx`]
+          .concat(words.join(' '))
+          .concat(['LIMIT', '0', '1000000'])
+          .concat(filters)
+          .concat([
+            (err, result) => {
+              if (!err) {
+                const items = parseRedisItems(result);
+                // console.log('got result', result);
+                p.accept({
+                  Items: items,
+                });
+              } else {
+                p.reject(err);
+              }
+            }]);
         redisClient.ft_search.apply(redisClient, args);
         const o = await p;
         const tokens = (o && o.Items) || [];
