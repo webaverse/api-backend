@@ -31,6 +31,13 @@ const tableNames = {
   testnetpolygonAccount: 'testnetpolygon-cache-account',
   testnetpolygonNft: 'testnetpolygon-cache-nft',
 };
+const redisPrefixes = (() => {
+  const result = {};
+  for (const k in tableNames) {
+    result[k] = tableNames[k].replace(/\-/g, '');
+  }
+  return result;
+})();
 const nftIndexName = 'nftIdx';
 const polygonVigilKey = `1bdde9289621d9d420488a9804254f4a958e128b`;
 const ethereumHost = 'ethereum.exokit.org';
@@ -41,6 +48,7 @@ module.exports = {
   accountKeys,
   ids,
   tableNames,
+  redisPrefixes,
   nftIndexName,
   polygonVigilKey,
   ethereumHost,
