@@ -1920,6 +1920,7 @@ const _tryConnectRedis = () => {
       setTimeout(_tryConnectRedis, 1000);
     });
 };
+_tryConnectRedis();
 
 const proxy = httpProxy.createProxyServer({});
 proxy.on('proxyRes', (proxyRes, req) => {
