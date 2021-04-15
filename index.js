@@ -1382,7 +1382,6 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
             p.reject(err);
           }
         }]);
-        const redisClient = getRedisClient();
         redisClient.ft_search.apply(redisClient, args);
         const o = await p;
 
@@ -1910,14 +1909,17 @@ try {
 };
 
 let redisClient = null;
-redisConnect(undefined, cacheHostUrl)
-  .then(() => {
-    redisClient = getRedisClient();
-    console.log('connected to redis');
-  })
-  .catch(err => {
-    console.warn(err);
-  });
+const _tryConnectRedis = () => {
+  redisConnect(undefined, cacheHostUrl)
+    .then(() => {
+      redisClient = getRedisClient();
+      console.log('connected to redis');
+    })
+    .catch(err => {
+      console.warn('failed to connect to redis, retrying', err);
+      setTimeout(_tryConnectRedis, 1000);
+    });
+};
 
 const proxy = httpProxy.createProxyServer({});
 proxy.on('proxyRes', (proxyRes, req) => {
