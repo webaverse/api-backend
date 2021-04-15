@@ -1560,7 +1560,6 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
         
         // console.log('got words', words, [`idx`].concat(words.join(' ')));
         
-        const p = makePromise();
         let filters = [];
         if (owner) {
           if (filters.length > 0) {
