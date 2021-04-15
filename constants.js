@@ -35,6 +35,7 @@ const polygonVigilKey = `1bdde9289621d9d420488a9804254f4a958e128b`;
 const ethereumHost = 'ethereum.exokit.org';
 const storageHost = 'https://ipfs.exokit.org';
 const mainnetSignatureMessage = `Connecting mainnet address.`;
+const cacheHostUrl = 'cache.webaverse.com';
 module.exports = {
   accountKeys,
   ids,
@@ -43,4 +44,5 @@ module.exports = {
   ethereumHost,
   storageHost,
   mainnetSignatureMessage,
+  cacheHostUrl,
 };
