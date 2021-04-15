@@ -36,7 +36,7 @@ const Timer = require('./timer.js');
 const {getStoreEntries, getChainNft, getAllWithdrawsDeposits} = require('./tokens.js');
 const {getBlockchain} = require('./blockchain.js');
 // const browserManager = require('./browser-manager.js');
-const {tableNames, accountKeys, ids, mainnetSignatureMessage, cacheHostUrl} = require('./constants.js');
+const {tableNames, accountKeys, ids, nftIndexName, mainnetSignatureMessage, cacheHostUrl} = require('./constants.js');
 const {connect: redisConnect, getRedisClient} = require('./redis');
 
 let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
