@@ -30,13 +30,13 @@ const {default: formurlencoded} = require('form-urlencoded');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {getDynamoItem, getDynamoAllItems, putDynamoItem} = require('./aws.js');
-const {getRedisItem, getRedisAllItems, putRedisItem, parseRedisItems} = require('./redis.js');
+const {getRedisItem, getRedisAllItems, parseRedisItems} = require('./redis.js');
 const {getExt, makePromise} = require('./utils.js');
 const Timer = require('./timer.js');
 const {getStoreEntries, getChainNft, getAllWithdrawsDeposits} = require('./tokens.js');
 const {getBlockchain} = require('./blockchain.js');
 // const browserManager = require('./browser-manager.js');
-const {tableNames, accountKeys, ids, nftIndexName, mainnetSignatureMessage, cacheHostUrl} = require('./constants.js');
+const {accountKeys, ids, nftIndexName, redisPrefixes, mainnetSignatureMessage, cacheHostUrl} = require('./constants.js');
 const {connect: redisConnect, getRedisClient} = require('./redis');
 
 let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
@@ -801,7 +801,7 @@ const _handleAccounts = chainName => async (req, res) => {
     }
     return account;
   };
-  const _getAccount = async address => getRedisItem(address, tableNames.mainnetsidechainAccount)
+  const _getAccount = async address => getRedisItem(address, redisPrefixes.mainnetsidechainAccount)
     .then(o => o.Item || _makeFakeAccount(address));
 
 try {
@@ -815,7 +815,7 @@ try {
     res.end();
   } else if (method === 'GET') {
     if (p === '/') {
-      let accounts = await getRedisAllItems(tableNames.mainnetsidechainAccount);
+      let accounts = await getRedisAllItems(redisPrefixes.mainnetsidechainAccount);
       accounts = accounts.filter(a => a.id !== ids.lastCachedBlockAccount);
       _respond(200, JSON.stringify(accounts));
     } else {
@@ -1354,7 +1354,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
 
 
       // const t = new Timer('get nft');
-      let o = await getRedisItem(tokenId, tableNames.mainnetsidechainNft);
+      let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
       // t.end();
       let token = o.Item;
 
@@ -1451,7 +1451,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
         (async () => {
           if (isAll) {
             let mainnetAddress = null;
-            const account = await getRedisItem(address, tableNames.mainnetsidechainAccount);
+            const account = await getRedisItem(address, redisPrefixes.mainnetsidechainAccount);
             const signature = account?.metadata?.['mainnetAddress'];
             if (signature) {
               mainnetAddress = await web3.testnet.eth.accounts.recover(mainnetSignatureMessage, signature);
