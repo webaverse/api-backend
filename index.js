@@ -1371,7 +1371,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
 
       if (startTokenId >= 1 && endTokenId > startTokenId && (endTokenId - startTokenId) <= 100) {
         const p = makePromise();
-        const args = `idx * filter id ${startTokenId} ${endTokenId} LIMIT 0 1000000`.split(' ').concat([(err, result) => {
+        const args = `${nftIndexName} * filter id ${startTokenId} ${endTokenId} LIMIT 0 1000000`.split(' ').concat([(err, result) => {
           if (!err) {
             console.log('got result', result);
             const items = parseRedisItems(result);
@@ -1458,7 +1458,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
             }
             if (mainnetAddress) {
               const p = makePromise();
-              const args = `idx ${JSON.stringify(mainnetAddress)} INFIELDS 1 currentOwnerAddress LIMIT 0 1000000`.split(' ').concat([(err, result) => {
+              const args = `${nftIndexName} ${JSON.stringify(mainnetAddress)} INFIELDS 1 currentOwnerAddress LIMIT 0 1000000`.split(' ').concat([(err, result) => {
                 if (!err) {
                   const items = parseRedisItems(result);
                   // console.log('got result', result);
@@ -1482,7 +1482,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
         })(),
         (async () => {
           const p = makePromise();
-          const args = `idx ${JSON.stringify(address)} INFIELDS 1 currentOwnerAddress LIMIT 0 1000000`.split(' ').concat([(err, result) => {
+          const args = `${nftIndexName} ${JSON.stringify(address)} INFIELDS 1 currentOwnerAddress LIMIT 0 1000000`.split(' ').concat([(err, result) => {
             if (!err) {
               const items = parseRedisItems(result);
               // console.log('got result', result);
@@ -1578,7 +1578,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
         }
         
         const p = makePromise();
-        const args = [`idx`]
+        const args = [nftIndexName]
           .concat(words.join(' '))
           .concat(['LIMIT', '0', '1000000'])
           .concat(filters)
