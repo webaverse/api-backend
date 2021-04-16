@@ -1,13 +1,13 @@
 const redis = require('redis');
 const redisearch = require('redis-redisearch');
 const { makePromise } = require('./utils.js');
-const { ids } = require('./constants.js');
-const { redisKey } = require('../config.json');
+const { ids, cacheHostUrl, redisKey, tableNames } = require('./constants.js');
 
 redisearch(redis);
 
 let redisClient = null;
 let loadPromise = null;
+
 async function connect(port, host) {
   if (!loadPromise) {
     loadPromise = new Promise((accept, reject) => {
@@ -27,6 +27,19 @@ async function connect(port, host) {
   }
   await loadPromise;
 }
+
+const tryConnectRedis = () => {
+  connect(undefined, cacheHostUrl)
+    .then(() => {
+      redisClient = getRedisClient();
+      console.log('connected to redis');
+    })
+    .catch(err => {
+      console.warn('failed to connect to redis, retrying', err);
+      setTimeout(tryConnectRedis, 1000);
+    });
+};
+
 function getRedisClient() {
   return redisClient;
 }
@@ -69,7 +82,7 @@ async function putRedisItem(id, data, TableName) {
   await p;
 }
 
-async function getRedisAllItems(TableName = defaultDynamoTable) {
+async function getRedisAllItems(TableName = tableNames.defaultCacheTable) {
   let keys = await new Promise((accept, reject) => {
     redisClient.keys(`${TableName}:*`, (err, result) => {
       if (!err) {
@@ -82,7 +95,7 @@ async function getRedisAllItems(TableName = defaultDynamoTable) {
   const filterKey = `${TableName}:${ids.lastCachedBlockAccount}`;
   keys = keys.filter(key => key !== filterKey);
 
-  const _runJobs = jobs => new Promise((accept, reject) => {
+  const _runJobs = jobs => new Promise((accept) => {
     const maxTasksInFlight = 100;
     let tasksInFlight = 0;
     const _recurse = async () => {
@@ -140,6 +153,7 @@ const parseRedisItems = result => {
 };
 
 module.exports = {
+  tryConnectRedis,
   connect,
   getRedisClient,
   getRedisItem,

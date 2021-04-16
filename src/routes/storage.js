@@ -16,7 +16,7 @@ const _handleStorageRequest = async (req, res) => {
     const filename = match && match[2];
 
     res = setCorsHeaders(res);
-    const { method, headers } = req;
+    const { method } = req;
     if (method === 'OPTIONS') {
       res.end();
     } else if (method === 'POST') {
@@ -44,8 +44,7 @@ const _handleStorageRequest = async (req, res) => {
           res.status = 500;
           res.end(err.stack);
         });
-        ws.on('done', data => {
-          // console.log('got done', data);
+        ws.on('done', () => {
           res.end(JSON.stringify({
             hash: hashHex,
           }));

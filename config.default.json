@@ -17,5 +17,9 @@
   "githubPagesDomain": "exokit.dev",
   "publicIp": "13.57.56.187",
   "privateIp": "172.31.18.137",
-  "awsRegion": "us-west-2"
+  "awsRegion": "us-west-2",
+  "ethereumHost": "ethereum.exokit.org",
+  "storageHost": "https://ipfs.exokit.org",
+  "cacheHostUrl": "cache.webaverse.com",
+  "defaultAvatarPreview": "https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png"
 }

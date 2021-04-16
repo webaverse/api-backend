@@ -1,17 +1,15 @@
 const stream = require('stream');
 const AWS = require('aws-sdk');
-let config = require('fs').existsSync('../config.json') ? require('../config.json') : null;
-
-const accessKeyId = process.env.accessKeyId || config.accessKeyId;
-const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
+const { accessKeyId, secretAccessKey, awsRegion, tableNames } = require('./constants.js');
 
 const awsConfig = new AWS.Config({
     credentials: new AWS.Credentials({
         accessKeyId,
         secretAccessKey,
     }),
-    region: 'us-west-1',
+    region: awsRegion,
 });
+
 const s3 = new AWS.S3(awsConfig);
 
 const ddb = new AWS.DynamoDB({
@@ -23,8 +21,6 @@ const ddbd = new AWS.DynamoDB.DocumentClient({
   ...awsConfig,
   apiVersion: '2012-08-10',
 });
-
-const defaultDynamoTable = 'sidechain-cache';
 
 async function getDynamoItem(id, TableName) {
   const params = {
@@ -59,7 +55,7 @@ async function putDynamoItem(id, data, TableName) {
   }
 }
 
-async function getDynamoAllItems(TableName = defaultDynamoTable) {
+async function getDynamoAllItems(TableName = tableNames.defaultCacheTable) {
   const params = {
     TableName,
   };
@@ -91,7 +87,16 @@ function uploadFromStream(bucket, key, type) {
   return pass;
 }
 
+const ses = new AWS.SES(new AWS.Config({
+  credentials: new AWS.Credentials({
+    accessKeyId,
+    secretAccessKey,
+  }),
+  region: awsRegion,
+}));
+
 module.exports = {
+  ses,
   ddb,
   ddbd,
   getDynamoItem,

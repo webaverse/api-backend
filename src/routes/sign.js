@@ -5,25 +5,24 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const { hdkey } = require('ethereumjs-wallet');
 const { setCorsHeaders } = require('../utils.js');
-const { polygonVigilKey } = require('../constants.js');
+const { mainnetMnemonic,
+  testnetMnemonic,
+  polygonMnemonic,
+  testnetpolygonMnemonic,
+  infuraProjectId,
+  polygonVigilKey,
+  ethereumHost
+} = require('../constants.js');
 
-const config = require('fs').existsSync('../../config.json') ? require('../../config.json') : null;
-const mainnetMnemonic = process.env.mainnetMnemonic || config.mainnetMnemonic;
-const testnetMnemonic = process.env.testnetMnemonic || config.testnetMnemonic;
-const polygonMnemonic = process.env.polygonMnemonic || config.polygonMnemonic;
-const testnetpolygonMnemonic = process.env.testnetpolygonMnemonic || config.testnetpolygonMnemonic;
-const infuraProjectId = process.env.infuraProjectId || config.infuraProjectId;
-
+let gethNodeUrl = null;
 const loadPromise = (async () => {
-  const ethereumHost = 'ethereum.exokit.org';
-
   const ethereumHostAddress = await new Promise((accept, reject) => {
     dns.resolve4(ethereumHost, (err, addresses) => {
       if (!err) {
         if (addresses.length > 0) {
           accept(addresses[0]);
         } else {
-          reject(new Error('no addresses resolved for ' + ethereumHostname));
+          reject(new Error('no addresses resolved for ' + ethereumHost));
         }
       } else {
         reject(err);
@@ -91,7 +90,7 @@ const loadPromise = (async () => {
 
 const _handleSignRequest = async (req, res) => {
 
-  const { web3, addresses, abis, chainIds, contracts, wallets } = await loadPromise;
+  const { web3, addresses,chainIds, wallets } = await loadPromise;
 
   const request = url.parse(req.url);
 

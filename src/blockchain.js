@@ -4,11 +4,7 @@ const dns = require('dns');
 const https = require('https');
 const fetch = require('node-fetch');
 const Web3 = require('web3');
-const { polygonVigilKey, ethereumHost } = require('./constants.js');
-
-let config = require('fs').existsSync('../config.json') ? require('../config.json') : null;
-
-const infuraProjectId = process.env.infuraProjectId || config.infuraProjectId;
+const { ethereumHost, polygonVigilKey, infuraProjectId  } = require('./constants.js');
 
 let addresses,
   abis,
@@ -167,8 +163,109 @@ function makeWeb3WebsocketContract(chainName, contractName) {
   return web3socketContract;
 }
 
+const areAddressesCollaborator = async (addresses, hash, id) => {
+  let isC = false; // collaborator
+  let isO1 = false; // owner on sidechain
+  let isO2 = false; // owner on mainnet
+  for (const address of addresses) {
+    const [
+      _isC,
+      _isO1,
+      _isO2,
+    ] = await Promise.all([
+      (async () => {
+        try {
+          const isC = await contracts.mainnetsidechain.NFT.methods.isCollaborator(hash, address).call();
+          return isC;
+        } catch (err) {
+          return false;
+        }
+      })(),
+      (async () => {
+        try {
+          let owner = await contracts.mainnetsidechain.NFT.methods.ownerOf(id).call();
+          owner = owner.toLowerCase();
+          return owner === address;
+        } catch (err) {
+          return false;
+        }
+      })(),
+      (async () => {
+        try {
+          let owner = await contracts.mainnet.NFT.methods.ownerOf(id).call();
+          owner = owner.toLowerCase();
+          return owner === address;
+        } catch (err) {
+          return false;
+        }
+      })(),
+    ]);
+
+    isC = isC || _isC;
+    isO1 = isO1 || _isO1;
+    isO2 = isO2 || _isO2;
+  }
+
+  return isC || isO1 || isO2;
+};
+const areAddressesSingleCollaborator = async (addresses, id) => {
+  let isC = false; // collaborator
+  let isO1 = false; // owner on sidechain
+  let isO2 = false; // owner on mainnet
+  for (const address of addresses) {
+    const [
+      _isC,
+      _isO1,
+      _isO2,
+    ] = await Promise.all([
+      (async () => {
+        try {
+          const isC = await contracts.mainnetsidechain.NFT.methods.isSingleCollaborator(id, address).call();
+          return isC;
+        } catch (err) {
+          return false;
+        }
+      })(),
+      (async () => {
+        try {
+          let owner = await contracts.mainnetsidechain.NFT.methods.ownerOf(id).call();
+          owner = owner.toLowerCase();
+          return owner === address;
+        } catch (err) {
+          return false;
+        }
+      })(),
+      (async () => {
+        try {
+          let owner = await contracts.mainnet.NFT.methods.ownerOf(id).call();
+          owner = owner.toLowerCase();
+          return owner === address;
+        } catch (err) {
+          return false;
+        }
+      })(),
+    ]);
+    isC = isC || _isC;
+    isO1 = isO1 || _isO1;
+    isO2 = isO2 || _isO2;
+  }
+
+  return isC || isO1 || isO2;
+};
+const isCollaborator = async (tokenId, address) => {
+  const hash = await contracts.mainnetsidechain.NFT.methods.getHash(tokenId).call();
+  return await areAddressesCollaborator([address], hash, tokenId);
+};
+const isSingleCollaborator = async (tokenId, address) => await areAddressesSingleCollaborator([address], tokenId);
+
+
 module.exports = {
   getBlockchain,
   getPastEvents,
   makeWeb3WebsocketContract,
+  BlockchainNetworks,
+  isSingleCollaborator,
+  areAddressesCollaborator,
+  areAddressesSingleCollaborator,
+  isCollaborator
 };

@@ -17,7 +17,7 @@ function randomString() {
 }
 
 function getExt(fileName) {
-  const match = fileName.match(/\.([^\.]+)$/);
+  const match = fileName.match(/\.([^.]+)$/);
   return match && match[1].toLowerCase();
 }
 

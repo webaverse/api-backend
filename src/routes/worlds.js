@@ -2,26 +2,10 @@ const path = require('path');
 const url = require('url');
 const fs = require('fs').promises;
 const child_process = require('child_process');
-const AWS = require('aws-sdk');
 const ps = require('ps-node');
 const { setCorsHeaders } = require('../utils.js');
-
-let config = require('fs').existsSync('../../config.json') ? require('../../config.json') : null;
-
-const accessKeyId = process.env.accessKeyId || config.accessKeyId;
-const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
-const privateIp = process.env.privateIp || config.privateIp;
-const publicIp = process.env.publicIp || config.publicIp;
-
-const awsConfig = new AWS.Config({
-  credentials: new AWS.Credentials({
-    accessKeyId,
-    secretAccessKey,
-  }),
-  region: 'us-west-1',
-});
-
-const s3 = new AWS.S3(awsConfig);
+const { privateIp, publicIp } = require('../constants.js');
+const { s3 } = require('../aws.js');
 
 const jsPath = '../dialog/index.js';
 const bucketName = 'worlds.exokit.org';
@@ -65,7 +49,7 @@ class WorldManager {
             .filter(w => w.arguments[0] === jsPath)
             .map(w => {
               const { pid } = w;
-              let [_, name, publicIp, privateIp, port] = w.arguments;
+              let [name, publicIp, privateIp, port] = w.arguments.slice(1);
               port = parseInt(port, 10);
               return {
                 name,
@@ -194,7 +178,7 @@ class WorldManager {
         }
       }
     } else {
-      return await new Promise((accept, reject) => {
+      return await new Promise((accept) => {
         this.queues.push(async () => {
           const world = await this.createWorld(name);
           accept(world);
@@ -214,7 +198,7 @@ class WorldManager {
           if (cp) {
             cp.kill();
 
-            await new Promise((accept, reject) => {
+            await new Promise((accept) => {
               cp.on('exit', async () => {
                 const b = await fs.readFile(cp.dataFilePath);
                 await s3.putObject({
@@ -246,7 +230,7 @@ class WorldManager {
         }
       }
     } else {
-      return await new Promise((accept, reject) => {
+      return await new Promise((accept) => {
         this.queues.push(async () => {
           const result = await this.deleteWorld(name);
           accept(result);

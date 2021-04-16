@@ -1,20 +1,9 @@
-const AWS = require('aws-sdk');
 const blockchain = require('./blockchain.js');
-let config = require('fs').existsSync('../config.json') ? require('../config.json') : null;
+const { ddb } = require('./blockchain.js');
+const { tableNames } = require('./constants.js');
 
-const accessKeyId = process.env.accessKeyId || config.accessKeyId;
-const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
-
-const awsConfig = new AWS.Config({
-  credentials: new AWS.Credentials({
-    accessKeyId,
-    secretAccessKey,
-  }),
-  region: 'us-west-1',
-});
-const ddb = new AWS.DynamoDB(awsConfig);
-const tableName = 'users';
 const keyName = 'test-users.cache';
+const MAX_CACHED_USERS = 5;
 
 const _makePromise = () => {
   let accept, reject;
@@ -27,7 +16,6 @@ const _makePromise = () => {
   return p;
 };
 
-const MAX_CACHED_USERS = 5;
 class AccountManager {
   constructor() {
     this.users = [];
@@ -37,7 +25,7 @@ class AccountManager {
   }
   async load() {
     const tokenItem = await ddb.getItem({
-      TableName: tableName,
+      TableName: tableNames.user,
       Key: {
         email: {S: keyName},
       }
@@ -47,7 +35,7 @@ class AccountManager {
 
     const _save = async () => {
       await ddb.putItem({
-        TableName: tableName,
+        TableName: tableNames.user,
         Item: {
           email: {S: keyName},
           users: {S: JSON.stringify(this.users)},

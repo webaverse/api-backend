@@ -1,21 +1,7 @@
 const url = require('url');
 const uuid = require('uuid');
-const AWS = require('aws-sdk');
 const { setCorsHeaders } = require('../utils.js');
-
-let config = require('fs').existsSync('../../config.json') ? require('../../config.json') : null;
-
-const accessKeyId = process.env.accessKeyId || config.accessKeyId;
-const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
-
-const awsConfig = new AWS.Config({
-  credentials: new AWS.Credentials({
-    accessKeyId,
-    secretAccessKey,
-  }),
-  region: 'us-west-1',
-});
-const ddbd = new AWS.DynamoDB.DocumentClient(awsConfig);
+const { ddbd } = require('../utils.js');
 
 const _handleAnalyticsRequest = async (req, res) => {
   const request = url.parse(req.url);

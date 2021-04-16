@@ -1,8 +1,6 @@
-const { accountKeys, storageHost } = require('./constants.js');
+const { accountKeys, zeroAddress, defaultAvatarPreview, storageHost } = require('./constants.js');
 const { getBlockchain, getPastEvents } = require('./blockchain.js');
 
-const zeroAddress = '0x0000000000000000000000000000000000000000';
-const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
 const _log = async (text, p) => {
   try {
     const r = await p;
@@ -378,7 +376,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
   ];
 };
 
-const formatToken = contractName => chainName => async (token, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
+const formatToken = chainName => async (token, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
 
   const tokenId = parseInt(token.id, 10);
   const { name, ext, unlockable, hash } = token;
@@ -499,7 +497,7 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
   console.log('got token', JSON.stringify(o, null, 2));
   return o;
 };
-const formatLand = contractName => chainName => async (token, storeEntries) => {
+const formatLand = chainName => async (token) => {
   const {
     contracts,
   } = await getBlockchain();
@@ -516,7 +514,6 @@ const formatLand = contractName => chainName => async (token, storeEntries) => {
     description,
     rarity,
     extents,
-    sidechainMinterAddress,
   ] = await Promise.all([
     contracts[chainName].LAND.methods.getSingleMetadata(tokenId, 'description').call(),
     contracts[chainName].LAND.methods.getMetadata(name, 'rarity').call(),
@@ -601,7 +598,7 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
   try {
     if (_isValidToken(token)) {
       if (contractName === 'NFT') {
-        const r = await formatToken(contractName)(chainName)(
+        const r = await formatToken(chainName)(
           token,
           storeEntries,
           mainnetDepositedEntries,
@@ -613,9 +610,8 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
         );
         return r;
       } else if (contractName === 'LAND') {
-        return await formatLand(contractName)(chainName)(
+        return await formatLand(chainName)(
           token,
-          storeEntries,
           mainnetDepositedEntries,
           mainnetWithdrewEntries,
           sidechainDepositedEntries,
@@ -635,60 +631,7 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
   }
 };
 const getChainToken = getChainNft('NFT');
-const getChainLand = getChainNft('LAND');
-const getChainOwnerNft = contractName => chainName => async (address, i, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
-  if (!storeEntries || !mainnetDepositedEntries || !mainnetWithdrewEntries || !sidechainDepositedEntries || !sidechainWithdrewEntries || !polygonDepositedEntries || !polygonWithdrewEntries) {
-    console.warn('bad arguments were', {
-      storeEntries,
-      mainnetDepositedEntries,
-      mainnetWithdrewEntries,
-      sidechainDepositedEntries,
-      sidechainWithdrewEntries,
-      polygonDepositedEntries,
-      polygonWithdrewEntries,
-    });
-    throw new Error('invalid arguments');
-  }
 
-  const tokenSrc = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
-  const token = _copy(tokenSrc);
-  const { hash } = token;
-  token.unlockable = await contracts[chainName][contractName].methods.getMetadata(hash, 'unlockable').call();
-  if (!token.unlockable) {
-    token.unlockable = '';
-  }
-
-  try {
-    if (contractName === 'NFT') {
-      return await formatToken(contractName)(chainName)(
-        token,
-        storeEntries,
-        mainnetDepositedEntries,
-        mainnetWithdrewEntries,
-        sidechainDepositedEntries,
-        sidechainWithdrewEntries,
-        polygonDepositedEntries,
-        polygonWithdrewEntries,
-      );
-    } else if (contractName === 'LAND') {
-      return await formatLand(contractName)(chainName)(
-        token,
-        storeEntries,
-        mainnetDepositedEntries,
-        mainnetWithdrewEntries,
-        sidechainDepositedEntries,
-        sidechainWithdrewEntries,
-        polygonDepositedEntries,
-        polygonWithdrewEntries,
-      );
-    } else {
-      return null;
-    }
-  } catch (err) {
-    console.warn(err);
-    return null;
-  }
-};
 async function getChainAccount({
   address,
   chainName,

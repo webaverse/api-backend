@@ -1,73 +1,41 @@
-const url = require('url');
 const dns = require('dns');
 const fetch = require('node-fetch');
 const Web3 = require('web3');
 const bip39 = require('bip39');
 const { hdkey } = require('ethereumjs-wallet');
+const { createDecipheriv } = require('crypto');
 const { jsonParse, setCorsHeaders } = require('../utils.js');
-const { polygonVigilKey } = require('../constants.js');
+const {
+  mainnetMnemonic,
+  testnetMnemonic,
+  polygonMnemonic,
+  testnetpolygonMnemonic,
+  infuraProjectId,
+  encryptionMnemonic,
+  polygonVigilKey,
+  unlockableKey,
+  ethereumHost
+} = require('../constants.js');
+const { areAddressesCollaborator } = require ('../blockchain.js');
 
-let config = require('fs').existsSync('../../config.json') ? require('../../config.json') : null;
-
-const mainnetMnemonic = process.env.mainnetMnemonic || config.mainnetMnemonic;
-const testnetMnemonic = process.env.testnetMnemonic || config.testnetMnemonic;
-const polygonMnemonic = process.env.polygonMnemonic || config.polygonMnemonic;
-const testnetpolygonMnemonic = process.env.testnetpolygonMnemonic || config.testnetpolygonMnemonic;
-const infuraProjectId = process.env.infuraProjectId || config.infuraProjectId;
-const encryptionMnemonic = process.env.encryptionMnemonic || config.encryptionMnemonic;
-
-const { createCipheriv, createDecipheriv } = require('crypto');
-
-const unlockableKey = 'unlockable';
 const nonce = Buffer.alloc(12);
-const encodeSecret = (mnemonic, secret) => {
-  const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
-  const privateKey = wallet.privateKey;
 
-  const key = privateKey.slice(0, 24);
-
-  const cipher = createCipheriv('aes-192-ccm', key, nonce, {
-    authTagLength: 16
-  });
-  const ciphertext = cipher.update(secret, 'utf8');
-  cipher.final();
-  const tag = cipher.getAuthTag();
-  return {
-    ciphertext,
-    tag,
-  };
-};
-const decodeSecret = (mnemonic, { ciphertext, tag }) => {
-  const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
-  const privateKey = wallet.privateKey;
-
-  const key = privateKey.slice(0, 24);
-
-  const decipher = createDecipheriv('aes-192-ccm', key, nonce, {
-    authTagLength: 16
-  });
-  decipher.setAuthTag(tag);
-  const receivedPlaintext = decipher.update(ciphertext, null, 'utf8');
-  return receivedPlaintext;
-};
-
-let contracts = null;
+let contracts, gethNodeUrl = null;
 const loadPromise = (async () => {
-  const ethereumHost = 'ethereum.exokit.org';
-
   const ethereumHostAddress = await new Promise((accept, reject) => {
     dns.resolve4(ethereumHost, (err, addresses) => {
       if (!err) {
         if (addresses.length > 0) {
           accept(addresses[0]);
         } else {
-          reject(new Error('no addresses resolved for ' + ethereumHostname));
+          reject(new Error('no addresses resolved for ' + ethereumHost));
         }
       } else {
         reject(err);
       }
     });
   });
+
   gethNodeUrl = `http://${ethereumHostAddress}`;
 
   const web3 = {
@@ -126,100 +94,24 @@ const loadPromise = (async () => {
   };
 })();
 
+const decodeSecret = (mnemonic, { ciphertext, tag }) => {
+  const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
+  const privateKey = wallet.privateKey;
+
+  const key = privateKey.slice(0, 24);
+
+  const decipher = createDecipheriv('aes-192-ccm', key, nonce, {
+    authTagLength: 16
+  });
+  decipher.setAuthTag(tag);
+  const receivedPlaintext = decipher.update(ciphertext, null, 'utf8');
+  return receivedPlaintext;
+};
+
 const proofOfAddressMessage = `Proof of address.`;
-const _areAddressesColaborator = async (addresses, hash) => {
-  let isC = false; // collaborator
-  let isO1 = false; // owner on sidechain
-  let isO2 = false; // owner on mainnet
-  for (const address of addresses) {
-    const [
-      _isC,
-      _isO1,
-      _isO2,
-    ] = await Promise.all([
-      (async () => {
-        try {
-          const isC = await contracts.mainnetsidechain.NFT.methods.isCollaborator(hash, address).call();
-          return isC;
-        } catch (err) {
-          return false;
-        }
-      })(),
-      (async () => {
-        try {
-          let owner = await contracts.mainnetsidechain.NFT.methods.ownerOf(id).call();
-          owner = owner.toLowerCase();
-          return owner === address;
-        } catch (err) {
-          return false;
-        }
-      })(),
-      (async () => {
-        try {
-          let owner = await contracts.mainnet.NFT.methods.ownerOf(id).call();
-          owner = owner.toLowerCase();
-          return owner === address;
-        } catch (err) {
-          return false;
-        }
-      })(),
-    ]);
 
-    isC = isC || _isC;
-    isO1 = isO1 || _isO1;
-    isO2 = isO2 || _isO2;
-  }
-
-  return isC || isO1 || isO2;
-};
-const _areAddressesSingleColaborator = async (addresses, id) => {
-  let isC = false; // collaborator
-  let isO1 = false; // owner on sidechain
-  let isO2 = false; // owner on mainnet
-  for (const address of addresses) {
-    const [
-      _isC,
-      _isO1,
-      _isO2,
-    ] = await Promise.all([
-      (async () => {
-        try {
-          const isC = await contracts.mainnetsidechain.NFT.methods.isSingleCollaborator(id, address).call();
-          return isC;
-        } catch (err) {
-          return false;
-        }
-      })(),
-      (async () => {
-        try {
-          let owner = await contracts.mainnetsidechain.NFT.methods.ownerOf(id).call();
-          owner = owner.toLowerCase();
-          return owner === address;
-        } catch (err) {
-          return false;
-        }
-      })(),
-      (async () => {
-        try {
-          let owner = await contracts.mainnet.NFT.methods.ownerOf(id).call();
-          owner = owner.toLowerCase();
-          return owner === address;
-        } catch (err) {
-          return false;
-        }
-      })(),
-    ]);
-    isC = isC || _isC;
-    isO1 = isO1 || _isO1;
-    isO2 = isO2 || _isO2;
-  }
-
-  return isC || isO1 || isO2;
-};
-const _handleUnlockRequest = async (req, res) => {
+const handleUnlockRequest = async (req, res) => {
   const { web3, contracts } = await loadPromise;
-
-  const request = url.parse(req.url);
   try {
     res = setCorsHeaders(res);
     const { method } = req;
@@ -256,7 +148,7 @@ const _handleUnlockRequest = async (req, res) => {
 
       if (ok) {
         const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
-        const isCollaborator = await _areAddressesColaborator(addresses, hash);
+        const isCollaborator = await areAddressesCollaborator(addresses, hash, id);
         if (isCollaborator) {
           let value = await contracts.mainnetsidechain.NFT.methods.getMetadata(hash, key).call();
           value = jsonParse(value);
@@ -295,14 +187,7 @@ const _handleUnlockRequest = async (req, res) => {
     res.end(err.stack);
   }
 }
-const _isCollaborator = async (tokenId, address) => {
-  const hash = await contracts.mainnetsidechain.NFT.methods.getHash(tokenId).call();
-  return await _areAddressesColaborator([address], hash);
-};
-const _isSingleCollaborator = async (tokenId, address) => await _areAddressesSingleColaborator([address], tokenId);
 
 module.exports = {
-  _handleUnlockRequest,
-  _isCollaborator,
-  _isSingleCollaborator,
+  handleUnlockRequest
 };
