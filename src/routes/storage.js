@@ -3,7 +3,7 @@ const https = require('https');
 const { uploadFromStream } = require('../aws.js');
 const crypto = require('crypto');
 const mime = require('mime');
-const { _setCorsHeaders, getExt } = require('../utils.js');
+const { setCorsHeaders, getExt } = require('../utils.js');
 
 const hashAlgorithm = 'sha256';
 const MAX_SIZE = 50 * 1024 * 1024;
@@ -15,7 +15,7 @@ const _handleStorageRequest = async (req, res) => {
     const path = match && match[1];
     const filename = match && match[2];
 
-    res = _setCorsHeaders(res);
+    res = setCorsHeaders(res);
     const { method, headers } = req;
     if (method === 'OPTIONS') {
       res.end();

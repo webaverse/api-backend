@@ -1,5 +1,5 @@
 const url = require('url');
-const { _setCorsHeaders } = require('../utils.js');
+const { setCorsHeaders } = require('../utils.js');
 const blockchain = require('../blockchain.js');
 const accountManager = require('../account-manager.js');
 
@@ -8,7 +8,7 @@ const _handleAccountsRequest = async (req, res) => {
     const path = request.path.split('/')[1];
     let match;
     try {
-        res = _setCorsHeaders(res);
+        res = setCorsHeaders(res);
         const { method } = req;
         if (method === 'OPTIONS') {
             res.end();

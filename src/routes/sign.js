@@ -4,7 +4,7 @@ const fetch = require('node-fetch');
 const Web3 = require('web3');
 const bip39 = require('bip39');
 const { hdkey } = require('ethereumjs-wallet');
-const { _setCorsHeaders } = require('../utils.js');
+const { setCorsHeaders } = require('../utils.js');
 const { polygonVigilKey } = require('../constants.js');
 
 const config = require('fs').existsSync('../../config.json') ? require('../../config.json') : null;
@@ -96,7 +96,7 @@ const _handleSignRequest = async (req, res) => {
   const request = url.parse(req.url);
 
   try {
-    res = _setCorsHeaders(res);
+    res = setCorsHeaders(res);
     const { method } = req;
     if (method === 'OPTIONS') {
       res.end();

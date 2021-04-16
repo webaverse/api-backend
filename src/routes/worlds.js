@@ -4,7 +4,7 @@ const fs = require('fs').promises;
 const child_process = require('child_process');
 const AWS = require('aws-sdk');
 const ps = require('ps-node');
-const { _setCorsHeaders } = require('../utils.js');
+const { setCorsHeaders } = require('../utils.js');
 
 let config = require('fs').existsSync('../../config.json') ? require('../../config.json') : null;
 
@@ -264,7 +264,7 @@ const _handleWorldsRequest = async (req, res) => {
     const match = decodeURIComponent(o.path).match(/^\/([a-z0-9\-\ \.]+)$/i);
     const p = match && match[1];
 
-    res = _setCorsHeaders(res);
+    res = setCorsHeaders(res);
 
     console.log('get worlds request', { method, headers, o, p });
 

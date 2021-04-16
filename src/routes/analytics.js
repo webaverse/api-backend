@@ -1,7 +1,7 @@
 const url = require('url');
 const uuid = require('uuid');
 const AWS = require('aws-sdk');
-const { _setCorsHeaders } = require('../utils.js');
+const { setCorsHeaders } = require('../utils.js');
 
 let config = require('fs').existsSync('../../config.json') ? require('../../config.json') : null;
 
@@ -26,7 +26,7 @@ const _handleAnalyticsRequest = async (req, res) => {
   const monetizationPointer = decodeURIComponent(path[3]);
 
   try {
-    res = _setCorsHeaders(res);
+    res = setCorsHeaders(res);
     const { method } = req;
     if (method === 'OPTIONS') {
       res.end();
