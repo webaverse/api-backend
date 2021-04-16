@@ -69,7 +69,60 @@ async function putRedisItem(id, data, TableName) {
 }
 
 async function getRedisAllItems(TableName = defaultDynamoTable) {
-  throw new Error('not implemented');
+  // console.time('lol 1');
+  const keys = await new Promise((accept, reject) => {
+    redisClient.keys(`${TableName}:*`, (err, result) => {
+      if (!err) {
+        accept(result);
+      } else {
+        reject(err);
+      }
+    });
+  });
+  // console.timeEnd('lol 1');
+  
+  // console.time('lol 2');
+  const _runJobs = jobs => new Promise((accept, reject) => {
+    const maxTasksInFlight = 100;
+    let tasksInFlight = 0;
+    const _recurse = async () => {
+      if (tasksInFlight < maxTasksInFlight && jobs.length > 0) {
+        tasksInFlight++;
+        try {
+          await jobs.shift()();
+        } catch(err) {
+          console.warn(err);
+        } finally {
+          tasksInFlight--;
+        }
+        _recurse();
+      } else if (tasksInFlight === 0) {
+        accept();
+      }
+    };
+    for (let i = 0; i < jobs.length; i++) {
+      _recurse();
+    }
+  });
+  
+  const items = [];
+  await _runJobs(keys.map(k => async () => {
+    // console.time('inner 1: ' + k);
+    const item = await new Promise((accept, reject) => {
+      redisClient.hgetall(k, (err, result) => {
+        if (!err) {
+          accept(result);
+        } else {
+          reject(err);
+        }
+      });
+    });
+    // console.timeEnd('inner 1: ' + k);
+    items.push(item);
+  }));
+  // console.timeEnd('lol 2');
+  return items;
+
   /* const params = {
     TableName,
   };
