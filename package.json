@@ -6,7 +6,8 @@
   "scripts": {
     "start": "sudo $(which node) $(which forever) start -a -l forever.log -o stdout.log -e stderr.log src/index.js",
     "stop": "sudo $(which node) $(which forever) stop src/index.js",
-    "dev": "sudo $(which node) src/index.js"
+    "dev": "sudo $(which node) src/index.js",
+    "dev-api-server": "nodemon src/server.js"
   },
   "repository": {
     "type": "git",
@@ -23,6 +24,8 @@
     "bip39": "^3.0.2",
     "dotenv": "^8.2.0",
     "ethereumjs-wallet": "^1.0.1",
+    "express": "^4.17.1",
+    "express-jsdoc-swagger": "^1.5.0",
     "form-urlencoded": "^4.2.1",
     "http-proxy": "^1.18.1",
     "mime": "^2.4.6",
@@ -40,6 +43,6 @@
   "devDependencies": {
     "eslint": "^7.24.0",
     "forever": "^3.0.0",
-    "nodemon": "^2.0.4"
+    "nodemon": "^2.0.7"
   }
 }
