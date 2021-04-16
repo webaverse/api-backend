@@ -1,15 +1,12 @@
 const path = require('path');
 const url = require('url');
 const fs = require('fs').promises;
-// const https = require('https');
-// const { putObject, uploadFromStream } = require('../aws.js');
-// const crypto = require('crypto');
 const child_process = require('child_process');
-// const mime = require('mime');
-const {_setCorsHeaders, getExt} = require('../utils.js');
 const AWS = require('aws-sdk');
 const ps = require('ps-node');
-let config = require('fs').existsSync('./config.json') ? require('../config.json') : null;
+const { _setCorsHeaders } = require('../utils.js');
+
+let config = require('fs').existsSync('../../config.json') ? require('../../config.json') : null;
 
 const accessKeyId = process.env.accessKeyId || config.accessKeyId;
 const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
@@ -23,8 +20,7 @@ const awsConfig = new AWS.Config({
   }),
   region: 'us-west-1',
 });
-// const ddb = new AWS.DynamoDB(awsConfig);
-// const ddbd = new AWS.DynamoDB.DocumentClient(awsConfig);
+
 const s3 = new AWS.S3(awsConfig);
 
 const jsPath = '../dialog/index.js';
@@ -63,12 +59,12 @@ class WorldManager {
       ps.lookup({
         command: 'node',
         // psargs: 'ux',
-      }, function(err, results) {
+      }, function (err, results) {
         if (!err) {
           results = results
             .filter(w => w.arguments[0] === jsPath)
             .map(w => {
-              const {pid} = w;
+              const { pid } = w;
               let [_, name, publicIp, privateIp, port] = w.arguments;
               port = parseInt(port, 10);
               return {
@@ -82,11 +78,6 @@ class WorldManager {
           console.log('got load world results', results);
           accept(results);
         } else {
-          /* resultList.forEach(function( process ){
-            if( process ){
-              console.log( 'PID: %s, COMMAND: %s, ARGUMENTS: %s', process.pid, process.command, process.arguments );
-            }
-          }); */
           reject(err);
         }
       });
@@ -107,7 +98,7 @@ class WorldManager {
             }).promise();
             console.log('got object', o);
             b = o.Body;
-          } catch(err) {
+          } catch (err) {
             if (err.code === 'NoSuchKey') {
               // nothing
             } else {
@@ -116,16 +107,15 @@ class WorldManager {
             b = null;
           }
           const dataFilePath = path.join(path.dirname(jsPath), 'data', name + '.bin');
-          // console.log('placing data', b && b.byteLength);
           if (b) {
-            await fs.writeFile(dataFilePath, b); 
+            await fs.writeFile(dataFilePath, b);
           }
 
           const fullchain = path.join('..', 'exokit-backend', 'certs', 'fullchain.pem');
-          let fullChainExists = fs.existsSync(fullchain);       
+          let fullChainExists = fs.existsSync(fullchain);
           const privkey = path.join('..', 'exokit-backend', 'certs', 'privkey.pem');
-          let privkeyExists = fs.existsSync(privkey);     
-          if(!fullChainExists || !privkeyExists){
+          let privkeyExists = fs.existsSync(privkey);
+          if (!fullChainExists || !privkeyExists) {
             console.warn("WARNING: Couldn't retrieve SSL certs locally");
           }
           const port = this.findPort();
@@ -150,7 +140,7 @@ class WorldManager {
             },
           });
 
-          
+
           cp.name = name;
           cp.dataFilePath = dataFilePath;
           cp.stdin.end();
@@ -269,15 +259,15 @@ const worldManager = new WorldManager();
 
 const _handleWorldsRequest = async (req, res) => {
   try {
-    const {method, headers, url: u} = req;
+    const { method, headers, url: u } = req;
     const o = url.parse(u);
     const match = decodeURIComponent(o.path).match(/^\/([a-z0-9\-\ \.]+)$/i);
     const p = match && match[1];
 
     res = _setCorsHeaders(res);
-    
-    console.log('get worlds request', {method, headers, o, p});
-    
+
+    console.log('get worlds request', { method, headers, o, p });
+
     if (method === 'OPTIONS') {
       res.end();
     } else if (method === 'GET' && o.path == '/') {
@@ -291,7 +281,7 @@ const _handleWorldsRequest = async (req, res) => {
         }));
       } else {
         res.statusCode = 404;
-        res.end(JSON.stringify({error: 'world not found'}));
+        res.end(JSON.stringify({ error: 'world not found' }));
       }
     } else if (method === 'POST' && p) {
       const name = p;
@@ -303,7 +293,7 @@ const _handleWorldsRequest = async (req, res) => {
         }));
       } else {
         res.statusCode = 400;
-        res.end(JSON.stringify({error: 'name already taken'}));
+        res.end(JSON.stringify({ error: 'name already taken' }));
       }
     } else if (method === 'DELETE' && p) {
       const name = p;
@@ -313,7 +303,7 @@ const _handleWorldsRequest = async (req, res) => {
         res.end();
       } else {
         res.statusCode = 404;
-        res.end(JSON.stringify({error: 'world not found'}));
+        res.end(JSON.stringify({ error: 'world not found' }));
       }
     } else {
       res.statusCode = 404;

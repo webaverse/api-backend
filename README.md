@@ -12,8 +12,11 @@ Node server hosted on AWS, mainly used for REST endpoints.
 {
     "accessKeyId": "<ACCESS_KEY_ID>",
     "secretAccessKey": "<SECRET_ACCESS_KEY>"
+    ...
 }
 ```
+
+... or you can use dotenv. Consult the .default files for a complete list of environment variables to use.
 
 You can get these credentials from Avaer.
 

@@ -1,17 +1,7 @@
-const path = require('path');
-const stream = require('stream');
-const fs = require('fs');
 const url = require('url');
-const querystring = require('querystring');
 const http = require('http');
-const https = require('https');
-const crypto = require('crypto');
-const zlib = require('zlib');
-const child_process = require('child_process');
 const mime = require('mime');
-
-const {getObject, putObject} = require('../aws.js');
-const puppeteer = require('puppeteer');
+const { getObject, putObject } = require('../aws.js');
 const browserManager = require('../browser-manager.js');
 
 const PREVIEW_HOST = '127.0.0.1';
@@ -45,24 +35,28 @@ let cbIndex = 0;
 const cbs = {};
 
 (async () => {
-browser = await browserManager.getBrowser();
+  browser = await browserManager.getBrowser();
 
-const server = http.createServer((req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', '*');
-  res.setHeader('Access-Control-Allow-Methods', '*');
-  if (req.method === 'OPTIONS') {
-    res.end();
-  } else if (req.method === 'POST') {
-    const match = req.url.match(/^\/([0-9]+)/);
-    // console.log('callback server 1', req.url, !!match);
-    if (match) {
-      const index = parseInt(match[1], 10);
-      const cb = cbs[index];
-      // console.log('callback server 2', req.url, index, !!cb);
-      if (cb) {
-        delete cbs[index];
-        cb({req, res});
+  const server = http.createServer((req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+    if (req.method === 'OPTIONS') {
+      res.end();
+    } else if (req.method === 'POST') {
+      const match = req.url.match(/^\/([0-9]+)/);
+      // console.log('callback server 1', req.url, !!match);
+      if (match) {
+        const index = parseInt(match[1], 10);
+        const cb = cbs[index];
+        // console.log('callback server 2', req.url, index, !!cb);
+        if (cb) {
+          delete cbs[index];
+          cb({ req, res });
+        } else {
+          res.statusCode = 404;
+          res.end();
+        }
       } else {
         res.statusCode = 404;
         res.end();
@@ -71,13 +65,9 @@ const server = http.createServer((req, res) => {
       res.statusCode = 404;
       res.end();
     }
-  } else {
-    res.statusCode = 404;
-    res.end();
-  }
-});
-server.on('error', serverPromise.reject.bind(serverPromise));
-server.listen(PREVIEW_PORT, PREVIEW_HOST, serverPromise.accept.bind(serverPromise));
+  });
+  server.on('error', serverPromise.reject.bind(serverPromise));
+  server.listen(PREVIEW_PORT, PREVIEW_HOST, serverPromise.accept.bind(serverPromise));
 })();
 
 const _handlePreviewRequest = async (req, res) => {
@@ -119,11 +109,11 @@ const _handlePreviewRequest = async (req, res) => {
       }
     }
   })();
-  const {query = {}} = u;
+  const { query = {} } = u;
   const cache = !query['nocache'];
   if (spec) {
-    const {url, hash, ext, type} = spec;
-    console.log('preview request', {hash, ext, type, cache});
+    const { url, hash, ext, type } = spec;
+    console.log('preview request', { hash, ext, type, cache });
     const key = `${hash}/${ext}/${type}`;
     const o = cache ? await (async () => {
       try {
@@ -131,7 +121,7 @@ const _handlePreviewRequest = async (req, res) => {
           bucketNames.preview,
           key,
         );
-      } catch(err) {
+      } catch (err) {
         // console.warn(err);
         return null;
       }
@@ -162,7 +152,7 @@ const _handlePreviewRequest = async (req, res) => {
       await page.goto(`https://app.webaverse.com/screenshot.html?url=${url}&hash=${hash}&ext=${ext}&type=${type}&dst=http://${PREVIEW_HOST}:${PREVIEW_PORT}/` + index);
       // console.log('load 2');
 
-      const {req: proxyReq, res: proxyRes} = await p;
+      const { req: proxyReq, res: proxyRes } = await p;
 
       // console.log('load 3');
 

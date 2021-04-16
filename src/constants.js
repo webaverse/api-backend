@@ -10,7 +10,6 @@ const accountKeys = [
   'homeSpaceExt',
   'homeSpacePreview',
   'ftu',
-  // 'mainnetAddress',
   'addressProofs',
 ];
 const ids = {

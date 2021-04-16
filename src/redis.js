@@ -1,12 +1,10 @@
-const stream = require('stream');
 const redis = require('redis');
 const redisearch = require('redis-redisearch');
-redisearch(redis);
-const {makePromise} = require('./utils.js');
-const {ids} = require('./constants.js');
-const {redisKey} = require('./config.json');
+const { makePromise } = require('./utils.js');
+const { ids } = require('./constants.js');
+const { redisKey } = require('../config.json');
 
-// c = r.createClient(); c.auth('lol', err => {c.hset('cities', 'id', 'A Town Created from Grafting.', err => { c.hget('cities', 'id', console.log); }); c.on('error', console.warn); }); c.ft_create.apply(c, 'idx SCHEMA id TEXT SORTABLE'.split(' ').concat([console.warn])); 1
+redisearch(redis);
 
 let redisClient = null;
 let loadPromise = null;
@@ -14,13 +12,17 @@ async function connect(port, host) {
   if (!loadPromise) {
     loadPromise = new Promise((accept, reject) => {
       redisClient = redis.createClient(port, host);
-      redisClient.auth(redisKey, err => {
-        if (!err) {
-          accept();
-        } else {
-          reject(err);
-        }
-      });
+      try {
+        redisClient.auth(redisKey, err => {
+          if (!err) {
+            accept();
+          } else {
+            reject(err);
+          }
+        });
+      } catch (error) {
+        console.error("Unable to connect to redis -- is redis running?");
+      }
     });
   }
   await loadPromise;
@@ -36,14 +38,13 @@ async function getRedisItem(id, TableName) {
       for (const k in result) {
         result[k] = JSON.parse(result[k]);
       }
-      // console.log('got result', result);
       p.accept({
         Item: result,
       });
     } else {
       p.reject(err);
     }
-  }); 
+  });
   return await p;
 }
 
@@ -54,23 +55,21 @@ async function putRedisItem(id, data, TableName) {
   for (const k in data) {
     args.push(k, JSON.stringify(data[k]));
   }
-  // console.log('putting', args);
+
   const p = makePromise();
   args.push(err => {
     if (!err) {
-      // console.log('accept');
       p.accept();
     } else {
       console.warn('error', err);
       p.reject(err);
     }
   });
-  redisClient.hmset.apply(redisClient, args); 
+  redisClient.hmset.apply(redisClient, args);
   await p;
 }
 
 async function getRedisAllItems(TableName = defaultDynamoTable) {
-  // console.time('lol 1');
   let keys = await new Promise((accept, reject) => {
     redisClient.keys(`${TableName}:*`, (err, result) => {
       if (!err) {
@@ -80,12 +79,9 @@ async function getRedisAllItems(TableName = defaultDynamoTable) {
       }
     });
   });
-  // console.log('got old keys', keys, {lastCachedBlockAccountId: ids.lastCachedBlockAccount});
   const filterKey = `${TableName}:${ids.lastCachedBlockAccount}`;
   keys = keys.filter(key => key !== filterKey);
-  // console.timeEnd('lol 1');
-  
-  // console.time('lol 2');
+
   const _runJobs = jobs => new Promise((accept, reject) => {
     const maxTasksInFlight = 100;
     let tasksInFlight = 0;
@@ -94,7 +90,7 @@ async function getRedisAllItems(TableName = defaultDynamoTable) {
         tasksInFlight++;
         try {
           await jobs.shift()();
-        } catch(err) {
+        } catch (err) {
           console.warn(err);
         } finally {
           tasksInFlight--;
@@ -108,10 +104,9 @@ async function getRedisAllItems(TableName = defaultDynamoTable) {
       _recurse();
     }
   });
-  
+
   const items = [];
   await _runJobs(keys.map(k => async () => {
-    // console.time('inner 1: ' + k);
     const item = await new Promise((accept, reject) => {
       redisClient.hgetall(k, (err, result) => {
         if (!err) {
@@ -121,24 +116,9 @@ async function getRedisAllItems(TableName = defaultDynamoTable) {
         }
       });
     });
-    // console.timeEnd('inner 1: ' + k);
     items.push(item);
   }));
-  // console.timeEnd('lol 2');
   return items;
-
-  /* const params = {
-    TableName,
-  };
-
-  try {
-    const o = await ddbd.scan(params).promise();
-    const items = (o && o.Items) || [];
-    return items;
-  } catch (e) {
-    console.error(e);
-    return null;
-  } */
 }
 
 const parseRedisItems = result => {

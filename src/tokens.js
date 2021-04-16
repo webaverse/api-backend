@@ -1,23 +1,20 @@
-const {accountKeys, storageHost} = require('./constants.js');
-const {getBlockchain, getPastEvents} = require('./blockchain.js');
+const { accountKeys, storageHost } = require('./constants.js');
+const { getBlockchain, getPastEvents } = require('./blockchain.js');
 
 const zeroAddress = '0x0000000000000000000000000000000000000000';
 const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
 const _log = async (text, p) => {
-  // console.log('start pull', text);
   try {
     const r = await p;
-    // console.log('ok pull', text, JSON.stringify(r).slice(0, 80));
     return r;
-  } catch(err) {
+  } catch (err) {
     console.log('error pull', text, err);
   }
-  // console.log('end pull', text);
 };
 function _jsonParse(s) {
   try {
     return JSON.parse(s);
-  } catch(err) {
+  } catch (err) {
     return null;
   }
 }
@@ -85,7 +82,6 @@ const _fetchAccount = async (address, chainName) => {
   };
 };
 const _filterByTokenId = tokenId => entry => {
-  // console.log('got entry', entry);
   return parseInt(entry.returnValues.tokenId, 10) === tokenId;
 };
 const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation, currentAddress) => {
@@ -112,8 +108,6 @@ const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation, curren
     currentLocation = nextLocation;
     currentAddress = withdraw.returnValues['from'];
 
-    // console.log('sliced 1');
-
     return [
       deposits,
       withdraws,
@@ -123,8 +117,6 @@ const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation, curren
   } else if (deposits.length > 0) {
     currentLocation += '-stuck';
 
-    // console.log('sliced 2');
-
     return [
       deposits,
       withdraws,
@@ -132,14 +124,12 @@ const _cancelEntry = (deposits, withdraws, currentLocation, nextLocation, curren
       currentAddress,
     ];
   } else {
-    // console.log('sliced 3');
-    
     return null;
   }
 };
 const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries, currentAddress) => {
   let currentLocation = 'mainnetsidechain';
-  
+
   console.log('cancel entries', JSON.stringify({
     mainnetDepositedEntries,
     mainnetWithdrewEntries,
@@ -148,15 +138,13 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
     polygonDepositedEntries,
     polygonWithdrewEntries,
   }, null, 2));
-  
+
   // swap transfers
   {
     let changed = true;
     while (changed) {
       changed = false;
-      
-      console.log('loop start');
-      
+
       // sidechain -> mainnet
       {
         const result = _cancelEntry(sidechainDepositedEntries, mainnetWithdrewEntries, currentLocation, 'mainnet', currentAddress);
@@ -166,7 +154,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
           currentLocation = result[2];
           currentAddress = result[3];
           changed = true;
-        
+
           console.log('sidechain -> mainnet', !/stuck/.test(result[2]), currentLocation, currentAddress, JSON.stringify({
             mainnetDepositedEntries: mainnetDepositedEntries.length,
             mainnetWithdrewEntries: mainnetWithdrewEntries.length,
@@ -175,7 +163,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
             polygonDepositedEntries: polygonDepositedEntries.length,
             polygonWithdrewEntries: polygonWithdrewEntries.length,
           }));
-        
+
           {
             const result2 = _cancelEntry(mainnetDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
             if (result2 && !/stuck/.test(result2[2])) {
@@ -184,7 +172,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
               currentLocation = result2[2];
               currentAddress = result2[3];
               changed = true;
-              
+
               console.log('mainnet -> sidechain', !/stuck/.test(result[2]), currentLocation, currentAddress, JSON.stringify({
                 mainnetDepositedEntries: mainnetDepositedEntries.length,
                 mainnetWithdrewEntries: mainnetWithdrewEntries.length,
@@ -215,7 +203,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
           }));
         }
       }
-      
+
       // sidechain -> polygon
       {
         const result = _cancelEntry(sidechainDepositedEntries, polygonWithdrewEntries, currentLocation, 'polygon', currentAddress);
@@ -225,7 +213,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
           currentLocation = result[2];
           currentAddress = result[3];
           changed = true;
-        
+
           console.log('sidechain -> polygon', !/stuck/.test(result[2]), currentLocation, currentAddress, JSON.stringify({
             mainnetDepositedEntries: mainnetDepositedEntries.length,
             mainnetWithdrewEntries: mainnetWithdrewEntries.length,
@@ -234,7 +222,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
             polygonDepositedEntries: polygonDepositedEntries.length,
             polygonWithdrewEntries: polygonWithdrewEntries.length,
           }));
-        
+
           const result2 = _cancelEntry(polygonDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
           if (result2 && !/stuck/.test(result2[2])) {
             polygonDepositedEntries = result2[0];
@@ -242,7 +230,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
             currentLocation = result2[2];
             currentAddress = result2[3];
             changed = true;
-            
+
             console.log('polygon -> sidechain', !/stuck/.test(result[2]), currentLocation, currentAddress, JSON.stringify({
               mainnetDepositedEntries: mainnetDepositedEntries.length,
               mainnetWithdrewEntries: mainnetWithdrewEntries.length,
@@ -280,7 +268,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
     let changed = true;
     while (changed) {
       changed = false;
-      
+
       // sidechain -> sidechain
       {
         const result = _cancelEntry(sidechainDepositedEntries, sidechainWithdrewEntries, currentLocation, 'mainnetsidechain', currentAddress);
@@ -290,7 +278,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
           // currentLocation = result[2];
           // currentAddress = result[3];
           changed = true;
-          
+
           console.log('sidechain -> sidechain', !/stuck/.test(result[2]), currentLocation, currentAddress, JSON.stringify({
             mainnetDepositedEntries: mainnetDepositedEntries.length,
             mainnetWithdrewEntries: mainnetWithdrewEntries.length,
@@ -319,7 +307,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
           // currentLocation = result[2];
           // currentAddress = result[3];
           changed = true;
-          
+
           console.log('mainnet -> mainnet', !/stuck/.test(result[2]), currentLocation, currentAddress, JSON.stringify({
             mainnetDepositedEntries: mainnetDepositedEntries.length,
             mainnetWithdrewEntries: mainnetWithdrewEntries.length,
@@ -348,7 +336,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
           // currentLocation = result[2];
           // currentAddress = result[3];
           changed = true;
-          
+
           console.log('polygon -> polygon', !/stuck/.test(result[2]), currentLocation, currentAddress, JSON.stringify({
             mainnetDepositedEntries: mainnetDepositedEntries.length,
             mainnetWithdrewEntries: mainnetWithdrewEntries.length,
@@ -372,11 +360,8 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
   }
   if ([
     mainnetDepositedEntries,
-    // mainnetWithdrewEntries,
     sidechainDepositedEntries,
-    // sidechainWithdrewEntries,
     polygonDepositedEntries,
-    // polygonWithdrewEntries,
   ].some(depositedEntries => depositedEntries.length > 0)) {
     currentLocation += '-stuck';
   }
@@ -394,19 +379,16 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
 };
 
 const formatToken = contractName => chainName => async (token, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
-  // console.log('format token', {id: token.id});
-  
+
   const tokenId = parseInt(token.id, 10);
-  const {name, ext, unlockable, hash} = token;
+  const { name, ext, unlockable, hash } = token;
 
   const {
     contracts,
   } = await getBlockchain();
 
   const {
-    mainnetChainName,
     sidechainChainName,
-    polygonChainName,
   } = getChainNames(chainName);
 
   let [
@@ -415,12 +397,12 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     description,
     sidechainMinterAddress,
   ] = await Promise.all([
-    _log('formatToken 1' + JSON.stringify({id: token.id}), _fetchAccountForMinter(tokenId, sidechainChainName)),
-    _log('formatToken 2' + JSON.stringify({id: token.id}), _fetchAccountForOwner(tokenId, sidechainChainName)),
-    _log('formatToken 3' + JSON.stringify({id: token.id}), contracts[sidechainChainName].NFT.methods.getMetadata(token.hash, 'description').call()),
+    _log('formatToken 1' + JSON.stringify({ id: token.id }), _fetchAccountForMinter(tokenId, sidechainChainName)),
+    _log('formatToken 2' + JSON.stringify({ id: token.id }), _fetchAccountForOwner(tokenId, sidechainChainName)),
+    _log('formatToken 3' + JSON.stringify({ id: token.id }), contracts[sidechainChainName].NFT.methods.getMetadata(token.hash, 'description').call()),
     contracts[sidechainChainName].NFT.methods.getMinter(tokenId).call(),
   ]);
-  
+
   // console.log('got all contract sources', {id: token.id});
 
   /* console.log('got entries 1', {
@@ -439,7 +421,7 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
   sidechainWithdrewEntries = sidechainWithdrewEntries.filter(_filterByTokenIdLocal);
   polygonDepositedEntries = polygonDepositedEntries.filter(_filterByTokenIdLocal);
   polygonWithdrewEntries = polygonWithdrewEntries.filter(_filterByTokenIdLocal);
-  
+
   // console.log('filter by token id', tokenId, JSON.stringify({sidechainDepositedEntries}, null, 2));
 
   const result = _cancelEntries(
@@ -468,7 +450,7 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     polygonDepositedEntries,
     polygonWithdrewEntries,
   }); */
-  
+
   // console.log('mainnet withdrew entries', sidechainDepositedEntries);
 
   /* const isStuckForward = sidechainDepositedEntries.length > 0;
@@ -523,16 +505,13 @@ const formatLand = contractName => chainName => async (token, storeEntries) => {
   } = await getBlockchain();
 
   const {
-    mainnetChainName,
     sidechainChainName,
-    polygonChainName,
   } = getChainNames(chainName);
 
   const owner = await _fetchAccount(token.owner, sidechainChainName);
 
   const tokenId = parseInt(token.id, 10);
-  // console.log('got token', token);
-  const {name, hash, ext, unlockable} = token;
+  const { name, hash, ext, unlockable } = token;
   const [
     description,
     rarity,
@@ -550,9 +529,9 @@ const formatLand = contractName => chainName => async (token, storeEntries) => {
     typeof extentsJson[0][0] === 'number' && typeof extentsJson[0][1] === 'number' && typeof extentsJson[0][2] === 'number' &&
     typeof extentsJson[1][0] === 'number' && typeof extentsJson[1][1] === 'number' && typeof extentsJson[1][2] === 'number'
   ) ? [
-    (extentsJson[1][0] + extentsJson[0][0])/2,
-    (extentsJson[1][1] + extentsJson[0][1])/2,
-    (extentsJson[1][2] + extentsJson[0][2])/2,
+    (extentsJson[1][0] + extentsJson[0][0]) / 2,
+    (extentsJson[1][1] + extentsJson[0][1]) / 2,
+    (extentsJson[1][2] + extentsJson[0][2]) / 2,
   ] : null;
   return {
     id: tokenId,
@@ -560,7 +539,6 @@ const formatLand = contractName => chainName => async (token, storeEntries) => {
     description,
     image: coord ? `https://land-preview.exokit.org/32/${coord[0]}/${coord[2]}?${extentsJson ? `e=${JSON.stringify(extentsJson)}` : ''}` : null,
     external_url: `https://app.webaverse.com?${coord ? `c=${JSON.stringify(coord)}` : ''}`,
-    // animation_url: `${storageHost}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
     properties: {
       name,
       hash,
@@ -598,54 +576,31 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
     });
     throw new Error('invalid arguments');
   }
-  
+
   chainName = 'mainnetsidechain'; // XXX hack; get rid of this argument
 
   const {
     contracts,
   } = await getBlockchain();
 
-  // console.log('get chain nft 1', tokenId);
-
   const [
     token,
-    /* mainnetToken,
-    polygonToken, */
   ] = await Promise.all([
     (async () => {
       const tokenSrc = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
       const token = _copy(tokenSrc);
-      const {hash} = token;
+      const { hash } = token;
       token.unlockable = await contracts[chainName].NFT.methods.getMetadata(hash, 'unlockable').call();
       if (!token.unlockable) {
         token.unlockable = '';
       }
       return token;
     })(),
-    /* (async () => {
-      if (isSidechain && isAll) {
-        const mainnetToken = await contracts[isTestnet ? 'testnet' : 'mainnet'][contractName].methods.tokenByIdFull(tokenId).call();
-        return mainnetToken;
-      } else {
-        return null;
-      }
-    })(),
-    (async () => {
-      if (isSidechain && isAll) {
-        const polygonToken = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call(isTestnet ? 'testnetpolygon' : 'polygon');
-        return polygonToken;
-      } else {
-        return null;
-      }
-    })(), */
   ]);
-  
-  // console.log('get chain nft 2', tokenId, token, contractName);
-  
+
   try {
     if (_isValidToken(token)) {
       if (contractName === 'NFT') {
-        // console.log('start call');
         const r = await formatToken(contractName)(chainName)(
           token,
           storeEntries,
@@ -656,7 +611,6 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
           polygonDepositedEntries,
           polygonWithdrewEntries,
         );
-        // console.log('end call');
         return r;
       } else if (contractName === 'LAND') {
         return await formatLand(contractName)(chainName)(
@@ -675,7 +629,7 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
     } else {
       return null;
     }
-  } catch(err) {
+  } catch (err) {
     console.warn(err);
     return null;
   }
@@ -695,10 +649,10 @@ const getChainOwnerNft = contractName => chainName => async (address, i, storeEn
     });
     throw new Error('invalid arguments');
   }
-  
+
   const tokenSrc = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
   const token = _copy(tokenSrc);
-  const {hash} = token;
+  const { hash } = token;
   token.unlockable = await contracts[chainName][contractName].methods.getMetadata(hash, 'unlockable').call();
   if (!token.unlockable) {
     token.unlockable = '';
@@ -730,7 +684,7 @@ const getChainOwnerNft = contractName => chainName => async (address, i, storeEn
     } else {
       return null;
     }
-  } catch(err) {
+  } catch (err) {
     console.warn(err);
     return null;
   }
@@ -739,19 +693,18 @@ async function getChainAccount({
   address,
   chainName,
 } = {}) {
-  const {contracts} = await getBlockchain();
+  const { contracts } = await getBlockchain();
   const contract = contracts[chainName];
-  
+
   const account = {
     address,
   };
 
   await Promise.all(accountKeys.map(async accountKey => {
     const accountValue = await contract.Account.methods.getMetadata(address, accountKey).call();
-    // console.log('get value', accountKey, accountValue);
     account[accountKey] = accountValue;
   }));
-  
+
   return account;
 }
 
@@ -759,7 +712,7 @@ const getStoreEntries = async chainName => {
   const {
     contracts,
   } = await getBlockchain();
-  
+
   const numStores = await contracts[chainName].Trade.methods.numStores().call();
 
   const promises = Array(numStores);
@@ -767,23 +720,23 @@ const getStoreEntries = async chainName => {
   for (let i = 0; i < numStores; i++) {
     promises[i] =
       contracts[chainName].Trade.methods.getStoreByIndex(i + 1)
-      .call()
-      .then(store => {
-        if (store.live) {
-          const id = parseInt(store.id, 10);
-          const seller = store.seller.toLowerCase();
-          const tokenId = parseInt(store.tokenId, 10);
-          const price = parseInt(store.price, 10);
-          return {
-            id,
-            seller,
-            tokenId,
-            price,
-          };
-        } else {
-          return null;
-        }
-      });
+        .call()
+        .then(store => {
+          if (store.live) {
+            const id = parseInt(store.id, 10);
+            const seller = store.seller.toLowerCase();
+            const tokenId = parseInt(store.tokenId, 10);
+            const price = parseInt(store.price, 10);
+            return {
+              id,
+              seller,
+              tokenId,
+              price,
+            };
+          } else {
+            return null;
+          }
+        });
   }
   let storeEntries = await Promise.all(promises);
   storeEntries = storeEntries.filter(store => store !== null);
@@ -809,13 +762,6 @@ const getAllWithdrawsDeposits = contractName => async chainName => {
     polygonChainName,
   } = getChainNames(chainName);
 
-  /* const mainnetContract = contracts[mainnetChainName];
-  const mainnetProxyContract = mainnetContract[contractName + 'Proxy'];
-  const sidechainContract = contracts[sidechainChainName];
-  const sidechainProxyContract = sidechainContract[contractName + 'Proxy'];
-  const polygonContract = contracts[polygonChainName];
-  const polygonProxyContract = polygonContract[contractName + 'Proxy']; */
-  
   const [
     mainnetDepositedEntries,
     mainnetWithdrewEntries,
@@ -867,15 +813,7 @@ const getAllWithdrawsDeposits = contractName => async chainName => {
       toBlock: 'latest',
     })),
   ]);
-  /* console.log('latched', {
-    chainName,
-    mainnetDepositedEntries,
-    mainnetWithdrewEntries,
-    sidechainDepositedEntries,
-    sidechainWithdrewEntries,
-    polygonDepositedEntries,
-    polygonWithdrewEntries,
-  }); */
+
   return {
     mainnetDepositedEntries,
     mainnetWithdrewEntries,
@@ -890,8 +828,6 @@ module.exports = {
   getChainNft,
   getChainAccount,
   getChainToken,
-  // formatToken,
-  // formatLand,
   getStoreEntries,
   getAllWithdrawsDeposits,
 };

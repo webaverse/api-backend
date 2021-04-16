@@ -3,21 +3,13 @@ const { _setCorsHeaders } = require('../utils.js');
 const blockchain = require('../blockchain.js');
 const accountManager = require('../account-manager.js');
 
-/* const _jsonParse = s => {
-   try {
-       return JSON.parse(s);
-   } catch(err) {
-       return null;
-   }
-}; */
-
 const _handleAccountsRequest = async (req, res) => {
     const request = url.parse(req.url);
     const path = request.path.split('/')[1];
     let match;
     try {
         res = _setCorsHeaders(res);
-        const {method} = req;
+        const { method } = req;
         if (method === 'OPTIONS') {
             res.end();
         } else if (method === 'GET') {
@@ -49,28 +41,28 @@ const _handleAccountsRequest = async (req, res) => {
             });
             req.on('end', async () => {
                 try {
-                  const b = Buffer.concat(bs);
-                  const s = b.toString('utf8');
+                    const b = Buffer.concat(bs);
+                    const s = b.toString('utf8');
 
-                  if (path === 'sendTransaction') {
-                    const spec = JSON.parse(s);
-                    const transaction = await blockchain.runTransaction(spec);
-                    res.setHeader('Content-Type', 'application/json');
-                    res.end(JSON.stringify(transaction, null, 2));
-                  } else {
-                    const userKeys = await accountManager.getAccount();
-                    res.setHeader('Content-Type', 'application/json');
-                    res.end(JSON.stringify(userKeys, null, 2));
-                  }
+                    if (path === 'sendTransaction') {
+                        const spec = JSON.parse(s);
+                        const transaction = await blockchain.runTransaction(spec);
+                        res.setHeader('Content-Type', 'application/json');
+                        res.end(JSON.stringify(transaction, null, 2));
+                    } else {
+                        const userKeys = await accountManager.getAccount();
+                        res.setHeader('Content-Type', 'application/json');
+                        res.end(JSON.stringify(userKeys, null, 2));
+                    }
                 } catch (err) {
-                  console.log(err);
-                  res.statusCode = 500;
-                  res.end(err.stack);
+                    console.log(err);
+                    res.statusCode = 500;
+                    res.end(err.stack);
                 }
             });
         } else {
-          res.statusCode = 404;
-          res.end();
+            res.statusCode = 404;
+            res.end();
         }
     } catch (err) {
         console.log(err);

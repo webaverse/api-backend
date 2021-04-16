@@ -1,6 +1,6 @@
 const AWS = require('aws-sdk');
 const blockchain = require('./blockchain.js');
-let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
+let config = require('fs').existsSync('../config.json') ? require('../config.json') : null;
 
 const accessKeyId = process.env.accessKeyId || config.accessKeyId;
 const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;

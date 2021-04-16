@@ -8,20 +8,20 @@ const crypto = require('crypto');
 const httpProxy = require('http-proxy');
 const ws = require('ws');
 const AWS = require('aws-sdk');
-const namegen = require('./namegen.js');
 const { default: formurlencoded } = require('form-urlencoded');
 const bip39 = require('bip39');
 const { hdkey } = require('ethereumjs-wallet');
-const { getRedisItem, getRedisAllItems, parseRedisItems } = require('./redis.js');
+
 const { makePromise } = require('./utils.js');
-const { getStoreEntries, getChainNft, getAllWithdrawsDeposits } = require('./tokens.js');
 const { getBlockchain } = require('./blockchain.js');
+const { connect: redisConnect, getRedisClient, getRedisItem, getRedisAllItems, parseRedisItems } = require('./redis.js');
+const { getStoreEntries, getChainNft, getAllWithdrawsDeposits } = require('./tokens.js');
 const { accountKeys, ids, nftIndexName, redisPrefixes, mainnetSignatureMessage, cacheHostUrl } = require('./constants.js');
-const { connect: redisConnect, getRedisClient } = require('./redis');
+const namegen = require('./namegen.js');
 
-let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
+let config = require('fs').existsSync('../config.json') ? require('../config.json') : null;
 
-const { worldManager, _handleWorldsRequest, _startWorldsRoute } = require('./routes/worlds.js');
+const { worldManager, _handleWorldsRequest } = require('./routes/worlds.js');
 const { _handleSignRequest } = require('./routes/sign.js');
 const { _handleUnlockRequest, _isCollaborator, _isSingleCollaborator } = require('./routes/unlock.js');
 const { _handleAnalyticsRequest } = require('./routes/analytics.js');
