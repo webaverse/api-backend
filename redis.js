@@ -3,6 +3,7 @@ const redis = require('redis');
 const redisearch = require('redis-redisearch');
 redisearch(redis);
 const {makePromise} = require('./utils.js');
+const {ids} = require('./constants.js');
 const {redisKey} = require('./config.json');
 
 // c = r.createClient(); c.auth('lol', err => {c.hset('cities', 'id', 'A Town Created from Grafting.', err => { c.hget('cities', 'id', console.log); }); c.on('error', console.warn); }); c.ft_create.apply(c, 'idx SCHEMA id TEXT SORTABLE'.split(' ').concat([console.warn])); 1
@@ -70,7 +71,7 @@ async function putRedisItem(id, data, TableName) {
 
 async function getRedisAllItems(TableName = defaultDynamoTable) {
   // console.time('lol 1');
-  const keys = await new Promise((accept, reject) => {
+  let keys = await new Promise((accept, reject) => {
     redisClient.keys(`${TableName}:*`, (err, result) => {
       if (!err) {
         accept(result);
@@ -79,6 +80,7 @@ async function getRedisAllItems(TableName = defaultDynamoTable) {
       }
     });
   });
+  keys = keys.filter(key => key !== ids.lastCachedBlockAccount);
   // console.timeEnd('lol 1');
   
   // console.time('lol 2');
