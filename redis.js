@@ -80,8 +80,9 @@ async function getRedisAllItems(TableName = defaultDynamoTable) {
       }
     });
   });
-  console.log('got old keys', keys, {lastCachedBlockAccountId: ids.lastCachedBlockAccount});
-  keys = keys.filter(key => key !== ids.lastCachedBlockAccount);
+  // console.log('got old keys', keys, {lastCachedBlockAccountId: ids.lastCachedBlockAccount});
+  const filterKey = `${TableName}:${ids.lastCachedBlockAccount}`;
+  keys = keys.filter(key => key !== filterKey);
   // console.timeEnd('lol 1');
   
   // console.time('lol 2');
