@@ -5,7 +5,7 @@ const pkg = require('../package.json');
 const options = {
   info: {
     version: pkg.version,
-    title: pkg.description,
+    title: "Webaverse API Documentation",
     description: "Documentation for the Webaverse API server",
     license: {
       name: pkg.license,
@@ -55,16 +55,20 @@ expressJSDocSwagger(app)(options);
 /**
  * POST /api/v1/wallet
  * @summary Create a wallet for a user
+ * @property {string} userId - Provide a unique token associated with this user (can be database account ID)
  * @return {WalletResponse} 200 - success response
  * @return {object} 403 - forbidden request response
- * @property {string} userId - Provide a unique token associated with this user (can be database account ID)
  */
  app.post('/api/v1/wallet', (req, res) => {
+
+
+
+
+  
   return res.json({
     address: "",
   });
 });
-
 
 /**
  * GET /api/v1/wallet
@@ -78,7 +82,7 @@ expressJSDocSwagger(app)(options);
     address: "",
   });
 });
-
+ 
 /**
  * GET /api/v1/tokens
  * @summary List tokens for a user
