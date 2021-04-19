@@ -1,6 +1,11 @@
 const express = require('express');
 const expressJSDocSwagger = require('express-jsdoc-swagger');
-const pkg = require('../package.json');
+
+const { createWallet } = require("./routes/wallet.js");
+const { listTokens, createToken, readToken, updateToken, deleteToken, sendToken, transferToken, readTokenRange } = require("./routes/tokens.js");
+const { getBlockchain } = require('../blockchain.js');
+
+const pkg = require('../../package.json');
 
 const options = {
   info: {
@@ -21,6 +26,12 @@ const options = {
 
 const app = express();
 const PORT = 3000;
+
+let blockchain;
+
+(async () => {
+  blockchain = await getBlockchain();
+})()
 
 expressJSDocSwagger(app)(options);
 
@@ -59,28 +70,8 @@ expressJSDocSwagger(app)(options);
  * @return {WalletResponse} 200 - success response
  * @return {object} 403 - forbidden request response
  */
- app.post('/api/v1/wallet', (req, res) => {
-
-
-
-
-  
-  return res.json({
-    address: "",
-  });
-});
-
-/**
- * GET /api/v1/wallet
- * @summary Get wallet for a user
- * @return {WalletResponse} 200 - success response
- * @return {object} 403 - forbidden request response
- * @property {string} userId - Provide a unique token associated with this user (can be database account ID)
- */
- app.get('/api/v1/wallet', (req, res) => {
-  return res.json({
-    address: "",
-  });
+ app.post('/api/v1/wallet', async (req, res) => {
+  return await createWallet(req, res);
 });
  
 /**
@@ -91,24 +82,31 @@ expressJSDocSwagger(app)(options);
  * @property {string} tokenId - Token to retrieve
  * @property {string} TODO - Update properties
  */
- app.get('/api/v1/token', (req, res) => {
-  return res.json({
-    address: "",
-  });
+ app.get('/api/v1/tokens/:address/:mainnetAddress', async (req, res) => {
+  return await listTokens(req, res, blockchain);
 });
 
 /**
- * GET /api/v1/token
+ * GET /api/v1/token/:tokenId
  * @summary Retrieve data for a non-fungible token
  * @return {TokenResponse} 200 - success response
  * @return {object} 403 - forbidden request response
  * @property {string} tokenId - Token to retrieve
- * @property {string} TODO - Update properties
  */
- app.get('/api/v1/token', (req, res) => {
-  return res.json({
-    address: "",
-  });
+ app.get('/api/v1/token/:tokenId', async (req, res) => {
+  return await readToken(req, res);
+});
+
+/**
+ * GET /api/v1/token/:tokenStartId/:tokenEndId
+ * @summary Retrieve a range of tokens
+ * @return {TokenResponse} 200 - success response
+ * @return {object} 403 - forbidden request response
+ * @property {string} tokenStartId - First token to retrieve
+ * @property {string} tokenEndId - Last token in range to retrieve
+ */
+ app.get('/api/v1/token/:tokenStartId/:tokenEndId', async (req, res) => {
+  return await readTokenRange(req, res);
 });
 
 /**
@@ -118,10 +116,8 @@ expressJSDocSwagger(app)(options);
  * @return {object} 403 - forbidden request response
  * @property {string} userId - Mint the token for this user
  */
- app.post('/api/v1/token', (req, res) => {
-  return res.json({
-    address: "",
-  });
+ app.post('/api/v1/token', async (req, res) => {
+  return await createToken(req, res, blockchain);
 });
 
 /**
@@ -132,10 +128,8 @@ expressJSDocSwagger(app)(options);
  * @property {string} tokenId - Token to update
  * @property {string} TODO - Update properties
  */
- app.put('/api/v1/token', (req, res) => {
-  return res.json({
-    address: "",
-  });
+ app.put('/api/v1/token', async (req, res) => {
+  return await updateToken(req, res, blockchain);
 });
 
 /**
@@ -145,10 +139,8 @@ expressJSDocSwagger(app)(options);
  * @return {object} 403 - forbidden request response
  * @property {string} tokenId - Token to delete
  */
- app.delete('/api/v1/token', (req, res) => {
-  return res.json({
-    address: "",
-  });
+ app.delete('/api/v1/token', async (req, res) => {
+  return await deleteToken(req, res, blockchain);
 });
 
 /**
@@ -160,10 +152,8 @@ expressJSDocSwagger(app)(options);
  * @property {string} senderId - Token sent by this user
  * @property {string} receiverId - Token received by this user
  */
- app.post('/api/v1/token/send', (req, res) => {
-  return res.json({
-    address: "",
-  });
+ app.post('/api/v1/token/send', async (req, res) => {
+  return await sendToken(req, res, blockchain);
 });
 
 /**
@@ -175,10 +165,8 @@ expressJSDocSwagger(app)(options);
  * @property {string} senderId - Token sent by this user
  * @property {string} receiverId - Token received by this user
  */
- app.post('/api/v1/token/transfer', (req, res) => {
-  return res.json({
-    address: "",
-  });
+ app.post('/api/v1/token/transfer', async (req, res) => {
+  return await transferToken(req, res, blockchain);
 });
 
 app.listen(PORT, () => console.log(`App listening at http://localhost:${PORT}`));

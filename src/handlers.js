@@ -6,10 +6,10 @@ const url = require('url');
 const { default: formurlencoded } = require('form-urlencoded');
 const bip39 = require('bip39');
 const { hdkey } = require('ethereumjs-wallet');
-const { makePromise, randomString } = require('./utils.js');
+const { makePromise, randomString, setCorsHeaders } = require('./utils.js');
 const { getBlockchain, BlockchainNetworks } = require('./blockchain.js');
 const { namegen } = require('./namegen.js');
-const { getRedisItem, getRedisAllItems, parseRedisItems } = require('./redis.js');
+const { getRedisItem, getRedisAllItems, parseRedisItems, getRedisClient } = require('./redis.js');
 const { getStoreEntries, getChainNft, getChainOwnerNft, getChainToken, getAllWithdrawsDeposits } = require('./tokens.js');
 const { isCollaborator, isSingleCollaborator } = require('./blockchain.js');
 const { ddb, ses } = require('./aws.js');
@@ -32,22 +32,17 @@ const {
     defaultAvatarPreview
 } = require('./constants.js');
 
+const redisClient = getRedisClient();
+
 let
     web3,
-    contracts,
-    redisClient;
-
+    contracts;
+    
 (async () => {
     const chain = await getBlockchain();
     contracts = chain.contracts;
     web3 = chain.web3;
 })()
-
-const _setCorsHeaders = res => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', '*');
-    res.setHeader('Access-Control-Allow-Methods', '*');
-};
 
 const _makeFakeAccount = address => {
     const account = {
@@ -294,7 +289,7 @@ const handleLogin = async (req, res) => {
                         }).promise();
 
                         // respond
-                        _setCorsHeaders(res);
+                        setCorsHeaders(res);
                         res.end(JSON.stringify({ mnemonic }));
                     } else {
                         _respond(403, JSON.stringify({
@@ -376,7 +371,7 @@ const handleLogin = async (req, res) => {
                                 const user = await _getUser(id) || _genKey(id);
                                 const { mnemonic } = user;
 
-                                _setCorsHeaders(res);
+                                setCorsHeaders(res);
                                 res.end(JSON.stringify({ mnemonic }));
                             } else {
                                 console.warn('discord oauth failed', j);
@@ -458,7 +453,7 @@ const handleLogin = async (req, res) => {
                         }).promise();
 
                         // respond
-                        _setCorsHeaders(res);
+                        setCorsHeaders(res);
                         res.end(JSON.stringify({ mnemonic }));
                     } else {
                         _respond(403, JSON.stringify({
@@ -509,7 +504,7 @@ const handleLogin = async (req, res) => {
 
                         const mnemonic = codeItem.Item.mnemonic.S;
 
-                        _setCorsHeaders(res);
+                        setCorsHeaders(res);
                         res.end(JSON.stringify({ mnemonic }));
                     } else {
                         _respond(400, JSON.stringify({
@@ -577,7 +572,7 @@ const handleEthereum = port => async (req, res) => { // XXX make this per-port
 const handleAccounts = () => async (req, res) => {
     const _respond = (statusCode, body) => {
         res.statusCode = statusCode;
-        _setCorsHeaders(res);
+        setCorsHeaders(res);
         res.end(body);
     };
     try {
@@ -586,7 +581,7 @@ const handleAccounts = () => async (req, res) => {
 
         if (method === 'OPTIONS') {
             // res.statusCode = 200;
-            _setCorsHeaders(res);
+            setCorsHeaders(res);
             res.end();
         } else if (method === 'GET') {
             if (p === '/') {
@@ -619,7 +614,7 @@ const handleAccounts = () => async (req, res) => {
 const handleOauth = async (req, res) => {
     const _respond = (statusCode, body) => {
         res.statusCode = statusCode;
-        _setCorsHeaders(res);
+        setCorsHeaders(res);
         res.end(body);
     };
 
@@ -711,7 +706,7 @@ const handleOauth = async (req, res) => {
 const handleProfile = chainName => async (req, res) => {
     const _respond = (statusCode, body) => {
         res.statusCode = statusCode;
-        _setCorsHeaders(res);
+        setCorsHeaders(res);
         res.end(body);
     };
 
@@ -754,7 +749,7 @@ const handleProfile = chainName => async (req, res) => {
                     tokens: tokens2,
                     loadout: tokens2.length > 0 ? tokens.slice(0, 1) : [],
                 };
-                _setCorsHeaders(res);
+                setCorsHeaders(res);
                 res.setHeader('Content-Type', 'application/json');
                 _respond(200, JSON.stringify(result));
             } else {
@@ -813,7 +808,7 @@ const handleProxyApp = (() => {
 const handleCachedNft = contractName => (chainName, isAll) => async (req, res) => {
     const _respond = (statusCode, body) => {
         res.statusCode = statusCode;
-        _setCorsHeaders(res);
+        setCorsHeaders(res);
         res.end(body);
     };
 
@@ -829,7 +824,7 @@ const handleCachedNft = contractName => (chainName, isAll) => async (req, res) =
                 let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
                 let token = o.Item;
 
-                _setCorsHeaders(res);
+                setCorsHeaders(res);
                 if (token) {
                     res.setHeader('Content-Type', 'application/json');
                     _respond(200, JSON.stringify(token));
@@ -875,7 +870,7 @@ const handleCachedNft = contractName => (chainName, isAll) => async (req, res) =
                         tokens = tokens.filter(token => !!token.name);
                     }
 
-                    _setCorsHeaders(res);
+                    setCorsHeaders(res);
                     res.setHeader('Content-Type', 'application/json');
                     _respond(200, JSON.stringify(tokens));
                 } else {
@@ -961,7 +956,7 @@ const handleCachedNft = contractName => (chainName, isAll) => async (req, res) =
 
                 const _isCollaborator = await isCollaborator(tokenId, address);
 
-                _setCorsHeaders(res);
+                setCorsHeaders(res);
                 res.setHeader('Content-Type', 'application/json');
                 _respond(200, JSON.stringify(_isCollaborator));
             } else if ((match = p.match(/^\/isSingleCollaborator\/([0-9]+)\/(0x[a-f0-9]+)$/i))) {
@@ -970,7 +965,7 @@ const handleCachedNft = contractName => (chainName, isAll) => async (req, res) =
 
                 const _isSingleCollaborator = await isSingleCollaborator(tokenId, address);
 
-                _setCorsHeaders(res);
+                setCorsHeaders(res);
                 res.setHeader('Content-Type', 'application/json');
                 _respond(200, JSON.stringify(_isSingleCollaborator));
             } else if ((match = req.url.match(/^\/search\?(.+)$/))) {
@@ -1042,7 +1037,7 @@ const handleCachedNft = contractName => (chainName, isAll) => async (req, res) =
 const handleChainNft = contractName => (chainName, isAll) => async (req, res) => {
     const _respond = (statusCode, body) => {
         res.statusCode = statusCode;
-        _setCorsHeaders(res);
+        setCorsHeaders(res);
         res.end(body);
     };
 
@@ -1077,7 +1072,7 @@ const handleChainNft = contractName => (chainName, isAll) => async (req, res) =>
                     polygonWithdrewEntries,
                 );
 
-                _setCorsHeaders(res);
+                setCorsHeaders(res);
                 res.setHeader('Content-Type', 'application/json');
                 _respond(200, JSON.stringify(token));
             } else if ((match = p.match(/^\/([0-9]+)-([0-9]+)$/))) {
@@ -1133,7 +1128,7 @@ const handleChainNft = contractName => (chainName, isAll) => async (req, res) =>
                         tokens = tokens.filter(token => !!token.name);
                     }
 
-                    _setCorsHeaders(res);
+                    setCorsHeaders(res);
                     res.setHeader('Content-Type', 'application/json');
                     _respond(200, JSON.stringify(tokens));
                 } else {
@@ -1223,7 +1218,7 @@ const handleLand = handleChainNft('LAND');
 const handleStore = chainName => async (req, res) => {
     const _respond = (statusCode, body) => {
         res.statusCode = statusCode;
-        _setCorsHeaders(res);
+        setCorsHeaders(res);
         res.end(body);
     };
 
