@@ -78,7 +78,10 @@ const privateIp = process.env.privateIp || config.privateIp;
 const storageHost = process.env.storageHost || config.storageHost;
 const ethereumHost = process.env.ethereumHost || config.ethereumHost;
 
+const mintingFee = process.env.mintingFee || config.mintingFee || 10;
+
 module.exports = {
+  mintingFee,
   ethereumHost,
   storageHost,
   publicIp,

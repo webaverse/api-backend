@@ -4,15 +4,14 @@ const { hdkey } = require('ethereumjs-wallet');
 
 const { makePromise, setCorsHeaders } = require('../../utils.js');
 const { getRedisItem, parseRedisItems, getRedisClient } = require('../../redis.js');
-const { redisPrefixes, mainnetSignatureMessage, nftIndexName } = require('../../constants.js');
+const { redisPrefixes, mainnetSignatureMessage, nftIndexName, mintingFee } = require('../../constants.js');
 const { ResponseStatus } = require("../enums.js");
 const { runSidechainTransaction } = require("../../tokens.js");
 
 const redisClient = getRedisClient();
 
-const network = process.env.PRODUCTION ? 'mainnet' : 'testnet';
-
-const mintingFee = 0;
+const { production } = require("../environment.js");
+const network = production ? 'mainnet' : 'testnet';
 
 // Takes an account as input
 async function listTokens(req, res, web3 ) {
@@ -196,31 +195,29 @@ async function readTokenRange(req, res) {
 }
 
 
-async function updateToken(req, res) {
+// async function updateToken(req, res) {
 
-}
+// }
 
-async function deleteToken(req, res) {
+// async function deleteToken(req, res) {
 
-}
+// }
 
-async function sendToken(req, res) {
+// async function sendToken(req, res) {
 
-}
+// }
 
-async function transferToken(req, res) {
+// async function transferToken(req, res) {
 
-}
+// }
 
 module.exports = {
     listTokens,
     createToken,
     readToken,
     readTokenRange,
-    updateToken,
-    deleteToken,
-    sendToken,
-    transferToken
+    // updateToken,
+    // deleteToken,
+    // sendToken,
+    // transferToken
 }
-
-// Resource URL, preview URL
