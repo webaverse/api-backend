@@ -115,9 +115,9 @@ async function getRedisAllItems(TableName = defaultDynamoTable) {
     const item = await new Promise((accept, reject) => {
       redisClient.hgetall(k, (err, result) => {
         if (!err) {
-          for (const k in result){
+          /* for (const k in result){
             result[k] = JSON.parse(k);
-          }
+          } */
           accept(result);
         } else {
           reject(err);
