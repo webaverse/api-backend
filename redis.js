@@ -115,9 +115,13 @@ async function getRedisAllItems(TableName = defaultDynamoTable) {
     const item = await new Promise((accept, reject) => {
       redisClient.hgetall(k, (err, result) => {
         if (!err) {
-          /* for (const k in result){
-            result[k] = JSON.parse(k);
-          } */
+          for (const k in result){
+            try {
+              result[k] = JSON.parse(result[k]);
+            } catch(err) {
+              console.warn('failed to parse key', result, k, err);
+            }
+          }
           accept(result);
         } else {
           reject(err);
