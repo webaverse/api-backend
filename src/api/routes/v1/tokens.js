@@ -7,6 +7,7 @@ const { getRedisItem, parseRedisItems, getRedisClient } = require('../../redis.j
 const { redisPrefixes, mainnetSignatureMessage, nftIndexName, mintingFee, burnAddress, zeroAddress, mainnetMnemonic, defaultTokenDescription } = require('../../constants.js');
 const { ResponseStatus } = require("../enums.js");
 const { runSidechainTransaction } = require("../../tokens.js");
+const { development } = require("../environment.js");
 
 const redisClient = getRedisClient();
 
@@ -24,7 +25,7 @@ let contracts;
 async function listTokens(req, res, web3) {
     const { address, mainnetAddress } = req.params;
 
-    setCorsHeaders(res);
+    if (development) setCorsHeaders(res);
     try {
         const [
             mainnetTokens,
@@ -150,7 +151,7 @@ async function readToken(req, res) {
     let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
     let token = o.Item;
 
-    setCorsHeaders(res);
+    if (development) setCorsHeaders(res);
     if (token) {
         return res.json({ status: ResponseStatus.Success, token, error: null })
     } else {
@@ -159,7 +160,7 @@ async function readToken(req, res) {
 }
 
 async function readTokenRange(req, res) {
-    setCorsHeaders(res);
+    if (development) setCorsHeaders(res);
     try {
         const { tokenStartId, tokenEndId } = req.params;
 
@@ -218,9 +219,9 @@ async function deleteToken(req, res) {
         const result = await runSidechainTransaction(mainnetMnemonic)('NFT', 'transferFrom', address, burnAddress, tokenId);
 
         if (result) console.log("Result of delete transaction:", result);
-        return res.json({ status: ResponseStatus.Success, result, error: null })
+        return res.json({ status: ResponseStatus.Success, error: null })
     } catch (error) {
-        return res.json({ status: ResponseStatus.Error, result: null, error })
+        return res.json({ status: ResponseStatus.Error, error })
     }
 }
 

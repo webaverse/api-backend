@@ -7,7 +7,7 @@
     "start": "sudo $(which node) $(which forever) start -a -l forever.log -o stdout.log -e stderr.log src/index.js",
     "stop": "sudo $(which node) $(which forever) stop src/index.js",
     "dev": "sudo $(which node) src/index.js",
-    "dev-api-server": "nodemon src/server/index.js"
+    "dev-api-server": "nodemon src/api/v1.js"
   },
   "repository": {
     "type": "git",
@@ -28,6 +28,7 @@
     "express-jsdoc-swagger": "^1.5.0",
     "form-urlencoded": "^4.2.1",
     "http-proxy": "^1.18.1",
+    "jsonwebtoken": "^8.5.1",
     "mime": "^2.4.6",
     "mkdirp": "^1.0.4",
     "node-fetch": "^2.6.0",

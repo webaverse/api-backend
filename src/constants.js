@@ -80,10 +80,14 @@ const privateIp = process.env.privateIp || config.privateIp;
 const storageHost = process.env.storageHost || config.storageHost;
 const ethereumHost = process.env.ethereumHost || config.ethereumHost;
 const defaultTokenDescription = process.env.defaultTokenDescription || config.defaultTokenDescription || "";
+const AUTH_TOKEN_SECRET = process.env.AUTH_TOKEN_SECRET || config.AUTH_TOKEN_SECRET || "";
+const AUTH_SECRET_KEY = process.env.AUTH_SECRET_KEY || config.AUTH_SECRET_KEY || "";
 
 const mintingFee = process.env.mintingFee || config.mintingFee || 10;
 
 module.exports = {
+  AUTH_SECRET_KEY,
+  AUTH_TOKEN_SECRET,
   defaultTokenDescription,
   burnAddress,
   mintingFee,
