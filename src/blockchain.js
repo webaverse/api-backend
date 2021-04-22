@@ -77,7 +77,7 @@ const loadPromise = (async () => {
       `${gethNodeUrl}:${ports.mainnetsidechain}`
     )),
     polygon: new Web3(new Web3.providers.HttpProvider(
-      `https://rpc-webaverse-mainnet.maticvigil.com/v1/${polygonVigilKey}`
+      `https://rpc-mainnet.maticvigil.com/v1/${polygonVigilKey}`
     )),
   };
 
