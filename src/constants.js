@@ -49,7 +49,9 @@ const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}
 const codeTestRegex = /^[0-9]{6}$/;
 const discordIdTestRegex = /^[0-9]+$/;
 const twitterIdTestRegex = /^@?(\w){1,15}$/;
+
 const zeroAddress = '0x0000000000000000000000000000000000000000';
+const burnAddress = "0x000000000000000000000000000000000000dEaD";
 
 const unlockableKey = 'unlockable';
 
@@ -77,10 +79,13 @@ const publicIp = process.env.publicIp || config.publicIp;
 const privateIp = process.env.privateIp || config.privateIp;
 const storageHost = process.env.storageHost || config.storageHost;
 const ethereumHost = process.env.ethereumHost || config.ethereumHost;
+const defaultTokenDescription = process.env.defaultTokenDescription || config.defaultTokenDescription || "";
 
 const mintingFee = process.env.mintingFee || config.mintingFee || 10;
 
 module.exports = {
+  defaultTokenDescription,
+  burnAddress,
   mintingFee,
   ethereumHost,
   storageHost,

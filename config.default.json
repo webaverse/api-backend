@@ -22,5 +22,6 @@
   "storageHost": "https://ipfs.exokit.org",
   "cacheHostUrl": "cache.webaverse.com",
   "defaultAvatarPreview": "https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png",
-  "mintingFee": 10
+  "mintingFee": 10,
+  "defaultTokenDescription": "Minted on the Webaverse Network."
 }

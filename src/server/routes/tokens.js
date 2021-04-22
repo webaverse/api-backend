@@ -1,10 +1,10 @@
 const path = require('path');
 const bip39 = require('bip39');
 const { hdkey } = require('ethereumjs-wallet');
-
+const { getBlockchain } = require('../../blockchain.js');
 const { makePromise, setCorsHeaders } = require('../../utils.js');
 const { getRedisItem, parseRedisItems, getRedisClient } = require('../../redis.js');
-const { redisPrefixes, mainnetSignatureMessage, nftIndexName, mintingFee } = require('../../constants.js');
+const { redisPrefixes, mainnetSignatureMessage, nftIndexName, mintingFee, burnAddress, zeroAddress, mainnetMnemonic, defaultTokenDescription } = require('../../constants.js');
 const { ResponseStatus } = require("../enums.js");
 const { runSidechainTransaction } = require("../../tokens.js");
 
@@ -13,10 +13,17 @@ const redisClient = getRedisClient();
 const { production } = require("../environment.js");
 const network = production ? 'mainnet' : 'testnet';
 
-// Takes an account as input
-async function listTokens(req, res, web3 ) {
+let contracts;
 
-    const { address, mainnetAddress } = req.body;
+(async function () {
+    contracts = await getBlockchain().contracts;
+})();
+
+
+// Takes an account as input
+async function listTokens(req, res, web3) {
+
+    const { address, mainnetAddress } = req.params;
 
     setCorsHeaders(res);
     const [
@@ -48,7 +55,6 @@ async function listTokens(req, res, web3 ) {
             const args = `${nftIndexName} ${JSON.stringify(address)} INFIELDS 1 currentOwnerAddress LIMIT 0 1000000`.split(' ').concat([(err, result) => {
                 if (!err) {
                     const items = parseRedisItems(result);
-                    // console.log('got result', result);
                     p.accept({
                         Items: items,
                     });
@@ -62,86 +68,85 @@ async function listTokens(req, res, web3 ) {
         })(),
     ]);
     const tokens = sidechainTokens
-    .concat(mainnetTokens)
-    .sort((a, b) => a.id - b.id)
-    .filter((token, i) => { // filter unique hashes
-        if (token === "0" || (token.properties.hash === "" && token.owner.address === "0x0000000000000000000000000000000000000000"))
-            return false;
-
-        for (let j = 0; j < i; j++) {
-            if (tokens[j].properties.hash === token.properties.hash && token.properties.hash !== "")
+        .concat(mainnetTokens)
+        .sort((a, b) => a.id - b.id)
+        .filter((token, i) => { // filter unique hashes
+            if (token === "0" || (token.properties.hash === "" && token.owner.address === zeroAddress))
                 return false;
-        }
-        return true;
-    });
+
+            for (let j = 0; j < i; j++) {
+                if (tokens[j].properties.hash === token.properties.hash && token.properties.hash !== "")
+                    return false;
+            }
+            return true;
+        });
 
     return res.json({ status: ResponseStatus.Success, playload: JSON.stringify(tokens) });
 }
 
 async function createToken(req, res, { web3, contracts }) {
-    const { mnemonic, resourceUrl, previewUrl, quantity } = req.body;
+    const { mnemonic, resourceId, quantity } = req.body;
 
     const fullAmount = {
         t: 'uint256',
         v: new web3.utils.BN(1e9)
-          .mul(new web3.utils.BN(1e9))
-          .mul(new web3.utils.BN(1e9)),
-      };
-      const fullAmountD2 = {
+            .mul(new web3.utils.BN(1e9))
+            .mul(new web3.utils.BN(1e9)),
+    };
+    const fullAmountD2 = {
         t: 'uint256',
         v: fullAmount.v.div(new web3.utils.BN(2)),
-      };
+    };
 
-      const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
-      const address = wallet.getAddressString();
+    const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
+    const address = wallet.getAddressString();
 
-      let status, transactionHash, tokenIds;
-      try {
-          if(mintingFee > 0){
+    let status, transactionHash, tokenIds;
+    try {
+        if (mintingFee > 0) {
 
-        let allowance = await contracts.FT.methods.allowance(address, contracts['NFT']._address).call();
-        allowance = new web3.utils.BN(allowance, 0);
-        if (allowance.lt(fullAmountD2.v)) {
-          const result = await runSidechainTransaction(mnemonic)('FT', 'approve', contracts['NFT']._address, fullAmount.v);
-          status = result.status;
-        } else {
-          status = true;
-        }
-      } else status = true;
+            let allowance = await contracts.FT.methods.allowance(address, contracts['NFT']._address).call();
+            allowance = new web3.utils.BN(allowance, 0);
+            if (allowance.lt(fullAmountD2.v)) {
+                const result = await runSidechainTransaction(mnemonic)('FT', 'approve', contracts['NFT']._address, fullAmount.v);
+                status = result.status;
+            } else {
+                status = true;
+            }
+        } else status = true;
 
         if (status) {
-          const description = { resourceUrl, previewUrl };
+            const description = defaultTokenDescription;
 
-          let fileName = resourceUrl.split('/').pop();
+            let fileName = resourceId.split('/').pop();
 
-          let extName = path.extname(fileName).slice(1);
-          extName = extName === "" ? "png" : extName
-          extName = extName === "jpeg" ? "jpg" : extName
+            let extName = path.extname(fileName).slice(1);
+            extName = extName === "" ? "png" : extName
+            extName = extName === "jpeg" ? "jpg" : extName
 
-          fileName = extName ? fileName.slice(0, -(extName.length + 1)) : fileName;
+            fileName = extName ? fileName.slice(0, -(extName.length + 1)) : fileName;
 
-          // console.log('got s', s);
-          const { hash } = JSON.parse(Buffer.from(resourceUrl, 'utf8').toString('utf8'));
+            const { hash } = JSON.parse(Buffer.from(resourceId, 'utf8').toString('utf8'));
 
-          const result = await runSidechainTransaction(mnemonic)('NFT', 'mint', address, hash, fileName, extName, description, quantity);
-          status = result.status;
-          transactionHash = result.transactionHash;
+            const result = await runSidechainTransaction(mnemonic)('NFT', 'mint', address, hash, fileName, extName, description, quantity);
+            status = result.status;
+            transactionHash = result.transactionHash;
 
-          const tokenId = new web3.utils.BN(result.logs[0].topics[3].slice(2), 16).toNumber();
-          tokenIds = [tokenId, tokenId + quantity - 1];
+            const tokenId = new web3.utils.BN(result.logs[0].topics[3].slice(2), 16).toNumber();
+            tokenIds = [tokenId, tokenId + quantity - 1];
         }
-      } catch (err) {
+    } catch (err) {
         console.warn(err.stack);
         status = false;
         transactionHash = err.message;
         tokenIds = [];
-      }
+    }
 
-      res.json({status, transactionHash, tokenIds})
+    res.json({ status, transactionHash, tokenIds })
 }
 
 async function readToken(req, res) {
-    const { tokenId } = req.body;
+    const { tokenId } = req.params;
 
     let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
     let token = o.Item;
@@ -155,32 +160,32 @@ async function readToken(req, res) {
 }
 
 async function readTokenRange(req, res) {
-    const { tokenStartId, tokenEndId } = req.body;
+    const { tokenStartId, tokenEndId } = req.params;
 
     if (tokenStartId <= 0 || tokenEndId < tokenStartId || (tokenEndId - tokenStartId) > 100)
         return res.json({ status: ResponseStatus.Error, error: "Invalid range for tokens" })
 
 
-        const promise = makePromise();
-        const args = `${nftIndexName} * filter id ${tokenStartId} ${tokenEndId} LIMIT 0 1000000`.split(' ').concat([(err, result) => {
-            if (!err) {
-                const items = parseRedisItems(result);
-                promise.accept({
-                    Items: items,
-                });
-            } else {
-                promise.reject(err);
-            }
-        }]);
-        redisClient.ft_search.apply(redisClient, args);
-        const o = await promise;
+    const promise = makePromise();
+    const args = `${nftIndexName} * filter id ${tokenStartId} ${tokenEndId} LIMIT 0 1000000`.split(' ').concat([(err, result) => {
+        if (!err) {
+            const items = parseRedisItems(result);
+            promise.accept({
+                Items: items,
+            });
+        } else {
+            promise.reject(err);
+        }
+    }]);
+    redisClient.ft_search.apply(redisClient, args);
+    const o = await promise;
 
-        let tokens = o.Items
-            .filter(token => token !== null)
-            .sort((a, b) => a.id - b.id)
-            .filter((token, i) => { // filter unique hashes
+    let tokens = o.Items
+        .filter(token => token !== null)
+        .sort((a, b) => a.id - b.id)
+        .filter((token, i) => { // filter unique hashes
 
-            if (token.properties.hash === "" && token.owner.address === "0x0000000000000000000000000000000000000000")
+            if (token.properties.hash === "" && token.owner.address === zeroAddress)
                 return false;
 
             for (let j = 0; j < i; j++)
@@ -190,22 +195,59 @@ async function readTokenRange(req, res) {
             return true;
         });
 
-        setCorsHeaders(res);
-        return res.json({ status: ResponseStatus.Success, payload: tokens, error: null })
+    setCorsHeaders(res);
+    return res.json({ status: ResponseStatus.Success, payload: tokens, error: null })
 }
 
+async function deleteToken(req, res) {
+    const { tokenId } = req.body;
 
-// async function updateToken(req, res) {
+    let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
+    let token = o.Item;
 
-// }
+    const address = token.owner.address;
 
-// async function deleteToken(req, res) {
+    try {
+        const currentHash = await contracts['mainnetsidechain'].NFT.methods.getHash(tokenId).call();
+        const r = Math.random().toString(36);
+        await runSidechainTransaction(mainnetMnemonic)('NFT', 'updateHash', currentHash, r);
+        const result = await runSidechainTransaction(mainnetMnemonic)('NFT', 'transferFrom', address, burnAddress, tokenId);
 
-// }
+        if (result) console.log("Result of delete transaction:", result);
+        return res.json({ status: ResponseStatus.Success, payload: result, error: null })
+    } catch (error) {
+        return res.json({ status: ResponseStatus.Error, payload: null, error })
+    }
+}
 
-// async function sendToken(req, res) {
+async function sendToken(req, res) {
 
-// }
+    const { fromUserAddress, toUserAddress, tokenId } = req.body;
+    const quantity = req.body.quantity ?? 1;
+
+    let status = true;
+    for (let i = 0; i < quantity; i++) {
+        try {
+            const isApproved = await contracts.NFT.methods.isApprovedForAll(fromUserAddress, contracts['Trade']._address).call();
+            if (!isApproved) {
+                await runSidechainTransaction(mainnetMnemonic)('NFT', 'setApprovalForAll', contracts['Trade']._address, true);
+            }
+
+            const result = await runSidechainTransaction(mainnetMnemonic)('NFT', 'transferFrom', fromUserAddress, toUserAddress, tokenId);
+            status = status && result.status;
+        } catch (err) {
+            console.warn(err.stack);
+            status = false;
+            break;
+        }
+    }
+
+    if (status) {
+        return res.json({ status: ResponseStatus.Success, payload: { message: 'Transferred ' + tokenId + ' to ' + toUserAddress }, error: null })
+    } else {
+        return res.json({ status: ResponseStatus.Error, payload: { message: 'Transfer request could not be fulfilled: ' + status }, error })
+    }
+}
 
 // async function transferToken(req, res) {
 
@@ -216,8 +258,7 @@ module.exports = {
     createToken,
     readToken,
     readTokenRange,
-    // updateToken,
-    // deleteToken,
-    // sendToken,
+    deleteToken,
+    sendToken,
     // transferToken
 }

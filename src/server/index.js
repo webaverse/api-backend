@@ -2,7 +2,7 @@ const express = require('express');
 const expressJSDocSwagger = require('express-jsdoc-swagger');
 
 const { createWallet } = require("./routes/wallet.js");
-const { listTokens, createToken, readToken, updateToken, deleteToken, sendToken, transferToken, readTokenRange } = require("./routes/tokens.js");
+const { listTokens, createToken, readToken, deleteToken, sendToken, readTokenRange } = require("./routes/tokens.js");
 const { getBlockchain } = require('../blockchain.js');
 
 const pkg = require('../../package.json');
@@ -121,18 +121,6 @@ expressJSDocSwagger(app)(options);
 });
 
 /**
- * PUT /api/v1/token
- * @summary Update data for a non-fungible token
- * @return {TokenResponse} 200 - success response
- * @return {object} 403 - forbidden request response
- * @property {string} tokenId - Token to update
- * @property {string} TODO - Update properties
- */
- app.put('/api/v1/token', async (req, res) => {
-  return await updateToken(req, res, blockchain);
-});
-
-/**
  * DELETE /api/v1/token
  * @summary Burn a token forever
  * @return {TokenResponse} 200 - success response
@@ -156,17 +144,17 @@ expressJSDocSwagger(app)(options);
   return await sendToken(req, res, blockchain);
 });
 
-/**
- * POST /api/v1/token/transfer
- * @summary Send this token from one user to another
- * @return {TokenResponse} 200 - success response
- * @return {object} 403 - forbidden request response
- * @property {string} tokenId - Token to be sent
- * @property {string} senderId - Token sent by this user
- * @property {string} receiverId - Token received by this user
- */
- app.post('/api/v1/token/transfer', async (req, res) => {
-  return await transferToken(req, res, blockchain);
-});
+// /**
+//  * POST /api/v1/token/transfer
+//  * @summary Send this token from one user to another
+//  * @return {TokenResponse} 200 - success response
+//  * @return {object} 403 - forbidden request response
+//  * @property {string} tokenId - Token to be sent
+//  * @property {string} senderId - Token sent by this user
+//  * @property {string} receiverId - Token received by this user
+//  */
+//  app.post('/api/v1/token/transfer', async (req, res) => {
+//   return await transferToken(req, res, blockchain);
+// });
 
 app.listen(PORT, () => console.log(`App listening at http://localhost:${PORT}`));
