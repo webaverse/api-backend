@@ -1,8 +1,8 @@
 const bip39 = require('bip39');
 const { hdkey } = require('ethereumjs-wallet');
-const { setCorsHeaders } = require("../../utils.js");
-const { ResponseStatus } = require("../enums.js");
-const { development } = require("../environment.js");
+const { setCorsHeaders } = require("../../../utils.js");
+const { ResponseStatus } = require("../../enums.js");
+const { development } = require("../../environment.js");
 
 // Generates a new mnemonic, private key and public address and hands the mnemonic back
 async function createWallet(req, res) {

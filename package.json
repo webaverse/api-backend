@@ -7,7 +7,8 @@
     "start": "sudo $(which node) $(which forever) start -a -l forever.log -o stdout.log -e stderr.log src/index.js",
     "stop": "sudo $(which node) $(which forever) stop src/index.js",
     "dev": "sudo $(which node) src/index.js",
-    "dev-api-server": "nodemon src/api/v1.js"
+    "dev-api-v1": "nodemon src/api/v1.js",
+    "api-v1": "cross-env PRODUCTION=true node src/api/v1.js"
   },
   "repository": {
     "type": "git",
@@ -22,6 +23,7 @@
   "dependencies": {
     "aws-sdk": "^2.750.0",
     "bip39": "^3.0.2",
+    "cross-env": "^7.0.3",
     "dotenv": "^8.2.0",
     "ethereumjs-wallet": "^1.0.1",
     "express": "^4.17.1",
@@ -43,7 +45,7 @@
   },
   "devDependencies": {
     "eslint": "^7.24.0",
-    "forever": "^3.0.0",
+    "forever": "^0.10.10",
     "nodemon": "^2.0.7"
   }
 }
