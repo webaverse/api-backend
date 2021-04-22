@@ -22,87 +22,90 @@ let contracts;
 
 // Takes an account as input
 async function listTokens(req, res, web3) {
-
     const { address, mainnetAddress } = req.params;
 
     setCorsHeaders(res);
-    const [
-        mainnetTokens,
-        sidechainTokens,
-    ] = await Promise.all([
-        (async () => {
-            if (!mainnetAddress) return [];
-            const recoveredAddress = await web3[network].eth.accounts.recover(mainnetSignatureMessage, mainnetAddress);
-            if (!recoveredAddress) return [];
-            const p = makePromise();
-            const args = `${nftIndexName} ${JSON.stringify(recoveredAddress)} INFIELDS 1 currentOwnerAddress LIMIT 0 1000000`.split(' ').concat([(err, result) => {
-                if (!err) {
-                    const items = parseRedisItems(result);
-                    p.accept({
-                        Items: items,
-                    });
-                } else {
-                    p.reject(err);
-                }
-            }]);
-            redisClient.ft_search.apply(redisClient, args);
-            const o = await p;
+    try {
+        const [
+            mainnetTokens,
+            sidechainTokens,
+        ] = await Promise.all([
+            (async () => {
+                if (!mainnetAddress) return [];
+                const recoveredAddress = await web3[network].eth.accounts.recover(mainnetSignatureMessage, mainnetAddress);
+                if (!recoveredAddress) return [];
+                const p = makePromise();
+                const args = `${nftIndexName} ${JSON.stringify(recoveredAddress)} INFIELDS 1 currentOwnerAddress LIMIT 0 1000000`.split(' ').concat([(err, result) => {
+                    if (!err) {
+                        const items = parseRedisItems(result);
+                        p.accept({
+                            Items: items,
+                        });
+                    } else {
+                        p.reject(err);
+                    }
+                }]);
+                redisClient.ft_search.apply(redisClient, args);
+                const o = await p;
 
-            return (o && o.Items) || [];
-        })(),
-        (async () => {
-            const p = makePromise();
-            const args = `${nftIndexName} ${JSON.stringify(address)} INFIELDS 1 currentOwnerAddress LIMIT 0 1000000`.split(' ').concat([(err, result) => {
-                if (!err) {
-                    const items = parseRedisItems(result);
-                    p.accept({
-                        Items: items,
-                    });
-                } else {
-                    p.reject(err);
-                }
-            }]);
-            redisClient.ft_search.apply(redisClient, args);
-            const o = await p;
-            return (o && o.Items) || [];
-        })(),
-    ]);
-    const tokens = sidechainTokens
-        .concat(mainnetTokens)
-        .sort((a, b) => a.id - b.id)
-        .filter((token, i) => { // filter unique hashes
-            if (token === "0" || (token.properties.hash === "" && token.owner.address === zeroAddress))
-                return false;
-
-            for (let j = 0; j < i; j++) {
-                if (tokens[j].properties.hash === token.properties.hash && token.properties.hash !== "")
+                return (o && o.Items) || [];
+            })(),
+            (async () => {
+                const p = makePromise();
+                const args = `${nftIndexName} ${JSON.stringify(address)} INFIELDS 1 currentOwnerAddress LIMIT 0 1000000`.split(' ').concat([(err, result) => {
+                    if (!err) {
+                        const items = parseRedisItems(result);
+                        p.accept({
+                            Items: items,
+                        });
+                    } else {
+                        p.reject(err);
+                    }
+                }]);
+                redisClient.ft_search.apply(redisClient, args);
+                const o = await p;
+                return (o && o.Items) || [];
+            })(),
+        ]);
+        const tokens = sidechainTokens
+            .concat(mainnetTokens)
+            .sort((a, b) => a.id - b.id)
+            .filter((token, i) => { // filter unique hashes
+                if (token === "0" || (token.properties.hash === "" && token.owner.address === zeroAddress))
                     return false;
-            }
-            return true;
-        });
 
-    return res.json({ status: ResponseStatus.Success, playload: JSON.stringify(tokens) });
+                for (let j = 0; j < i; j++) {
+                    if (tokens[j].properties.hash === token.properties.hash && token.properties.hash !== "")
+                        return false;
+                }
+                return true;
+            });
+        return res.json({ status: ResponseStatus.Success, tokens: JSON.stringify(tokens), error: null });
+    } catch (error) {
+        return res.json({ status: ResponseStatus.Error, tokens: null, error });
+    }
 }
 
 async function createToken(req, res, { web3, contracts }) {
-    const { mnemonic, resourceId, quantity } = req.body;
+    let status, tokenIds;
 
-    const fullAmount = {
-        t: 'uint256',
-        v: new web3.utils.BN(1e9)
-            .mul(new web3.utils.BN(1e9))
-            .mul(new web3.utils.BN(1e9)),
-    };
-    const fullAmountD2 = {
-        t: 'uint256',
-        v: fullAmount.v.div(new web3.utils.BN(2)),
-    };
-
-    const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
-    const address = wallet.getAddressString();
-
-    let status, transactionHash, tokenIds;
     try {
+        const { mnemonic, resourceHash, quantity } = req.body;
+
+        const fullAmount = {
+            t: 'uint256',
+            v: new web3.utils.BN(1e9)
+                .mul(new web3.utils.BN(1e9))
+                .mul(new web3.utils.BN(1e9)),
+        };
+        const fullAmountD2 = {
+            t: 'uint256',
+            v: fullAmount.v.div(new web3.utils.BN(2)),
+        };
+
+        const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
+        const address = wallet.getAddressString();
+
         if (mintingFee > 0) {
 
             let allowance = await contracts.FT.methods.allowance(address, contracts['NFT']._address).call();
@@ -118,7 +121,7 @@ async function createToken(req, res, { web3, contracts }) {
         if (status) {
             const description = defaultTokenDescription;
 
-            let fileName = resourceId.split('/').pop();
+            let fileName = resourceHash.split('/').pop();
 
             let extName = path.extname(fileName).slice(1);
             extName = extName === "" ? "png" : extName
@@ -126,23 +129,19 @@ async function createToken(req, res, { web3, contracts }) {
 
             fileName = extName ? fileName.slice(0, -(extName.length + 1)) : fileName;
 
-            const { hash } = JSON.parse(Buffer.from(resourceId, 'utf8').toString('utf8'));
+            const { hash } = JSON.parse(Buffer.from(resourceHash, 'utf8').toString('utf8'));
 
             const result = await runSidechainTransaction(mnemonic)('NFT', 'mint', address, hash, fileName, extName, description, quantity);
             status = result.status;
-            transactionHash = result.transactionHash;
 
             const tokenId = new web3.utils.BN(result.logs[0].topics[3].slice(2), 16).toNumber();
             tokenIds = [tokenId, tokenId + quantity - 1];
         }
-    } catch (err) {
-        console.warn(err.stack);
-        status = false;
-        transactionHash = err.message;
-        tokenIds = [];
+        return res.json({ status: ResponseStatus.Success, tokenIds, error: null });
+    } catch (error) {
+        console.warn(error.stack);
+        return res.json({ status: ResponseStatus.Error, tokenIds: [], error });
     }
-
-    res.json({ status, transactionHash, tokenIds })
 }
 
 async function readToken(req, res) {
@@ -153,99 +152,109 @@ async function readToken(req, res) {
 
     setCorsHeaders(res);
     if (token) {
-        return res.json({ status: ResponseStatus.Success, payload: token, error: null })
+        return res.json({ status: ResponseStatus.Success, token, error: null })
     } else {
-        return res.json({ status: ResponseStatus.Error, error: "The token could not be found" })
+        return res.json({ status: ResponseStatus.Error, token: null, error: "The token could not be found" })
     }
 }
 
 async function readTokenRange(req, res) {
-    const { tokenStartId, tokenEndId } = req.params;
+    setCorsHeaders(res);
+    try {
+        const { tokenStartId, tokenEndId } = req.params;
 
-    if (tokenStartId <= 0 || tokenEndId < tokenStartId || (tokenEndId - tokenStartId) > 100)
-        return res.json({ status: ResponseStatus.Error, error: "Invalid range for tokens" })
+        if (tokenStartId <= 0 || tokenEndId < tokenStartId || (tokenEndId - tokenStartId) > 100)
+            return res.json({ status: ResponseStatus.Error, error: "Invalid range for tokens" })
 
 
-    const promise = makePromise();
-    const args = `${nftIndexName} * filter id ${tokenStartId} ${tokenEndId} LIMIT 0 1000000`.split(' ').concat([(err, result) => {
-        if (!err) {
-            const items = parseRedisItems(result);
-            promise.accept({
-                Items: items,
-            });
-        } else {
-            promise.reject(err);
-        }
-    }]);
-    redisClient.ft_search.apply(redisClient, args);
-    const o = await promise;
+        const promise = makePromise();
+        const args = `${nftIndexName} * filter id ${tokenStartId} ${tokenEndId} LIMIT 0 1000000`.split(' ').concat([(err, result) => {
+            if (!err) {
+                const items = parseRedisItems(result);
+                promise.accept({
+                    Items: items,
+                });
+            } else {
+                promise.reject(err);
+            }
+        }]);
+        redisClient.ft_search.apply(redisClient, args);
+        const o = await promise;
 
-    let tokens = o.Items
-        .filter(token => token !== null)
-        .sort((a, b) => a.id - b.id)
-        .filter((token, i) => { // filter unique hashes
+        let tokens = o.Items
+            .filter(token => token !== null)
+            .sort((a, b) => a.id - b.id)
+            .filter((token, i) => { // filter unique hashes
 
-            if (token.properties.hash === "" && token.owner.address === zeroAddress)
-                return false;
-
-            for (let j = 0; j < i; j++)
-                if (tokens[j].properties.hash === token.properties.hash && token.properties.hash !== "")
+                if (token.properties.hash === "" && token.owner.address === zeroAddress)
                     return false;
 
-            return true;
-        });
+                for (let j = 0; j < i; j++)
+                    if (tokens[j].properties.hash === token.properties.hash && token.properties.hash !== "")
+                        return false;
 
-    setCorsHeaders(res);
-    return res.json({ status: ResponseStatus.Success, payload: tokens, error: null })
+                return true;
+            });
+
+
+        return res.json({ status: ResponseStatus.Success, tokens, error: null })
+    } catch (error) {
+        return res.json({ status: ResponseStatus.Error, tokens: [], error })
+    }
 }
 
 async function deleteToken(req, res) {
-    const { tokenId } = req.body;
-
-    let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
-    let token = o.Item;
-
-    const address = token.owner.address;
-
     try {
+        const { tokenId } = req.body;
+
+        let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
+        let token = o.Item;
+
+        const address = token.owner.address;
+
         const currentHash = await contracts['mainnetsidechain'].NFT.methods.getHash(tokenId).call();
         const r = Math.random().toString(36);
         await runSidechainTransaction(mainnetMnemonic)('NFT', 'updateHash', currentHash, r);
         const result = await runSidechainTransaction(mainnetMnemonic)('NFT', 'transferFrom', address, burnAddress, tokenId);
 
         if (result) console.log("Result of delete transaction:", result);
-        return res.json({ status: ResponseStatus.Success, payload: result, error: null })
+        return res.json({ status: ResponseStatus.Success, result, error: null })
     } catch (error) {
-        return res.json({ status: ResponseStatus.Error, payload: null, error })
+        return res.json({ status: ResponseStatus.Error, result: null, error })
     }
 }
 
 async function sendToken(req, res) {
+    try {
+        const { fromUserAddress, toUserAddress, tokenId } = req.body;
+        const quantity = req.body.quantity ?? 1;
 
-    const { fromUserAddress, toUserAddress, tokenId } = req.body;
-    const quantity = req.body.quantity ?? 1;
+        let status = true;
+        let error = null;
+        for (let i = 0; i < quantity; i++) {
+            try {
+                const isApproved = await contracts.NFT.methods.isApprovedForAll(fromUserAddress, contracts['Trade']._address).call();
+                if (!isApproved) {
+                    await runSidechainTransaction(mainnetMnemonic)('NFT', 'setApprovalForAll', contracts['Trade']._address, true);
+                }
 
-    let status = true;
-    for (let i = 0; i < quantity; i++) {
-        try {
-            const isApproved = await contracts.NFT.methods.isApprovedForAll(fromUserAddress, contracts['Trade']._address).call();
-            if (!isApproved) {
-                await runSidechainTransaction(mainnetMnemonic)('NFT', 'setApprovalForAll', contracts['Trade']._address, true);
+                const result = await runSidechainTransaction(mainnetMnemonic)('NFT', 'transferFrom', fromUserAddress, toUserAddress, tokenId);
+                status = status && result.status;
+            } catch (err) {
+                console.warn(err.stack);
+                status = false;
+                error = err;
+                break;
             }
-
-            const result = await runSidechainTransaction(mainnetMnemonic)('NFT', 'transferFrom', fromUserAddress, toUserAddress, tokenId);
-            status = status && result.status;
-        } catch (err) {
-            console.warn(err.stack);
-            status = false;
-            break;
         }
-    }
 
-    if (status) {
-        return res.json({ status: ResponseStatus.Success, payload: { message: 'Transferred ' + tokenId + ' to ' + toUserAddress }, error: null })
-    } else {
-        return res.json({ status: ResponseStatus.Error, payload: { message: 'Transfer request could not be fulfilled: ' + status }, error })
+        if (status) {
+            return res.json({ status: ResponseStatus.Success, message: 'Transferred ' + tokenId + ' to ' + toUserAddress, error: null })
+        } else {
+            return res.json({ status: ResponseStatus.Error, message: 'Transfer request could not be fulfilled: ' + status, error: error })
+        }
+    } catch (error) {
+        return res.json({ status: ResponseStatus.Error, message: 'Error sending token', error: error })
     }
 }
 
