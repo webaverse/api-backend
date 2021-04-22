@@ -1,6 +1,6 @@
 const { setCorsHeaders } = require("../../../utils.js");
-const { ResponseStatus } = require("../../enums.js");
-const { development } = require("../../environment.js");
+const { ResponseStatus } = require("../enums.js");
+const { development } = require("../environment.js");
 const { AUTH_SECRET_KEY, AUTH_TOKEN_SECRET } = require('../../../constants.js');
 const jwt = require('jsonwebtoken');
 

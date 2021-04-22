@@ -5,13 +5,12 @@ const { getBlockchain } = require('../../../blockchain.js');
 const { makePromise, setCorsHeaders } = require('../../../utils.js');
 const { getRedisItem, parseRedisItems, getRedisClient } = require('../../../redis.js');
 const { redisPrefixes, mainnetSignatureMessage, nftIndexName, mintingFee, burnAddress, zeroAddress, mainnetMnemonic, defaultTokenDescription } = require('../../../constants.js');
-const { ResponseStatus } = require("../../enums.js");
+const { ResponseStatus } = require("../enums.js");
 const { runSidechainTransaction } = require("../../../tokens.js");
-const { development } = require("../../environment.js");
+const { production, development } = require("../environment.js");
 
 const redisClient = getRedisClient();
 
-const { production } = require("../../environment.js");
 const network = production ? 'mainnet' : 'testnet';
 
 let contracts;

@@ -1,49 +1,10 @@
-const express = require('express');
 const expressJSDocSwagger = require('express-jsdoc-swagger');
 
-const { createWallet } = require("./routes/v1/wallet.js");
-const { handleServerSideAuth, authenticateToken } = require("./routes/v1/auth.js");
-const { listTokens, createToken, readToken, deleteToken, sendToken, readTokenRange } = require("./routes/v1/tokens.js");
+const { createWallet } = require("./routes/wallet.js");
+const { handleServerSideAuth, authenticateToken } = require("./routes/auth.js");
+const { listTokens, createToken, readToken, deleteToken, sendToken, readTokenRange } = require("./routes/tokens.js");
 
-const { getBlockchain } = require('../blockchain.js');
-
-const pkg = require('../../package.json');
-
-const options = {
-  info: {
-    version: pkg.version,
-    title: "Webaverse API Documentation",
-    description: "Documentation for the Webaverse API server",
-    license: {
-      name: pkg.license,
-    },
-  },
-  components: {
-    securitySchemes: {
-      bearerAuth: {
-        type: "http",
-        scheme: "bearer",
-        bearerFormat: "JWT"
-      }
-    }
-  },
-  security: {
-    bearerAuth: {
-      type: "http",
-      scheme: "bearer",
-      bearerFormat: "JWT"
-    }
-  },
-  filesPattern: '*.js',
-  swaggerUIPath: '/api-docs',
-  baseDir: __dirname,
-  exposeSwaggerUI: true,
-  exposeApiDocs: true,
-  apiDocsPath: '/v3/api-docs'
-};
-
-const app = express();
-const PORT = 3000;
+const { getBlockchain } = require('../../blockchain.js');
 
 let blockchain;
 
@@ -51,31 +12,32 @@ let blockchain;
   blockchain = await getBlockchain();
 })()
 
-expressJSDocSwagger(app)(options);
+function addV1Routes(app){
+  const swaggerOptions = {
+    info: {
+      version: "v1",
+      title: "Webaverse API Documentation",
+      description: "Documentation for the Webaverse API server",
+    },
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT"
+        }
+      }
+    },
+    filesPattern: '*.js',
+    swaggerUIPath: '/v1/api-docs',
+    baseDir: __dirname,
+    exposeSwaggerUI: true,
+    exposeApiDocs: true,
+    apiDocsPath: '/api/v1/api-docs'
+  };
+  
+  expressJSDocSwagger(app)(swaggerOptions);
 
-// AUTHENTICATION
-
-/**
- * Response for user account creation and retrieval
- * @typedef {object} AuthenticationResponse
- * @property {string} status - The status of the creation request (success/error)
- * @property {string} accessToken - The returned JWT
- * @property {string} error - If the status is error, the error can be read from here 
-*/
-
-/**
- * Response for user account creation and retrieval
- * @typedef {object} AuthenticationErrorResponse
- * @property {string} status - The status of the creation request (success/error)
- * @property {string} error - If the status is error, the error can be read from here 
-*/
-
-/**
- * POST /api/v1/auth
- * @summary Authorize this user with a shared server-side secret key
- * @return {AuthenticationResponse} 200 - success response
- * @property {string} authSecretKey - Secret key that only the backend infrastructure knows about
- */
 app.post('/api/v1/authorizeServer', async (req, res) => {
   return await handleServerSideAuth(req, res);
 });
@@ -86,8 +48,8 @@ app.post('/api/v1/authorizeServer', async (req, res) => {
  * Response for user account creation and retrieval
  * @typedef {object} WalletCreationResponse
  * @property {string} status - The status of the creation request (success/error)
- * @property {string} mnemonic - The private key for the user (to be stored and NEVER shared)
- * @property {string} address - The public key for the user (to be stored)
+ * @property {string} userMnemonic - The private key for the user (to be stored and NEVER shared)
+ * @property {string} userAddress - The public key for the user (to be stored)
  * @property {string} error - If the status is error, the error can be read from here 
 */
 
@@ -148,8 +110,8 @@ app.post('/api/v1/wallet', authenticateToken, async (req, res) => {
  * @summary List tokens for a user
  * @return {TokenListResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
- * @property {string} address.required - Address of the user to list tokens for
- * @property {string} mainnetAddress - Mainnet address of the user to list tokens for (optional)
+ * @param {string} address.required - Address of the user to list tokens for
+ * @param {string} mainnetAddress.optional - Mainnet address of the user to list tokens for (optional)
  */
 app.get('/api/v1/tokens/:address/:mainnetAddress', authenticateToken, async (req, res) => {
   return await listTokens(req, res, blockchain.web3);
@@ -160,7 +122,7 @@ app.get('/api/v1/tokens/:address/:mainnetAddress', authenticateToken, async (req
  * @summary Retrieve data for a non-fungible token
  * @return {TokenResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
- * @property {string} tokenId - Token to retrieve
+ * @param {string} tokenId.required - Token to retrieve
  */
 app.get('/api/v1/token/:tokenId', authenticateToken, async (req, res) => {
   return await readToken(req, res);
@@ -171,8 +133,8 @@ app.get('/api/v1/token/:tokenId', authenticateToken, async (req, res) => {
  * @summary Retrieve a range of tokens
  * @return {TokenListResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
- * @property {string} tokenStartId - First token to retrieve
- * @property {string} tokenEndId - Last token in range to retrieve
+ * @param {string} tokenStartId.required - First token to retrieve
+ * @param {string} tokenEndId.required - Last token in range to retrieve
  */
 app.get('/api/v1/token/:tokenStartId/:tokenEndId', authenticateToken, async (req, res) => {
   return await readTokenRange(req, res);
@@ -183,9 +145,9 @@ app.get('/api/v1/token/:tokenStartId/:tokenEndId', authenticateToken, async (req
  * @summary Create a non-fungible token
  * @return {TokenIdsResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
- * @property {string} mnemonic - Mint the token using a user's private key
- * @property {string} resourceHash - IPFS resource hash or other URI
- * @property {number} quantity - Number of tokens to mint
+ * @param {string} userMnemonic.required - Mint the token using a user's private key
+ * @param {string} resourceHash.required - IPFS resource hash or other URI
+ * @param {number} quantity.optional; - Number of tokens to mint
 
 */
 app.post('/api/v1/token', authenticateToken, async (req, res) => {
@@ -195,9 +157,9 @@ app.post('/api/v1/token', authenticateToken, async (req, res) => {
 /**
  * DELETE /api/v1/token
  * @summary Burn a token forever
+ * @param {string} tokenId.required - Token to delete
  * @return {TokenStatusResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
- * @property {string} tokenId - Token to delete
  */
 app.delete('/api/v1/token', authenticateToken, async (req, res) => {
   return await deleteToken(req, res, blockchain);
@@ -208,9 +170,9 @@ app.delete('/api/v1/token', authenticateToken, async (req, res) => {
  * @summary Send this token from one user to another
  * @return {TokenStatusResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
- * @property {string} tokenId - Token to be sent
- * @property {string} fromUserAddress - Token sent by this user (public address)
- * @property {string} toUserAddress - Token received by this user (public address)
+ * @param {string} tokenId.required - Token to be sent
+ * @param {string} fromUserAddress.required - Token sent by this user (public address)
+ * @param {string} toUserAddress.required - Token received by this user (public address)
  */
 app.post('/api/v1/token/send', authenticateToken, async (req, res) => {
   return await sendToken(req, res, blockchain);
@@ -229,4 +191,8 @@ app.post('/api/v1/token/send', authenticateToken, async (req, res) => {
 //   return await transferToken(req, res, blockchain);
 // });
 
-app.listen(PORT, () => console.log(`App listening at http://localhost:${PORT}`));
+}
+
+module.exports = {
+  addV1Routes
+}

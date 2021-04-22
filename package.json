@@ -7,8 +7,8 @@
     "start": "sudo $(which node) $(which forever) start -a -l forever.log -o stdout.log -e stderr.log src/index.js",
     "stop": "sudo $(which node) $(which forever) stop src/index.js",
     "dev": "sudo $(which node) src/index.js",
-    "dev-api-v1": "nodemon src/api/v1.js",
-    "api-v1": "cross-env PRODUCTION=true node src/api/v1.js"
+    "dev-api": "nodemon src/api/index.js",
+    "api": "cross-env PRODUCTION=true node src/api/index.js"
   },
   "repository": {
     "type": "git",
