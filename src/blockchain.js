@@ -1,10 +1,10 @@
 const events = require('events');
-const { EventEmitter } = events;
+const {EventEmitter} = events;
 const dns = require('dns');
 const https = require('https');
 const fetch = require('node-fetch');
 const Web3 = require('web3');
-const { ethereumHost, POLYGON_VIGIL_KEY, INFURA_PROJECT_ID  } = require('./constants.js');
+const {ETHEREUM_HOST, POLYGON_VIGIL_KEY, INFURA_PROJECT_ID} = require('./constants.js');
 
 let addresses,
   abis,
@@ -31,12 +31,12 @@ const loadPromise = (async () => {
     fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, ''))),
     fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, ''))),
     new Promise((accept, reject) => {
-      dns.resolve4(ethereumHost, (err, addresses) => {
+      dns.resolve4(ETHEREUM_HOST, (err, addresses) => {
         if (!err) {
           if (addresses.length > 0) {
             accept(addresses[0]);
           } else {
-            reject(new Error('no addresses resolved for ' + ethereumHost));
+            reject(new Error('no addresses resolved for ' + ETHEREUM_HOST));
           }
         } else {
           reject(err);
@@ -110,7 +110,7 @@ async function getPastEvents({
   toBlock = 'latest',
 } = {}) {
   try {
-    const { contracts } = await getBlockchain();
+    const {contracts} = await getBlockchain();
     return await contracts[chainName][contractName].getPastEvents(
       eventName,
       {

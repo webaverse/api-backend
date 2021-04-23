@@ -1,6 +1,6 @@
 const stream = require('stream');
 const AWS = require('aws-sdk');
-const { tableNames } = require('./constants.js');
+const {tableNames} = require('./constants.js');
 
 let config = require('fs').existsSync('../config.json') ? require('../config.json') : require('../config.default.json');
 const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || config.AWS_ACCESS_KEY_ID;

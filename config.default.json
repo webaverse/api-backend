@@ -15,6 +15,8 @@
   "POLYGON_MNEMONIC": "",
   "TESTNET_MNEMONIC": "",
   "TESTNET_POLYGON_MNEMONIC": "",
+  "ETHEREUM_HOST": "ethereum.exokit.org",
+
   "HTTP_PORT": 8080,
   "HTTPS_PORT": 8443,
   "REDIS_HOST": "cache.webaverse.com",
@@ -29,7 +31,6 @@
   "PUBLIC_IP_ADDRESS": "13.57.56.187",
   "PRIVATE_IP_ADDRESS": "172.31.18.137",
 
-  "ethereumHost": "ethereum.exokit.org",
   "storageHost": "https://ipfs.exokit.org",
   "defaultAvatarPreview": "https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png"
 }

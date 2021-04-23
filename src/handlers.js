@@ -3,16 +3,16 @@ const https = require('https');
 const crypto = require('crypto');
 const httpProxy = require('http-proxy');
 const url = require('url');
-const { default: formurlencoded } = require('form-urlencoded');
+const {default: formurlencoded} = require('form-urlencoded');
 const bip39 = require('bip39');
-const { hdkey } = require('ethereumjs-wallet');
-const { makePromise, randomString, setCorsHeaders } = require('./utils.js');
-const { getBlockchain, BlockchainNetworks } = require('./blockchain.js');
-const { namegen } = require('./namegen.js');
-const { getRedisItem, getRedisAllItems, parseRedisItems, getRedisClient } = require('./redis.js');
-const { getStoreEntries, getChainNft, getChainOwnerNft, getChainToken, getAllWithdrawsDeposits } = require('./tokens.js');
-const { isCollaborator, isSingleCollaborator } = require('./blockchain.js');
-const { ddb, ses } = require('./aws.js');
+const {hdkey} = require('ethereumjs-wallet');
+const {makePromise, randomString, setCorsHeaders} = require('./utils.js');
+const {getBlockchain, BlockchainNetworks} = require('./blockchain.js');
+const {namegen} = require('./namegen.js');
+const {getRedisItem, getRedisAllItems, parseRedisItems, getRedisClient} = require('./redis.js');
+const {getStoreEntries, getChainNft, getChainOwnerNft, getChainToken, getAllWithdrawsDeposits} = require('./tokens.js');
+const {isCollaborator, isSingleCollaborator} = require('./blockchain.js');
+const {ddb, ses} = require('./aws.js');
 
 const {
     accountKeys,
@@ -66,23 +66,23 @@ const handleLogin = async (req, res) => {
     };
 
     try {
-        const { method } = req;
-        const { query, pathname: p } = url.parse(req.url, true);
+        const {method} = req;
+        const {query, pathname: p} = url.parse(req.url, true);
 
-        console.log('got login', { method, p, query });
+        console.log('got login', {method, p, query});
 
         if (method === 'POST') {
-            let { email, code, token, discordcode, discordid, twittercode, twitterid, autoip, mnemonic } = query;
+            let {email, code, token, discordcode, discordid, twittercode, twitterid, autoip, mnemonic} = query;
             if (email && emailRegex.test(email)) {
                 if (token) {
                     const tokenItem = await ddb.getItem({
                         TableName: tableNames.user,
                         Key: {
-                            email: { S: email + '.token' },
+                            email: {S: email + '.token'},
                         },
                     }).promise();
 
-                    console.log('got login', tokenItem, { email, token });
+                    console.log('got login', tokenItem, {email, token});
 
                     const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
                     if (tokens.includes(token)) {
@@ -107,24 +107,24 @@ const handleLogin = async (req, res) => {
                         const codeItem = await ddb.getItem({
                             TableName: tableNames.user,
                             Key: {
-                                email: { S: email + '.code' },
+                                email: {S: email + '.code'},
                             }
                         }).promise();
 
-                        console.log('got verification', codeItem, { email, code });
+                        console.log('got verification', codeItem, {email, code});
 
                         if (codeItem.Item && codeItem.Item.code.S === code) {
                             await ddb.deleteItem({
                                 TableName: tableNames.user,
                                 Key: {
-                                    email: { S: email + '.code' },
+                                    email: {S: email + '.code'},
                                 }
                             }).promise();
 
                             const tokenItem = await ddb.getItem({
                                 TableName: tableNames.user,
                                 Key: {
-                                    email: { S: email + '.token' },
+                                    email: {S: email + '.token'},
                                 },
                             }).promise();
                             const tokens = (tokenItem.Item && tokenItem.Item.tokens) ? JSON.parse(tokenItem.Item.tokens.S) : [];
@@ -165,16 +165,16 @@ const handleLogin = async (req, res) => {
                             await ddb.putItem({
                                 TableName: tableNames.user,
                                 Item: {
-                                    email: { S: email + '.token' },
-                                    name: { S: name },
-                                    tokens: { S: JSON.stringify(tokens) },
-                                    mnemonic: { S: mnemonic },
-                                    address: { S: addr },
-                                    addr: { S: addr },
-                                    state: { S: state },
-                                    stripeState: { S: JSON.stringify(stripeState) },
-                                    stripeConnectState: { S: JSON.stringify(stripeConnectState) },
-                                    githubOauthState: { S: JSON.stringify(githubOauthState) },
+                                    email: {S: email + '.token'},
+                                    name: {S: name},
+                                    tokens: {S: JSON.stringify(tokens)},
+                                    mnemonic: {S: mnemonic},
+                                    address: {S: addr},
+                                    addr: {S: addr},
+                                    state: {S: state},
+                                    stripeState: {S: JSON.stringify(stripeState)},
+                                    stripeConnectState: {S: JSON.stringify(stripeConnectState)},
+                                    githubOauthState: {S: JSON.stringify(githubOauthState)},
                                 }
                             }).promise();
 
@@ -202,13 +202,13 @@ const handleLogin = async (req, res) => {
                 } else {
                     const code = new Uint32Array(crypto.randomBytes(4).buffer, 0, 1).toString(10).slice(-6);
 
-                    console.log('verification', { email, code });
+                    console.log('verification', {email, code});
 
                     await ddb.putItem({
                         TableName: tableNames.user,
                         Item: {
-                            email: { S: email + '.code' },
-                            code: { S: code },
+                            email: {S: email + '.code'},
+                            code: {S: code},
                         }
                     }).promise();
 
@@ -242,7 +242,7 @@ const handleLogin = async (req, res) => {
                     const codeItem = await ddb.getItem({
                         TableName: tableNames.user,
                         Key: {
-                            email: { S: discordid + '.code' },
+                            email: {S: discordid + '.code'},
                         }
                     }).promise();
 
@@ -252,7 +252,7 @@ const handleLogin = async (req, res) => {
                         await ddb.deleteItem({
                             TableName: tableNames.user,
                             Key: {
-                                email: { S: discordid + '.code' },
+                                email: {S: discordid + '.code'},
                             }
                         }).promise();
 
@@ -260,7 +260,7 @@ const handleLogin = async (req, res) => {
                         const tokenItem = await ddb.getItem({
                             TableName: tableNames.user,
                             Key: {
-                                email: { S: discordid + '.discordtoken' },
+                                email: {S: discordid + '.discordtoken'},
                             },
                         }).promise();
                         const tokens = (tokenItem.Item && tokenItem.Item.tokens) ? JSON.parse(tokenItem.Item.tokens.S) : [];
@@ -282,15 +282,15 @@ const handleLogin = async (req, res) => {
                         await ddb.putItem({
                             TableName: tableNames.user,
                             Item: {
-                                email: { S: discordid + '.discordtoken' },
-                                mnemonic: { S: mnemonic },
+                                email: {S: discordid + '.discordtoken'},
+                                mnemonic: {S: mnemonic},
                                 // address: {S: addr},
                             }
                         }).promise();
 
                         // respond
                         setCorsHeaders(res);
-                        res.end(JSON.stringify({ mnemonic }));
+                        res.end(JSON.stringify({mnemonic}));
                     } else {
                         _respond(403, JSON.stringify({
                             error: 'invalid code',
@@ -317,7 +317,7 @@ const handleLogin = async (req, res) => {
                                 reject(err);
                             });
                         });
-                        const { access_token } = discordOauthState;
+                        const {access_token} = discordOauthState;
 
                         const proxyReq2 = await https.request({
                             host: 'discord.com',
@@ -338,19 +338,19 @@ const handleLogin = async (req, res) => {
                                     reject(err);
                                 });
                             });
-                            const { id } = j;
+                            const {id} = j;
 
                             if (id) {
                                 const _getUser = async id => {
                                     const tokenItem = await ddb.getItem({
                                         TableName: tableNames.user,
                                         Key: {
-                                            email: { S: id + '.discordtoken' },
+                                            email: {S: id + '.discordtoken'},
                                         }
                                     }).promise();
 
                                     let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
-                                    return { mnemonic };
+                                    return {mnemonic};
                                 };
                                 const _genKey = async id => {
                                     const mnemonic = bip39.generateMnemonic();
@@ -360,19 +360,19 @@ const handleLogin = async (req, res) => {
                                     await ddb.putItem({
                                         TableName: tableNames.user,
                                         Item: {
-                                            email: { S: id + '.discordtoken' },
-                                            mnemonic: { S: mnemonic },
-                                            address: { S: address },
+                                            email: {S: id + '.discordtoken'},
+                                            mnemonic: {S: mnemonic},
+                                            address: {S: address},
                                         }
                                     }).promise();
-                                    return { mnemonic };
+                                    return {mnemonic};
                                 };
 
                                 const user = await _getUser(id) || _genKey(id);
-                                const { mnemonic } = user;
+                                const {mnemonic} = user;
 
                                 setCorsHeaders(res);
-                                res.end(JSON.stringify({ mnemonic }));
+                                res.end(JSON.stringify({mnemonic}));
                             } else {
                                 console.warn('discord oauth failed', j);
                                 _respond(403, JSON.stringify({
@@ -407,7 +407,7 @@ const handleLogin = async (req, res) => {
                     const codeItem = await ddb.getItem({
                         TableName: tableNames.user,
                         Key: {
-                            email: { S: twitterid + '.code' },
+                            email: {S: twitterid + '.code'},
                         }
                     }).promise();
 
@@ -417,7 +417,7 @@ const handleLogin = async (req, res) => {
                         await ddb.deleteItem({
                             TableName: tableNames.user,
                             Key: {
-                                email: { S: twitterid + '.code' },
+                                email: {S: twitterid + '.code'},
                             }
                         }).promise();
 
@@ -425,7 +425,7 @@ const handleLogin = async (req, res) => {
                         const tokenItem = await ddb.getItem({
                             TableName: tableNames.user,
                             Key: {
-                                email: { S: twitterid + '.twittertoken' },
+                                email: {S: twitterid + '.twittertoken'},
                             },
                         }).promise();
                         const tokens = (tokenItem.Item && tokenItem.Item.tokens) ? JSON.parse(tokenItem.Item.tokens.S) : [];
@@ -447,14 +447,14 @@ const handleLogin = async (req, res) => {
                         await ddb.putItem({
                             TableName: tableNames.user,
                             Item: {
-                                email: { S: twitterid + '.twittertoken' },
-                                mnemonic: { S: mnemonic },
+                                email: {S: twitterid + '.twittertoken'},
+                                mnemonic: {S: mnemonic},
                             }
                         }).promise();
 
                         // respond
                         setCorsHeaders(res);
-                        res.end(JSON.stringify({ mnemonic }));
+                        res.end(JSON.stringify({mnemonic}));
                     } else {
                         _respond(403, JSON.stringify({
                             error: 'Invalid code',
@@ -473,9 +473,9 @@ const handleLogin = async (req, res) => {
                     await ddb.putItem({
                         TableName: tableNames.user,
                         Item: {
-                            email: { S: ip + '.ipcode' },
-                            mnemonic: { S: mnemonic },
-                            timeout: { N: (Date.now() + 60 * 1000) + '' },
+                            email: {S: ip + '.ipcode'},
+                            mnemonic: {S: mnemonic},
+                            timeout: {N: (Date.now() + 60 * 1000) + ''},
                         }
                     }).promise();
 
@@ -488,7 +488,7 @@ const handleLogin = async (req, res) => {
                     const codeItem = await ddb.getItem({
                         TableName: tableNames.user,
                         Key: {
-                            email: { S: ip + '.ipcode' },
+                            email: {S: ip + '.ipcode'},
                         }
                     }).promise();
 
@@ -498,14 +498,14 @@ const handleLogin = async (req, res) => {
                         await ddb.deleteItem({
                             TableName: tableNames.user,
                             Key: {
-                                email: { S: ip + '.ipcode' },
+                                email: {S: ip + '.ipcode'},
                             }
                         }).promise();
 
                         const mnemonic = codeItem.Item.mnemonic.S;
 
                         setCorsHeaders(res);
-                        res.end(JSON.stringify({ mnemonic }));
+                        res.end(JSON.stringify({mnemonic}));
                     } else {
                         _respond(400, JSON.stringify({
                             error: 'invalid autoip src',
@@ -576,8 +576,8 @@ const handleAccounts = () => async (req, res) => {
         res.end(body);
     };
     try {
-        const { method } = req;
-        let { pathname: p } = url.parse(req.url);
+        const {method} = req;
+        let {pathname: p} = url.parse(req.url);
 
         if (method === 'OPTIONS') {
             // res.statusCode = 200;
@@ -619,11 +619,11 @@ const handleOauth = async (req, res) => {
     };
 
     try {
-        const { method } = req;
+        const {method} = req;
         const o = url.parse(req.url, true);
         if (method === 'GET' && o.pathname === '/github') {
-            const { state, code } = o.query;
-            console.log('handle github oauth', { state, code });
+            const {state, code} = o.query;
+            console.log('handle github oauth', {state, code});
             const match = state ? state.match(/^(.+?):(.+?):(.+?)$/) : null;
             if (match && code) {
                 const email = match[1];
@@ -633,7 +633,7 @@ const handleOauth = async (req, res) => {
                 const tokenItem = await ddb.getItem({
                     TableName: tableNames.user,
                     Key: {
-                        email: { S: email + '.token' },
+                        email: {S: email + '.token'},
                     }
                 }).promise();
 
@@ -666,13 +666,13 @@ const handleOauth = async (req, res) => {
                         await ddb.putItem({
                             TableName: tableNames.user,
                             Item: {
-                                email: { S: tokenItem.Item.email.S },
-                                name: { S: tokenItem.Item.name.S },
-                                tokens: { S: tokenItem.Item.tokens.S },
-                                state: { S: tokenItem.Item.state.S },
-                                stripeState: { S: tokenItem.Item.stripeState.S },
-                                stripeConnectState: { S: tokenItem.Item.stripeConnectState.S },
-                                githubOauthState: { S: JSON.stringify(githubOauthState) },
+                                email: {S: tokenItem.Item.email.S},
+                                name: {S: tokenItem.Item.name.S},
+                                tokens: {S: tokenItem.Item.tokens.S},
+                                state: {S: tokenItem.Item.state.S},
+                                stripeState: {S: tokenItem.Item.stripeState.S},
+                                stripeConnectState: {S: tokenItem.Item.stripeConnectState.S},
+                                githubOauthState: {S: JSON.stringify(githubOauthState)},
                             }
                         }).promise();
 
@@ -711,10 +711,10 @@ const handleProfile = chainName => async (req, res) => {
     };
 
     try {
-        const { method } = req;
+        const {method} = req;
 
         if (method === 'GET') {
-            const { pathname: p } = url.parse(req.url, true);
+            const {pathname: p} = url.parse(req.url, true);
             let match;
             if ((match = p.match(/^\/(0x[a-f0-9]+)$/))) {
                 const address = match[1];
@@ -813,10 +813,10 @@ const handleCachedNft = contractName => (chainName, isAll) => async (req, res) =
     };
 
     try {
-        const { method } = req;
+        const {method} = req;
 
         if (method === 'GET') {
-            const { pathname: p } = url.parse(req.url, true);
+            const {pathname: p} = url.parse(req.url, true);
             let match;
             if ((match = p.match(/^\/([0-9]+)$/))) {
                 const tokenId = parseInt(match[1], 10);
@@ -970,7 +970,7 @@ const handleCachedNft = contractName => (chainName, isAll) => async (req, res) =
                 _respond(200, JSON.stringify(_isSingleCollaborator));
             } else if ((match = req.url.match(/^\/search\?(.+)$/))) {
                 const qs = querystring.parse(match[1]);
-                const { q = '*', owner, minter } = qs;
+                const {q = '*', owner, minter} = qs;
                 if (q) {
                     const regex = /(\w+)/g;
                     const words = [];
@@ -1044,10 +1044,10 @@ const handleChainNft = contractName => (chainName, isAll) => async (req, res) =>
     const _maybeGetStoreEntries = () => (contractName === 'NFT' && !chainName.includes('testnet')) ? getStoreEntries(chainName) : Promise.resolve([]);
 
     try {
-        const { method } = req;
+        const {method} = req;
 
         if (method === 'GET') {
-            const { pathname: p } = url.parse(req.url, true);
+            const {pathname: p} = url.parse(req.url, true);
             let match;
             if ((match = p.match(/^\/([0-9]+)$/))) {
                 const tokenId = parseInt(match[1], 10);
@@ -1223,8 +1223,8 @@ const handleStore = chainName => async (req, res) => {
     };
 
     try {
-        const { method } = req;
-        const { pathname: p } = url.parse(req.url);
+        const {method} = req;
+        const {pathname: p} = url.parse(req.url);
 
         const getBooths = async () => {
             const storeEntries = await getStoreEntries(chainName);
@@ -1232,7 +1232,7 @@ const handleStore = chainName => async (req, res) => {
             const booths = [];
             for (let i = 0; i < storeEntries.length; i++) {
                 const store = storeEntries[i]
-                const { tokenId, seller } = store;
+                const {tokenId, seller} = store;
 
                 if (tokenId) {
                     const token = await getChainToken(chainName)(tokenId, storeEntries);

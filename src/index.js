@@ -22,13 +22,13 @@ const {
   handleStore,
 } = require("./handlers.js");
 
-const { HTTP_PORT, HTTPS_PORT } = require('./constants.js');
-const {   tryConnectRedis } = require ('./redis.js');
+const {HTTP_PORT, HTTPS_PORT} = require('./constants.js');
+const {tryConnectRedis} = require ('./redis.js');
 // Routes
-const { worldManager, _handleWorldsRequest } = require("./routes/worlds.js");
-const { _handleSignRequest } = require("./routes/sign.js");
-const { handleUnlockRequest } = require("./routes/unlock.js");
-const { _handleAnalyticsRequest } = require("./routes/analytics.js");
+const {worldManager, _handleWorldsRequest} = require("./routes/worlds.js");
+const {handleSignRequest} = require("./routes/sign.js");
+const {handleUnlockRequest} = require("./routes/unlock.js");
+const {handleAnalyticsRequest} = require("./routes/analytics.js");
 
 let CERT = null;
 let PRIVKEY = null;
@@ -95,10 +95,10 @@ try {
         handleAccounts()(req, res);
         return;
       } else if (o.host === "analytics.webaverse.com") {
-        _handleAnalyticsRequest(req, res);
+        handleAnalyticsRequest(req, res);
         return;
       } else if (o.host === "sign.exokit.org") {
-        _handleSignRequest(req, res);
+        handleSignRequest(req, res);
         return;
       } else if (o.host === "unlock.exokit.org") {
         handleUnlockRequest(req, res);

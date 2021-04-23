@@ -2,9 +2,9 @@ const dns = require('dns');
 const fetch = require('node-fetch');
 const Web3 = require('web3');
 const bip39 = require('bip39');
-const { hdkey } = require('ethereumjs-wallet');
-const { createDecipheriv } = require('crypto');
-const { jsonParse, setCorsHeaders } = require('../utils.js');
+const {hdkey} = require('ethereumjs-wallet');
+const {createDecipheriv} = require('crypto');
+const {jsonParse, setCorsHeaders} = require('../utils.js');
 const {
   MAINNET_MNEMONIC,
   TESTNET_MNEMONIC,
@@ -14,21 +14,21 @@ const {
   ENCRYPTION_MNEMONIC,
   POLYGON_VIGIL_KEY,
   unlockableKey,
-  ethereumHost
+  ETHEREUM_HOST
 } = require('../constants.js');
-const { areAddressesCollaborator } = require ('../blockchain.js');
+const {areAddressesCollaborator} = require ('../blockchain.js');
 
 const nonce = Buffer.alloc(12);
 
 let contracts, gethNodeUrl = null;
 const loadPromise = (async () => {
   const ethereumHostAddress = await new Promise((accept, reject) => {
-    dns.resolve4(ethereumHost, (err, addresses) => {
+    dns.resolve4(ETHEREUM_HOST, (err, addresses) => {
       if (!err) {
         if (addresses.length > 0) {
           accept(addresses[0]);
         } else {
-          reject(new Error('no addresses resolved for ' + ethereumHost));
+          reject(new Error('no addresses resolved for ' + ETHEREUM_HOST));
         }
       } else {
         reject(err);
@@ -94,7 +94,7 @@ const loadPromise = (async () => {
   };
 })();
 
-const decodeSecret = (mnemonic, { ciphertext, tag }) => {
+const decodeSecret = (mnemonic, {ciphertext, tag}) => {
   const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
   const privateKey = wallet.privateKey;
 
@@ -111,10 +111,10 @@ const decodeSecret = (mnemonic, { ciphertext, tag }) => {
 const proofOfAddressMessage = `Proof of address.`;
 
 const handleUnlockRequest = async (req, res) => {
-  const { web3, contracts } = await loadPromise;
+  const {web3, contracts} = await loadPromise;
   try {
     res = setCorsHeaders(res);
-    const { method } = req;
+    const {method} = req;
     if (method === 'OPTIONS') {
       res.end();
     } else if (method === 'POST') {
@@ -131,7 +131,7 @@ const handleUnlockRequest = async (req, res) => {
         });
         req.on('error', reject);
       });
-      const { signatures, id } = j;
+      const {signatures, id} = j;
       const key = unlockableKey;
       const addresses = [];
       let ok = true;
@@ -153,10 +153,10 @@ const handleUnlockRequest = async (req, res) => {
           let value = await contracts.mainnetsidechain.NFT.methods.getMetadata(hash, key).call();
           value = jsonParse(value);
           if (value !== null) {
-            let { ciphertext, tag } = value;
+            let {ciphertext, tag} = value;
             ciphertext = Buffer.from(ciphertext, 'base64');
             tag = Buffer.from(tag, 'base64');
-            value = decodeSecret(ENCRYPTION_MNEMONIC, { ciphertext, tag });
+            value = decodeSecret(ENCRYPTION_MNEMONIC, {ciphertext, tag});
           }
 
           res.end(JSON.stringify({

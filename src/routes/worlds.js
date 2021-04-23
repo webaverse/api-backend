@@ -3,9 +3,9 @@ const url = require('url');
 const fs = require('fs').promises;
 const child_process = require('child_process');
 const ps = require('ps-node');
-const { setCorsHeaders } = require('../utils.js');
-const { PRIVATE_IP_ADDRESS, PUBLIC_IP_ADDRESS } = require('../constants.js');
-const { s3 } = require('../aws.js');
+const {setCorsHeaders} = require('../utils.js');
+const {PRIVATE_IP_ADDRESS, PUBLIC_IP_ADDRESS} = require('../constants.js');
+const {s3} = require('../aws.js');
 
 const jsPath = '../dialog/index.js';
 const bucketName = 'worlds.exokit.org';
@@ -48,7 +48,7 @@ class WorldManager {
           results = results
             .filter(w => w.arguments[0] === jsPath)
             .map(w => {
-              const { pid } = w;
+              const {pid} = w;
               let [name, PUBLIC_IP_ADDRESS, PRIVATE_IP_ADDRESS, port] = w.arguments.slice(1);
               port = parseInt(port, 10);
               return {
@@ -243,14 +243,14 @@ const worldManager = new WorldManager();
 
 const _handleWorldsRequest = async (req, res) => {
   try {
-    const { method, headers, url: u } = req;
+    const {method, headers, url: u} = req;
     const o = url.parse(u);
     const match = decodeURIComponent(o.path).match(/^\/([a-z0-9\-\ \.]+)$/i);
     const p = match && match[1];
 
     res = setCorsHeaders(res);
 
-    console.log('get worlds request', { method, headers, o, p });
+    console.log('get worlds request', {method, headers, o, p});
 
     if (method === 'OPTIONS') {
       res.end();
@@ -265,7 +265,7 @@ const _handleWorldsRequest = async (req, res) => {
         }));
       } else {
         res.statusCode = 404;
-        res.end(JSON.stringify({ error: 'world not found' }));
+        res.end(JSON.stringify({error: 'world not found'}));
       }
     } else if (method === 'POST' && p) {
       const name = p;
@@ -277,7 +277,7 @@ const _handleWorldsRequest = async (req, res) => {
         }));
       } else {
         res.statusCode = 400;
-        res.end(JSON.stringify({ error: 'name already taken' }));
+        res.end(JSON.stringify({error: 'name already taken'}));
       }
     } else if (method === 'DELETE' && p) {
       const name = p;
@@ -287,7 +287,7 @@ const _handleWorldsRequest = async (req, res) => {
         res.end();
       } else {
         res.statusCode = 404;
-        res.end(JSON.stringify({ error: 'world not found' }));
+        res.end(JSON.stringify({error: 'world not found'}));
       }
     } else {
       res.statusCode = 404;

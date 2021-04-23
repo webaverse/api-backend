@@ -1,10 +1,10 @@
 const expressJSDocSwagger = require('express-jsdoc-swagger');
 
-const { createWallet } = require("./routes/wallet.js");
-const { handleServerSideAuth, authenticateToken } = require("./routes/auth.js");
-const { listTokens, createToken, readToken, deleteToken, sendToken, readTokenRange, signTransfer } = require("./routes/tokens.js");
+const {createWallet} = require("./routes/wallet.js");
+const {handleServerSideAuth, authenticateToken} = require("./routes/auth.js");
+const {listTokens, createToken, readToken, deleteToken, sendToken, readTokenRange, signTransfer} = require("./routes/tokens.js");
 
-const { getBlockchain } = require('../../blockchain.js');
+const {getBlockchain} = require('../../blockchain.js');
 
 let blockchain;
 

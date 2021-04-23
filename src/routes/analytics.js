@@ -1,9 +1,9 @@
 const url = require('url');
 const uuid = require('uuid');
-const { setCorsHeaders } = require('../utils.js');
-const { ddbd } = require('../utils.js');
+const {setCorsHeaders} = require('../utils.js');
+const {ddbd} = require('../utils.js');
 
-const _handleAnalyticsRequest = async (req, res) => {
+const handleAnalyticsRequest = async (req, res) => {
   const request = url.parse(req.url);
   const path = request.path.split('/');
 
@@ -13,7 +13,7 @@ const _handleAnalyticsRequest = async (req, res) => {
 
   try {
     res = setCorsHeaders(res);
-    const { method } = req;
+    const {method} = req;
     if (method === 'OPTIONS') {
       res.end();
     } else if (method === 'GET') {
@@ -76,5 +76,5 @@ const _handleAnalyticsRequest = async (req, res) => {
 }
 
 module.exports = {
-  _handleAnalyticsRequest,
+  handleAnalyticsRequest,
 }

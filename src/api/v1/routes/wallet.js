@@ -1,8 +1,8 @@
 const bip39 = require('bip39');
-const { hdkey } = require('ethereumjs-wallet');
-const { setCorsHeaders } = require("../../../utils.js");
-const { ResponseStatus } = require("../enums.js");
-const { development } = require("../environment.js");
+const {hdkey} = require('ethereumjs-wallet');
+const {setCorsHeaders} = require("../../../utils.js");
+const {ResponseStatus} = require("../enums.js");
+const {development} = require("../environment.js");
 
 // Generates a new mnemonic, private key and public address and hands the mnemonic back
 async function createWallet(req, res) {
@@ -11,9 +11,9 @@ async function createWallet(req, res) {
         const userMnemonic = bip39.generateMnemonic();
         const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(userMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
         const userAddress = wallet.getAddressString();
-        return res.json({ status: ResponseStatus.Success, userMnemonic, userAddress, error: null });
+        return res.json({status: ResponseStatus.Success, userMnemonic, userAddress, error: null});
     } catch (error) {
-        return res.json({ status: ResponseStatus.Error, userMnemonic: null, userAddress: null, error });
+        return res.json({status: ResponseStatus.Error, userMnemonic: null, userAddress: null, error});
     }
 }
 

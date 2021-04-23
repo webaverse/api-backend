@@ -1,13 +1,13 @@
 const path = require('path');
 const bip39 = require('bip39');
-const { hdkey } = require('ethereumjs-wallet');
-const { getBlockchain } = require('../../../blockchain.js');
-const { makePromise, setCorsHeaders } = require('../../../utils.js');
-const { getRedisItem, parseRedisItems, getRedisClient } = require('../../../redis.js');
-const { redisPrefixes, mainnetSignatureMessage, nftIndexName, mintingFee, burnAddress, zeroAddress, MAINNET_MNEMONIC, defaultTokenDescription } = require('../../../constants.js');
-const { ResponseStatus } = require("../enums.js");
-const { runSidechainTransaction } = require("../../../tokens.js");
-const { production, development } = require("../environment.js");
+const {hdkey} = require('ethereumjs-wallet');
+const {getBlockchain} = require('../../../blockchain.js');
+const {makePromise, setCorsHeaders} = require('../../../utils.js');
+const {getRedisItem, parseRedisItems, getRedisClient} = require('../../../redis.js');
+const {redisPrefixes, mainnetSignatureMessage, nftIndexName, mintingFee, burnAddress, zeroAddress, MAINNET_MNEMONIC, defaultTokenDescription} = require('../../../constants.js');
+const {ResponseStatus} = require("../enums.js");
+const {runSidechainTransaction} = require("../../../tokens.js");
+const {production, development} = require("../environment.js");
 
 const redisClient = getRedisClient();
 
@@ -22,7 +22,7 @@ let contracts;
 
 // Takes an account as input
 async function listTokens(req, res, web3) {
-    const { address, mainnetAddress } = req.params;
+    const {address, mainnetAddress} = req.params;
 
     if (development) setCorsHeaders(res);
     try {
@@ -80,13 +80,13 @@ async function listTokens(req, res, web3) {
                 }
                 return true;
             });
-        return res.json({ status: ResponseStatus.Success, tokens: JSON.stringify(tokens), error: null });
+        return res.json({status: ResponseStatus.Success, tokens: JSON.stringify(tokens), error: null});
     } catch (error) {
-        return res.json({ status: ResponseStatus.Error, tokens: null, error });
+        return res.json({status: ResponseStatus.Error, tokens: null, error});
     }
 }
 
-async function createToken(req, res, { web3, contracts }) {
+async function createToken(req, res, {web3, contracts}) {
     let status, tokenIds;
 
     try {
@@ -95,7 +95,7 @@ async function createToken(req, res, { web3, contracts }) {
         // Files? Let's pin them to pinata
         // Hash? Let's use it directly
 
-        const { mnemonic, resourceHash, quantity } = req.body;
+        const {mnemonic, resourceHash, quantity} = req.body;
 
         const fullAmount = {
             t: 'uint256',
@@ -134,7 +134,7 @@ async function createToken(req, res, { web3, contracts }) {
 
             fileName = extName ? fileName.slice(0, -(extName.length + 1)) : fileName;
 
-            const { hash } = JSON.parse(Buffer.from(resourceHash, 'utf8').toString('utf8'));
+            const {hash} = JSON.parse(Buffer.from(resourceHash, 'utf8').toString('utf8'));
 
             const result = await runSidechainTransaction(mnemonic)('NFT', 'mint', address, hash, fileName, extName, description, quantity);
             status = result.status;
@@ -142,34 +142,34 @@ async function createToken(req, res, { web3, contracts }) {
             const tokenId = new web3.utils.BN(result.logs[0].topics[3].slice(2), 16).toNumber();
             tokenIds = [tokenId, tokenId + quantity - 1];
         }
-        return res.json({ status: ResponseStatus.Success, tokenIds, error: null });
+        return res.json({status: ResponseStatus.Success, tokenIds, error: null});
     } catch (error) {
         console.warn(error.stack);
-        return res.json({ status: ResponseStatus.Error, tokenIds: [], error });
+        return res.json({status: ResponseStatus.Error, tokenIds: [], error});
     }
 }
 
 async function readToken(req, res) {
-    const { tokenId } = req.params;
+    const {tokenId} = req.params;
 
     let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
     let token = o.Item;
 
     if (development) setCorsHeaders(res);
     if (token) {
-        return res.json({ status: ResponseStatus.Success, token, error: null })
+        return res.json({status: ResponseStatus.Success, token, error: null})
     } else {
-        return res.json({ status: ResponseStatus.Error, token: null, error: "The token could not be found" })
+        return res.json({status: ResponseStatus.Error, token: null, error: "The token could not be found"})
     }
 }
 
 async function readTokenRange(req, res) {
     if (development) setCorsHeaders(res);
     try {
-        const { tokenStartId, tokenEndId } = req.params;
+        const {tokenStartId, tokenEndId} = req.params;
 
         if (tokenStartId <= 0 || tokenEndId < tokenStartId || (tokenEndId - tokenStartId) > 100)
-            return res.json({ status: ResponseStatus.Error, error: "Invalid range for tokens" })
+            return res.json({status: ResponseStatus.Error, error: "Invalid range for tokens"})
 
 
         const promise = makePromise();
@@ -202,15 +202,15 @@ async function readTokenRange(req, res) {
             });
 
 
-        return res.json({ status: ResponseStatus.Success, tokens, error: null })
+        return res.json({status: ResponseStatus.Success, tokens, error: null})
     } catch (error) {
-        return res.json({ status: ResponseStatus.Error, tokens: [], error })
+        return res.json({status: ResponseStatus.Error, tokens: [], error})
     }
 }
 
 async function deleteToken(req, res) {
     try {
-        const { tokenId } = req.body;
+        const {tokenId} = req.body;
 
         let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
         let token = o.Item;
@@ -223,15 +223,15 @@ async function deleteToken(req, res) {
         const result = await runSidechainTransaction(MAINNET_MNEMONIC)('NFT', 'transferFrom', address, burnAddress, tokenId);
 
         if (result) console.log("Result of delete transaction:", result);
-        return res.json({ status: ResponseStatus.Success, error: null })
+        return res.json({status: ResponseStatus.Success, error: null})
     } catch (error) {
-        return res.json({ status: ResponseStatus.Error, error })
+        return res.json({status: ResponseStatus.Error, error})
     }
 }
 
 async function sendToken(req, res) {
     try {
-        const { fromUserAddress, toUserAddress, tokenId } = req.body;
+        const {fromUserAddress, toUserAddress, tokenId} = req.body;
         const quantity = req.body.quantity ?? 1;
 
         let status = true;
@@ -254,12 +254,12 @@ async function sendToken(req, res) {
         }
 
         if (status) {
-            return res.json({ status: ResponseStatus.Success, message: 'Transferred ' + tokenId + ' to ' + toUserAddress, error: null })
+            return res.json({status: ResponseStatus.Success, message: 'Transferred ' + tokenId + ' to ' + toUserAddress, error: null})
         } else {
-            return res.json({ status: ResponseStatus.Error, message: 'Transfer request could not be fulfilled: ' + status, error: error })
+            return res.json({status: ResponseStatus.Error, message: 'Transfer request could not be fulfilled: ' + status, error: error})
         }
     } catch (error) {
-        return res.json({ status: ResponseStatus.Error, message: 'Error sending token', error: error })
+        return res.json({status: ResponseStatus.Error, message: 'Error sending token', error: error})
     }
 }
 

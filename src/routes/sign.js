@@ -3,26 +3,26 @@ const dns = require('dns');
 const fetch = require('node-fetch');
 const Web3 = require('web3');
 const bip39 = require('bip39');
-const { hdkey } = require('ethereumjs-wallet');
-const { setCorsHeaders } = require('../utils.js');
-const { MAINNET_MNEMONIC,
+const {hdkey} = require('ethereumjs-wallet');
+const {setCorsHeaders} = require('../utils.js');
+const {MAINNET_MNEMONIC,
   TESTNET_MNEMONIC,
   POLYGON_MNEMONIC,
   TESTNET_POLYGON_MNEMONIC,
   INFURA_PROJECT_ID,
   POLYGON_VIGIL_KEY,
-  ethereumHost
+  ETHEREUM_HOST
 } = require('../constants.js');
 
 let gethNodeUrl = null;
 const loadPromise = (async () => {
   const ethereumHostAddress = await new Promise((accept, reject) => {
-    dns.resolve4(ethereumHost, (err, addresses) => {
+    dns.resolve4(ETHEREUM_HOST, (err, addresses) => {
       if (!err) {
         if (addresses.length > 0) {
           accept(addresses[0]);
         } else {
-          reject(new Error('no addresses resolved for ' + ethereumHost));
+          reject(new Error('no addresses resolved for ' + ETHEREUM_HOST));
         }
       } else {
         reject(err);
@@ -88,15 +88,15 @@ const loadPromise = (async () => {
   };
 })();
 
-const _handleSignRequest = async (req, res) => {
+const handleSignRequest = async (req, res) => {
 
-  const { web3, addresses,chainIds, wallets } = await loadPromise;
+  const {web3, addresses,chainIds, wallets} = await loadPromise;
 
   const request = url.parse(req.url);
 
   try {
     res = setCorsHeaders(res);
-    const { method } = req;
+    const {method} = req;
     if (method === 'OPTIONS') {
       res.end();
     } else if (method === 'GET') {
@@ -114,7 +114,7 @@ const _handleSignRequest = async (req, res) => {
             const proxyContractName = contractName + 'Proxy';
             if (txr && txr.to.toLowerCase() === addresses[chainName][proxyContractName].toLowerCase()) {
 
-              const { logs } = txr;
+              const {logs} = txr;
               const log = logs.find(log =>
                 (contractName === 'FT' && log.topics[0] === '0x2da466a7b24304f47e87fa2e1e5a81b9831ce54fec19055ce277ca2f39ba42c4') || // WebaverseERC20Proxy Deposited
                 (contractName === 'LAND' && log.topics[0] === '0x2da466a7b24304f47e87fa2e1e5a81b9831ce54fec19055ce277ca2f39ba42c4') || // WebaverseERC721Proxy Deposited
@@ -143,7 +143,7 @@ const _handleSignRequest = async (req, res) => {
                   const message = web3[destinationChainName].utils.encodePacked(to, amount, timestamp, chainId);
                   const hashedMessage = web3[destinationChainName].utils.sha3(message);
                   const sgn = web3[destinationChainName].eth.accounts.sign(hashedMessage, wallet.getPrivateKeyString());
-                  const { r, s, v } = sgn;
+                  const {r, s, v} = sgn;
                   res.end(JSON.stringify({
                     to: to.v,
                     amount: '0x' + web3[destinationChainName].utils.padLeft(amount.v.toString(16), 32),
@@ -172,7 +172,7 @@ const _handleSignRequest = async (req, res) => {
                   const message = web3[destinationChainName].utils.encodePacked(to, tokenId, timestamp, chainId);
                   const hashedMessage = web3[destinationChainName].utils.sha3(message);
                   const sgn = web3[destinationChainName].eth.accounts.sign(hashedMessage, wallet.getPrivateKeyString()); // await web3.eth.personal.sign(hashedMessage, address);
-                  const { r, s, v } = sgn;
+                  const {r, s, v} = sgn;
                   res.end(JSON.stringify({
                     to: to.v,
                     tokenId: '0x' + web3[destinationChainName].utils.padLeft(tokenId.v.toString(16), 32),
@@ -217,5 +217,5 @@ const _handleSignRequest = async (req, res) => {
 }
 
 module.exports = {
-  _handleSignRequest,
+  handleSignRequest,
 };

@@ -1,6 +1,6 @@
 const blockchain = require('./blockchain.js');
-const { ddb } = require('./blockchain.js');
-const { tableNames } = require('./constants.js');
+const {ddb} = require('./blockchain.js');
+const {tableNames} = require('./constants.js');
 
 const keyName = 'test-users.cache';
 const MAX_CACHED_USERS = 5;

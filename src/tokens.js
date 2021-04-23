@@ -1,5 +1,5 @@
-const { accountKeys, zeroAddress, defaultAvatarPreview, storageHost } = require('./constants.js');
-const { getBlockchain, getPastEvents } = require('./blockchain.js');
+const {accountKeys, zeroAddress, defaultAvatarPreview, storageHost} = require('./constants.js');
+const {getBlockchain, getPastEvents} = require('./blockchain.js');
 
 const _log = async (text, p) => {
   try {
@@ -379,7 +379,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
 const formatToken = chainName => async (token, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
 
   const tokenId = parseInt(token.id, 10);
-  const { name, ext, unlockable, hash } = token;
+  const {name, ext, unlockable, hash} = token;
 
   const {
     contracts,
@@ -395,9 +395,9 @@ const formatToken = chainName => async (token, storeEntries, mainnetDepositedEnt
     description,
     sidechainMinterAddress,
   ] = await Promise.all([
-    _log('formatToken 1' + JSON.stringify({ id: token.id }), _fetchAccountForMinter(tokenId, sidechainChainName)),
-    _log('formatToken 2' + JSON.stringify({ id: token.id }), _fetchAccountForOwner(tokenId, sidechainChainName)),
-    _log('formatToken 3' + JSON.stringify({ id: token.id }), contracts[sidechainChainName].NFT.methods.getMetadata(token.hash, 'description').call()),
+    _log('formatToken 1' + JSON.stringify({id: token.id}), _fetchAccountForMinter(tokenId, sidechainChainName)),
+    _log('formatToken 2' + JSON.stringify({id: token.id}), _fetchAccountForOwner(tokenId, sidechainChainName)),
+    _log('formatToken 3' + JSON.stringify({id: token.id}), contracts[sidechainChainName].NFT.methods.getMetadata(token.hash, 'description').call()),
     contracts[sidechainChainName].NFT.methods.getMinter(tokenId).call(),
   ]);
 
@@ -509,7 +509,7 @@ const formatLand = chainName => async (token) => {
   const owner = await _fetchAccount(token.owner, sidechainChainName);
 
   const tokenId = parseInt(token.id, 10);
-  const { name, hash, ext, unlockable } = token;
+  const {name, hash, ext, unlockable} = token;
   const [
     description,
     rarity,
@@ -586,7 +586,7 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
     (async () => {
       const tokenSrc = await contracts[chainName][contractName].methods.tokenByIdFull(tokenId).call();
       const token = _copy(tokenSrc);
-      const { hash } = token;
+      const {hash} = token;
       token.unlockable = await contracts[chainName].NFT.methods.getMetadata(hash, 'unlockable').call();
       if (!token.unlockable) {
         token.unlockable = '';
@@ -636,7 +636,7 @@ async function getChainAccount({
   address,
   chainName,
 } = {}) {
-  const { contracts } = await getBlockchain();
+  const {contracts} = await getBlockchain();
   const contract = contracts[chainName];
 
   const account = {
