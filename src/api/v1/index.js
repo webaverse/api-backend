@@ -2,7 +2,7 @@ const expressJSDocSwagger = require('express-jsdoc-swagger');
 
 const { createWallet } = require("./routes/wallet.js");
 const { handleServerSideAuth, authenticateToken } = require("./routes/auth.js");
-const { listTokens, createToken, readToken, deleteToken, sendToken, readTokenRange } = require("./routes/tokens.js");
+const { listTokens, createToken, readToken, deleteToken, sendToken, readTokenRange, signTransfer } = require("./routes/tokens.js");
 
 const { getBlockchain } = require('../../blockchain.js');
 
@@ -106,6 +106,15 @@ app.post('/api/v1/wallet', authenticateToken, async (req, res) => {
  */
 
 /**
+ * Response for user account creation and retrieval
+ * @typedef {object} TokenSignatureResponse
+ * @property {string} status - The status of the list request (success/error)
+ * @property {string} tokenId - The ID fo the token being signed
+ * @property {string} signature - The status of the list request (success/error)
+ * @property {string} error - If the status is error, the error can be read from here 
+ */
+
+/**
  * GET /api/v1/tokens
  * @summary List tokens for a user
  * @return {TokenListResponse} 200 - success response
@@ -142,13 +151,13 @@ app.get('/api/v1/token/:tokenStartId/:tokenEndId', authenticateToken, async (req
 
 /**
  * POST /api/v1/token
- * @summary Create a non-fungible token
+ * @summary Create a non-fungible token with a file or IPFS hash
  * @return {TokenIdsResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
  * @param {string} userMnemonic.required - Mint the token using a user's private key
- * @param {string} resourceHash.required - IPFS resource hash or other URI
+ * @param {string} file.optional - File to upload to IPFS
+ * @param {string} resourceHash.optional - IPFS resource hash or other URI
  * @param {number} quantity.optional; - Number of tokens to mint
-
 */
 app.post('/api/v1/token', authenticateToken, async (req, res) => {
   return await createToken(req, res, blockchain);
@@ -178,18 +187,17 @@ app.post('/api/v1/token/send', authenticateToken, async (req, res) => {
   return await sendToken(req, res, blockchain);
 });
 
-// /**
-//  * POST /api/v1/token/transfer
-//  * @summary Send this token from one user to another
-//  * @return {TokenResponse} 200 - success response
-//  * @return {object} 401 - forbidden request response
-//  * @property {string} tokenId - Token to be sent
-//  * @property {string} senderId - Token sent by this user
-//  * @property {string} receiverId - Token received by this user
-//  */
-//  app.post('/api/v1/token/transfer', async (req, res) => {
-//   return await transferToken(req, res, blockchain);
-// });
+/**
+ * POST /api/v1/token/signTransfer
+ * @summary Prepare a token to be transferred, either mainnet <-> sidechain or polygon <-> sidechain
+ * @return {SignatureResponse} 200 - success response
+ * @return {object} 401 - forbidden request response
+ * @property {string} tokenId - Token to be sent
+ * @property {string} transferToChain - Transfer to this chain
+ */
+ app.post('/api/v1/token/signTransfer', async (req, res) => {
+  return await signTransfer(req, res, blockchain);
+});
 
 }
 

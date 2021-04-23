@@ -90,6 +90,11 @@ async function createToken(req, res, { web3, contracts }) {
     let status, tokenIds;
 
     try {
+        // Check if there are any files -- if there aren't, check if there's a hash
+        // No hash, no files? Throw error
+        // Files? Let's pin them to pinata
+        // Hash? Let's use it directly
+
         const { mnemonic, resourceHash, quantity } = req.body;
 
         const fullAmount = {
@@ -258,9 +263,9 @@ async function sendToken(req, res) {
     }
 }
 
-// async function transferToken(req, res) {
-
-// }
+async function signTransfer(req, res, blockchain) {
+    console.warn("Method not implemented", req, res, blockchain);
+}
 
 module.exports = {
     listTokens,
@@ -269,5 +274,5 @@ module.exports = {
     readTokenRange,
     deleteToken,
     sendToken,
-    // transferToken
+    signTransfer
 }
