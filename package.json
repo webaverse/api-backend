@@ -9,7 +9,8 @@
     "dev": "sudo $(which node) src/index.js",
     "dev-api": "nodemon src/api/index.js",
     "api": "cross-env PRODUCTION=true node src/api/index.js",
-    "cache-server": "cross-env PRODUCTION=true node src/cache-server.js"
+    "cache-server": "cross-env PRODUCTION=true node src/cache/index.js",
+    "ipfs-server": "cross-env PRODUCTION=true node src/ipfs/index.js"
   },
   "repository": {
     "type": "git",

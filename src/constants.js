@@ -82,10 +82,12 @@ const ETHEREUM_HOST = process.env.ETHEREUM_HOST || config.ETHEREUM_HOST;
 const defaultTokenDescription = process.env.defaultTokenDescription || config.defaultTokenDescription || "";
 const AUTH_TOKEN_SECRET = process.env.AUTH_TOKEN_SECRET || config.AUTH_TOKEN_SECRET || "";
 const AUTH_SECRET_KEY = process.env.AUTH_SECRET_KEY || config.AUTH_SECRET_KEY || "";
+const IPFS_HOST_PORT = process.env.IPFS_HOST_PORT || config.IPFS_HOST_PORT || 8081;
 
 const mintingFee = process.env.mintingFee || config.mintingFee || 10;
 
 module.exports = {
+  IPFS_HOST_PORT,
   AUTH_SECRET_KEY,
   AUTH_TOKEN_SECRET,
   PUBLIC_IP_ADDRESS,

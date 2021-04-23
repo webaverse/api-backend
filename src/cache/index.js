@@ -1,8 +1,8 @@
 
-const {connect, getRedisItem, putRedisItem} = require('./redis.js');
-const {getChainNft, getChainAccount, getAllWithdrawsDeposits} = require('./tokens.js');
-const {ids, redisPrefixes, REDIS_HOST, REDIS_PORT} = require('./constants.js');
-const {getBlockchain, getPastEvents, makeWeb3WebsocketContract} = require('./blockchain.js');
+const {connect, getRedisItem, putRedisItem} = require('../redis.js');
+const {getChainNft, getChainAccount, getAllWithdrawsDeposits} = require('../tokens.js');
+const {ids, redisPrefixes, REDIS_HOST, REDIS_PORT} = require('../constants.js');
+const {getBlockchain, getPastEvents, makeWeb3WebsocketContract} = require('../blockchain.js');
 
 (async function initCaches() {
   const _logCache = async (name, p) => {
