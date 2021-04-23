@@ -109,57 +109,58 @@ async function listTokens(req, res, web3) {
     }
 }
 
+async function mintTokens(resHash, mnemonic, quantity, web3, contracts, res) {
+    let tokenIds, status;
+    const fullAmount = {
+        t: 'uint256',
+        v: new web3.utils.BN(1e9)
+            .mul(new web3.utils.BN(1e9))
+            .mul(new web3.utils.BN(1e9)),
+    };
+
+    const fullAmountD2 = {
+        t: 'uint256',
+        v: fullAmount.v.div(new web3.utils.BN(2)),
+    };
+    const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
+    const address = wallet.getAddressString();
+
+    if (mintingFee > 0) {
+        let allowance = await contracts['FT'].methods.allowance(address, contracts['NFT']._address).call();
+        allowance = new web3.utils.BN(allowance, 0);
+        if (allowance.lt(fullAmountD2.v)) {
+            const result = await runSidechainTransaction(mnemonic)('FT', 'approve', contracts['NFT']._address, fullAmount.v);
+            status = result.status;
+        } else {
+            status = true;
+        }
+    } else status = true;
+
+    if (status) {
+        const description = defaultTokenDescription;
+
+        let fileName = resHash.split('/').pop();
+
+        let extName = path.extname(fileName).slice(1);
+        extName = extName === "" ? "png" : extName
+        extName = extName === "jpeg" ? "jpg" : extName
+
+        fileName = extName ? fileName.slice(0, -(extName.length + 1)) : fileName;
+
+        const {hash} = JSON.parse(Buffer.from(resHash, 'utf8').toString('utf8'));
+
+        const result = await runSidechainTransaction(mnemonic)('NFT', 'mint', address, hash, fileName, extName, description, quantity);
+        status = result.status;
+
+        const tokenId = new web3.utils.BN(result.logs[0].topics[3].slice(2), 16).toNumber();
+        tokenIds = [tokenId, tokenId + quantity - 1];
+    }
+    return res.json({status: ResponseStatus.Success, tokenIds, error: null});
+}
+
 async function createToken(req, res, {web3, contracts}) {
-    let status, tokenIds;
     const {mnemonic, quantity} = req.body;
 
-    async function mintTokens(resHash, quantity) {
-        const fullAmount = {
-            t: 'uint256',
-            v: new web3.utils.BN(1e9)
-                .mul(new web3.utils.BN(1e9))
-                .mul(new web3.utils.BN(1e9)),
-        };
-    
-        const fullAmountD2 = {
-            t: 'uint256',
-            v: fullAmount.v.div(new web3.utils.BN(2)),
-        };
-        const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
-        const address = wallet.getAddressString();
-    
-        if (mintingFee > 0) {
-            let allowance = await contracts['FT'].methods.allowance(address, contracts['NFT']._address).call();
-            allowance = new web3.utils.BN(allowance, 0);
-            if (allowance.lt(fullAmountD2.v)) {
-                const result = await runSidechainTransaction(mnemonic)('FT', 'approve', contracts['NFT']._address, fullAmount.v);
-                status = result.status;
-            } else {
-                status = true;
-            }
-        } else status = true;
-    
-        if (status) {
-            const description = defaultTokenDescription;
-    
-            let fileName = resHash.split('/').pop();
-    
-            let extName = path.extname(fileName).slice(1);
-            extName = extName === "" ? "png" : extName
-            extName = extName === "jpeg" ? "jpg" : extName
-    
-            fileName = extName ? fileName.slice(0, -(extName.length + 1)) : fileName;
-    
-            const {hash} = JSON.parse(Buffer.from(resHash, 'utf8').toString('utf8'));
-    
-            const result = await runSidechainTransaction(mnemonic)('NFT', 'mint', address, hash, fileName, extName, description, quantity);
-            status = result.status;
-    
-            const tokenId = new web3.utils.BN(result.logs[0].topics[3].slice(2), 16).toNumber();
-            tokenIds = [tokenId, tokenId + quantity - 1];
-        }
-        return res.json({status: ResponseStatus.Success, tokenIds, error: null});
-    }
     try {
         let {resourceHash} = req.body;
 
@@ -189,7 +190,7 @@ async function createToken(req, res, {web3, contracts}) {
             // Pinata API keys are valid, so this is probably what the user wants
             if(pinata){
                 const {IpfsHash} = pinata.pinFileToIPFS(readableStream, pinataOptions)
-                if(IpfsHash) mintTokens(IpfsHash, quantity);
+                if(IpfsHash) mintTokens(IpfsHash, mnemonic, quantity, web3, contracts, res);
                 else res.json({status: ResponseStatus.Error, error: "Error pinning to Pinata service, hash was not returned"});
             } else {
             // Upload to our own IPFS node
@@ -202,7 +203,7 @@ async function createToken(req, res, {web3, contracts}) {
                     const buffer = Buffer.concat(bufferString);
                     const string = buffer.toString('utf8');
                     const {hash} = JSON.parse(string);
-                    if(hash) mintTokens(hash, quantity);
+                    if(hash) mintTokens(hash, mnemonic, quantity, web3, contracts, res);
                     else return res.json({status: ResponseStatus.Error, error: "Error getting hash back from IPFS node"});
                 });
                 res.on('error', err => {
@@ -217,7 +218,7 @@ async function createToken(req, res, {web3, contracts}) {
             file.pipe(req);
         }
         } else {
-            mintTokens(resourceHash, quantity);
+            mintTokens(resourceHash, mnemonic, quantity, web3, contracts, res);
         }
 
     } catch (error) {
@@ -226,6 +227,123 @@ async function createToken(req, res, {web3, contracts}) {
     }
 }
 
+async function mintTokens(resHash, mnemonic, quantity, web3, contracts, res) {
+    let tokenIds, status;
+    const fullAmount = {
+        t: 'uint256',
+        v: new web3.utils.BN(1e9)
+            .mul(new web3.utils.BN(1e9))
+            .mul(new web3.utils.BN(1e9)),
+    };
+
+    const fullAmountD2 = {
+        t: 'uint256',
+        v: fullAmount.v.div(new web3.utils.BN(2)),
+    };
+    const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
+    const address = wallet.getAddressString();
+
+    if (mintingFee > 0) {
+        let allowance = await contracts['FT'].methods.allowance(address, contracts['NFT']._address).call();
+        allowance = new web3.utils.BN(allowance, 0);
+        if (allowance.lt(fullAmountD2.v)) {
+            const result = await runSidechainTransaction(mnemonic)('FT', 'approve', contracts['NFT']._address, fullAmount.v);
+            status = result.status;
+        } else {
+            status = true;
+        }
+    } else status = true;
+
+    if (status) {
+        const description = defaultTokenDescription;
+
+        let fileName = resHash.split('/').pop();
+
+        let extName = path.extname(fileName).slice(1);
+        extName = extName === "" ? "png" : extName
+        extName = extName === "jpeg" ? "jpg" : extName
+
+        fileName = extName ? fileName.slice(0, -(extName.length + 1)) : fileName;
+
+        const {hash} = JSON.parse(Buffer.from(resHash, 'utf8').toString('utf8'));
+
+        const result = await runSidechainTransaction(mnemonic)('NFT', 'mint', address, hash, fileName, extName, description, quantity);
+        status = result.status;
+
+        const tokenId = new web3.utils.BN(result.logs[0].topics[3].slice(2), 16).toNumber();
+        tokenIds = [tokenId, tokenId + quantity - 1];
+    }
+    return res.json({status: ResponseStatus.Success, tokenIds, error: null});
+}
+
+async function updateToken(req, res, {web3, contracts}) {
+    const {mnemonic} = req.body;
+
+    try {
+        let {resourceHash} = req.body;
+
+        const file = req.files && req.files[0];
+
+        if(!bip39.validateMnemonic(mnemonic)){
+            return res.json({status: ResponseStatus.Error, error: "Invalid mnemonic"});
+        }
+
+        if(!resourceHash && !file){
+            return res.json({status: ResponseStatus.Error, error: "POST did not include a file or resourceHash"});
+        }
+
+        // Check if there are any files -- if there aren't, check if there's a hash
+        if(resourceHash && file){
+            return res.json({status: ResponseStatus.Error, error: "POST should include a resourceHash *or* file but not both"});
+        }
+
+        if(file){
+            const readableStream = new Readable({
+                read() {
+                  this.push(Buffer.from(file));
+                  this.push(null);
+                }
+              });
+
+            // Pinata API keys are valid, so this is probably what the user wants
+            if(pinata){
+                const {IpfsHash} = pinata.pinFileToIPFS(readableStream, pinataOptions)
+                if(IpfsHash) mintTokens(IpfsHash, mnemonic, quantity, web3, contracts, res);
+                else res.json({status: ResponseStatus.Error, error: "Error pinning to Pinata service, hash was not returned"});
+            } else {
+            // Upload to our own IPFS node
+            const req = http.request(IPFS_HOST, {method: 'POST'}, res => {
+                const bufferString = [];
+                res.on('data', data => {
+                    bufferString.push(data);
+                });
+                res.on('end', async () => {
+                    const buffer = Buffer.concat(bufferString);
+                    const string = buffer.toString('utf8');
+                    const {hash} = JSON.parse(string);
+                    if(hash) mintTokens(hash, mnemonic, quantity, web3, contracts, res);
+                    else return res.json({status: ResponseStatus.Error, error: "Error getting hash back from IPFS node"});
+                });
+                res.on('error', err => {
+                    console.warn(err.stack);
+                    return res.json({status: ResponseStatus.Error, error: err.stack});
+                });
+            });
+            req.on('error', err => {
+                console.warn(err.stack);
+                res.json({status: ResponseStatus.Error, error: err.stack});
+            });
+            file.pipe(req);
+        }
+        } else {
+            mintTokens(resourceHash, mnemonic, quantity, web3, contracts, res);
+        }
+
+    } catch (error) {
+        console.warn(error.stack);
+        return res.json({status: ResponseStatus.Error, tokenIds: [], error});
+    }
+}
 async function readToken(req, res) {
     const {tokenId} = req.params;
 
@@ -295,8 +413,8 @@ async function deleteToken(req, res) {
         const address = token.owner.address;
 
         const currentHash = await contracts['mainnetsidechain'].NFT.methods.getHash(tokenId).call();
-        const r = Math.random().toString(36);
-        await runSidechainTransaction(MAINNET_MNEMONIC)('NFT', 'updateHash', currentHash, r);
+        const randomHash = Math.random().toString(36);
+        await runSidechainTransaction(MAINNET_MNEMONIC)('NFT', 'updateHash', currentHash, randomHash);
         const result = await runSidechainTransaction(MAINNET_MNEMONIC)('NFT', 'transferFrom', address, burnAddress, tokenId);
 
         if (result) console.log("Result of delete transaction:", result);

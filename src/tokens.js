@@ -1,5 +1,90 @@
+const bip39 = require('bip39');
+const {hdkey} = require('ethereumjs-wallet');
+const {Transaction} = require('@ethereumjs/tx');
+const {default: Common} = require('@ethereumjs/common');
+
 const {accountKeys, zeroAddress, defaultAvatarPreview, IPFS_HOST} = require('./constants.js');
 const {getBlockchain, getPastEvents} = require('./blockchain.js');
+const {makePromise} = require('./utils.js');
+const txQueues = [];
+let contracts, web3;
+
+(async function () {
+  const blockchain = await getBlockchain();
+  contracts = blockchain.web3;
+  web3 = blockchain.web3;
+})();
+
+const runSidechainTransaction = mnemonic => {
+  const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
+  const address = wallet.getAddressString();
+
+  const fn = async (contractName, method, ...args) => {
+    let entry = txQueues[address];
+    if (!entry) {
+      entry = {
+        running: false,
+        cbs: [],
+      };
+      txQueues[address] = entry;
+    }
+    if (!entry.running) {
+      entry.running = true;
+
+      try {
+        const txData = contracts[contractName].methods[method](...args);
+        const data = txData.encodeABI();
+        let gasPrice = await web3.eth.getGasPrice();
+        gasPrice = parseInt(gasPrice, 10);
+
+        const privateKey = wallet.getPrivateKeyString();
+        const nonce = await web3.eth.getTransactionCount(address);
+        const privateKeyBytes = Uint8Array.from(web3.utils.hexToBytes(privateKey));
+
+        let tx = Transaction.fromTxData({
+          to: contracts[contractName]._address,
+          nonce: '0x' + new web3.utils.BN(nonce).toString(16),
+          gasPrice: '0x' + new web3.utils.BN(gasPrice).toString(16),
+          gasLimit: '0x' + new web3.utils.BN(8000000).toString(16),
+          data,
+        }, {
+          common: Common.forCustomChain(
+            'mainnet',
+            {
+              name: 'geth',
+              networkId: 1,
+              chainId: 1338,
+            },
+            'petersburg',
+          ),
+        }).sign(privateKeyBytes);
+        const rawTx = '0x' + tx.serialize().toString('hex');
+
+        const receipt = await web3.eth.sendSignedTransaction(rawTx);
+
+        return receipt;
+      } finally {
+        entry.running = false;
+
+        if (entry.cbs.length > 0) {
+          entry.cbs.shift()();
+        }
+      }
+    } else {
+      const p = makePromise();
+      entry.cbs.push(async () => {
+        try {
+          const result = await fn(contractName, method, ...args);
+          p.accept(result);
+        } catch (err) {
+          p.reject(err);
+        }
+      });
+      return await p;
+    }
+  };
+  return fn;
+};
 
 const _log = async (text, p) => {
   try {
@@ -773,4 +858,5 @@ module.exports = {
   getChainToken,
   getStoreEntries,
   getAllWithdrawsDeposits,
+  runSidechainTransaction
 };
