@@ -6,12 +6,11 @@ const url = require('url');
 const {default: formurlencoded} = require('form-urlencoded');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
-const {makePromise, randomString, setCorsHeaders} = require('./utils.js');
-const {getBlockchain, BlockchainNetworks} = require('./blockchain.js');
-const {namegen} = require('./namegen.js');
+const {makePromise, randomString, setCorsHeaders} = require('../utils.js');
+const {getBlockchain, BlockchainNetworks, isCollaborator, isSingleCollaborator} = require('../blockchain.js');
+const {namegen} = require('../namegen.js');
 const {getRedisItem, getRedisAllItems, parseRedisItems, getRedisClient} = require('../redis.js');
 const {getStoreEntries, getChainNft, getChainOwnerNft, getChainToken, getAllWithdrawsDeposits} = require('../tokens.js');
-const {isCollaborator, isSingleCollaborator} = require('../blockchain.js');
 const {ddb, ses} = require('../aws.js');
 
 const {
@@ -30,7 +29,7 @@ const {
     DISCORD_CLIENT_ID,
     DISCORD_CLIENT_SECRET,
     defaultAvatarPreview
-} = require('./constants.js');
+} = require('../constants.js');
 
 const redisClient = getRedisClient();
 

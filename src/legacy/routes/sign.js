@@ -12,7 +12,7 @@ const {MAINNET_MNEMONIC,
   INFURA_PROJECT_ID,
   POLYGON_VIGIL_KEY,
   ETHEREUM_HOST
-} = require('../constants.js');
+} = require('../../constants.js');
 
 let gethNodeUrl = null;
 const loadPromise = (async () => {
