@@ -77,7 +77,7 @@ const HTTP_PORT = parseInt(process.env.HTTP_PORT || config.HTTP_PORT, 10) || 80;
 const HTTPS_PORT = parseInt(process.env.HTTPS_PORT || config.HTTPS_PORT, 10) || 443;
 const PUBLIC_IP_ADDRESS = process.env.PUBLIC_IP_ADDRESS || config.PUBLIC_IP_ADDRESS;
 const PRIVATE_IP_ADDRESS = process.env.PRIVATE_IP_ADDRESS || config.PRIVATE_IP_ADDRESS;
-const storageHost = process.env.storageHost || config.storageHost;
+const IPFS_HOST = process.env.IPFS_HOST || config.IPFS_HOST;
 const ETHEREUM_HOST = process.env.ETHEREUM_HOST || config.ETHEREUM_HOST;
 const defaultTokenDescription = process.env.defaultTokenDescription || config.defaultTokenDescription || "";
 const AUTH_TOKEN_SECRET = process.env.AUTH_TOKEN_SECRET || config.AUTH_TOKEN_SECRET || "";
@@ -111,7 +111,7 @@ module.exports = {
   burnAddress,
   mintingFee,
   ETHEREUM_HOST,
-  storageHost,
+  IPFS_HOST,
   defaultAvatarPreview,
   unlockableKey,
   accountKeys,

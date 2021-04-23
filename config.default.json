@@ -21,6 +21,8 @@
   "HTTPS_PORT": 8443,
   "REDIS_HOST": "cache.webaverse.com",
   "REDIS_PORT": 6379,
+
+  "IPFS_HOST": "https://ipfs.exokit.org",
   "IPFS_HOST_PORT": 8081,
 
   "AUTH_TOKEN_SECRET": "4345c147b552d1623bcd42856a6e15a1baec7f5152fea0935fbbd4f5cfaaacbb5d3c94442f52ad9089918daf76bdc5d902359b378a7f9a6747b3cdeb25986592",
@@ -32,6 +34,5 @@
   "PUBLIC_IP_ADDRESS": "13.57.56.187",
   "PRIVATE_IP_ADDRESS": "172.31.18.137",
 
-  "storageHost": "https://ipfs.exokit.org",
   "defaultAvatarPreview": "https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png"
 }

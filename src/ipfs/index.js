@@ -76,7 +76,6 @@ Error.stackTraceLimit = 300;
       } else if (method === 'GET') {
         const match = req.url.match(/^(\/ipfs)?(\/[a-z0-9]+\/?)/i);
         if (match) {
-          console.log('got match', req.url, match);
           let url;
           if (match[1]) { // /ipfs/ API
             url = req.url;
@@ -88,8 +87,6 @@ Error.stackTraceLimit = 300;
           proxy
             .web(req, res, {
               target: `http://127.0.0.1:${IPFS_HTTP_PORT}`,
-              // secure: false,
-              // changeOrigin: true,
             }, err => {
               console.warn(err.stack);
 
@@ -106,7 +103,6 @@ Error.stackTraceLimit = 300;
         const contentType = headers['content-type'];
         const contentLength = parseInt(headers['content-length'], 10) || 0;
         const isFormData = /^multipart\/form\-data;/.test(contentType);
-        console.log('got post content type', {contentType, isFormData});
 
         const bs = [];
         let totalSize = 0;

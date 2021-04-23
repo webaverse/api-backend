@@ -1,12 +1,15 @@
 require('dotenv-flow').config();
 
 const express = require('express');
+const fileUpload = require('express-fileupload');
 
 const {addV1Routes} = require("./v1/index.js");
 
 const {HTTP_PORT} = require('../constants.js');
 
 const app = express();
+
+app.use(fileUpload());
 
 addV1Routes(app);
 

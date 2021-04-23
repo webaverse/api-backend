@@ -1,17 +1,40 @@
 const path = require('path');
+const http = require('http');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {getBlockchain} = require('../../../blockchain.js');
 const {makePromise, setCorsHeaders} = require('../../../utils.js');
 const {getRedisItem, parseRedisItems, getRedisClient} = require('../../../redis.js');
-const {redisPrefixes, mainnetSignatureMessage, nftIndexName, mintingFee, burnAddress, zeroAddress, MAINNET_MNEMONIC, defaultTokenDescription} = require('../../../constants.js');
+const {redisPrefixes, mainnetSignatureMessage, nftIndexName, mintingFee, burnAddress, zeroAddress, IPFS_HOST, MAINNET_MNEMONIC, PINATA_API_KEY, PINATA_SECRET_API_KEY, defaultTokenDescription} = require('../../../constants.js');
 const {ResponseStatus} = require("../enums.js");
 const {runSidechainTransaction} = require("../../../tokens.js");
 const {production, development} = require("../environment.js");
 
+const pinataSDK = require('@pinata/sdk');
+const pinata = (PINATA_API_KEY && PINATA_API_KEY !== "") ? pinataSDK(PINATA_API_KEY, PINATA_SECRET_API_KEY) : null;
+
+const pinataOptions = {
+    pinataOptions: {
+        customPinPolicy: {
+            regions: [
+                {
+                    id: 'FRA1',
+                    desiredReplicationCount: 1
+                },
+                {
+                    id: 'NYC1',
+                    desiredReplicationCount: 2
+                }
+            ]
+        }
+    }
+};
+
 const redisClient = getRedisClient();
 
 const network = production ? 'mainnet' : 'testnet';
+
+const {Readable} = require('stream');
 
 let contracts;
 
@@ -88,32 +111,23 @@ async function listTokens(req, res, web3) {
 
 async function createToken(req, res, {web3, contracts}) {
     let status, tokenIds;
-
-    try {
-        // Check if there are any files -- if there aren't, check if there's a hash
-        // No hash, no files? Throw error
-        // Files? Let's pin them to pinata
-        // Hash? Let's use it directly
-
-        const {mnemonic, resourceHash, quantity} = req.body;
-
+    function mintTokens(hash, quantity) {
         const fullAmount = {
             t: 'uint256',
             v: new web3.utils.BN(1e9)
                 .mul(new web3.utils.BN(1e9))
                 .mul(new web3.utils.BN(1e9)),
         };
+    
         const fullAmountD2 = {
             t: 'uint256',
             v: fullAmount.v.div(new web3.utils.BN(2)),
         };
-
         const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
         const address = wallet.getAddressString();
-
+    
         if (mintingFee > 0) {
-
-            let allowance = await contracts.FT.methods.allowance(address, contracts['NFT']._address).call();
+            let allowance = await contracts['FT'].methods.allowance(address, contracts['NFT']._address).call();
             allowance = new web3.utils.BN(allowance, 0);
             if (allowance.lt(fullAmountD2.v)) {
                 const result = await runSidechainTransaction(mnemonic)('FT', 'approve', contracts['NFT']._address, fullAmount.v);
@@ -122,27 +136,89 @@ async function createToken(req, res, {web3, contracts}) {
                 status = true;
             }
         } else status = true;
-
+    
         if (status) {
             const description = defaultTokenDescription;
-
-            let fileName = resourceHash.split('/').pop();
-
+    
+            let fileName = hash.split('/').pop();
+    
             let extName = path.extname(fileName).slice(1);
             extName = extName === "" ? "png" : extName
             extName = extName === "jpeg" ? "jpg" : extName
-
+    
             fileName = extName ? fileName.slice(0, -(extName.length + 1)) : fileName;
-
-            const {hash} = JSON.parse(Buffer.from(resourceHash, 'utf8').toString('utf8'));
-
+    
+            const {hash} = JSON.parse(Buffer.from(hash, 'utf8').toString('utf8'));
+    
             const result = await runSidechainTransaction(mnemonic)('NFT', 'mint', address, hash, fileName, extName, description, quantity);
             status = result.status;
-
+    
             const tokenId = new web3.utils.BN(result.logs[0].topics[3].slice(2), 16).toNumber();
             tokenIds = [tokenId, tokenId + quantity - 1];
         }
         return res.json({status: ResponseStatus.Success, tokenIds, error: null});
+    }
+    try {
+        const {mnemonic, quantity} = req.body;
+        let {resourceHash} = req.body;
+
+        const file = req.files && req.files[0];
+
+        if(!bip39.validateMnemonic(mnemonic)){
+            return res.json({status: ResponseStatus.Error, error: "Invalid mnemonic"});
+        }
+
+        if(!resourceHash && !file){
+            return res.json({status: ResponseStatus.Error, error: "POST did not include a file or resourceHash"});
+        }
+
+        // Check if there are any files -- if there aren't, check if there's a hash
+        if(resourceHash && file){
+            return res.json({status: ResponseStatus.Error, error: "POST should include a resourceHash *or* file but not both"});
+        }
+
+        if(file){
+            const readableStream = new Readable({
+                read() {
+                  this.push(Buffer.from(file));
+                  this.push(null);
+                }
+              });
+
+            // Pinata API keys are valid, so this is probably what the user wants
+            if(pinata){
+                const {IpfsHash} = pinata.pinFileToIPFS(readableStream, pinataOptions)
+                if(IpfsHash) mintTokens(IpfsHash, quantity);
+                else res.json({status: ResponseStatus.Error, error: "Error pinning to Pinata service, hash was not returned"});
+            } else {
+            // Upload to our own IPFS node
+            const req = http.request(IPFS_HOST, {method: 'POST'}, res => {
+                const bufferString = [];
+                res.on('data', data => {
+                    bufferString.push(data);
+                });
+                res.on('end', async () => {
+                    const buffer = Buffer.concat(bufferString);
+                    const string = buffer.toString('utf8');
+                    const {hash} = JSON.parse(string);
+                    if(hash) mintTokens(hash, quantity);
+                    else return res.json({status: ResponseStatus.Error, error: "Error getting hash back from IPFS node"});
+                });
+                res.on('error', err => {
+                    console.warn(err.stack);
+                    return res.json({status: ResponseStatus.Error, error: err.stack});
+                });
+            });
+            req.on('error', err => {
+                console.warn(err.stack);
+                res.json({status: ResponseStatus.Error, error: err.stack});
+            });
+            file.pipe(req);
+        }
+        } else {
+            mintTokens(resourceHash, quantity);
+        }
+
     } catch (error) {
         console.warn(error.stack);
         return res.json({status: ResponseStatus.Error, tokenIds: [], error});

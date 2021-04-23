@@ -1,4 +1,4 @@
-const {accountKeys, zeroAddress, defaultAvatarPreview, storageHost} = require('./constants.js');
+const {accountKeys, zeroAddress, defaultAvatarPreview, IPFS_HOST} = require('./constants.js');
 const {getBlockchain, getPastEvents} = require('./blockchain.js');
 
 const _log = async (text, p) => {
@@ -476,7 +476,7 @@ const formatToken = chainName => async (token, storeEntries, mainnetDepositedEnt
     description,
     image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
     external_url: 'https://app.webaverse.com?h=' + hash,
-    animation_url: `${storageHost}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+    animation_url: `${IPFS_HOST}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
     properties: {
       name,
       hash,
