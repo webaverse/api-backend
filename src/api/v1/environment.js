@@ -1,5 +1,3 @@
-require('dotenv-flow').config();
-
 const development = !process.env.PRODUCTION
 const production = process != undefined && process.env.PRODUCTION
 
