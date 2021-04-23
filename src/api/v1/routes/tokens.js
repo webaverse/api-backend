@@ -111,7 +111,9 @@ async function listTokens(req, res, web3) {
 
 async function createToken(req, res, {web3, contracts}) {
     let status, tokenIds;
-    async function mintTokens(hash, quantity) {
+    const {mnemonic, quantity} = req.body;
+
+    async function mintTokens(resHash, quantity) {
         const fullAmount = {
             t: 'uint256',
             v: new web3.utils.BN(1e9)
@@ -140,7 +142,7 @@ async function createToken(req, res, {web3, contracts}) {
         if (status) {
             const description = defaultTokenDescription;
     
-            let fileName = hash.split('/').pop();
+            let fileName = resHash.split('/').pop();
     
             let extName = path.extname(fileName).slice(1);
             extName = extName === "" ? "png" : extName
@@ -148,7 +150,7 @@ async function createToken(req, res, {web3, contracts}) {
     
             fileName = extName ? fileName.slice(0, -(extName.length + 1)) : fileName;
     
-            const {hash} = JSON.parse(Buffer.from(hash, 'utf8').toString('utf8'));
+            const {hash} = JSON.parse(Buffer.from(resHash, 'utf8').toString('utf8'));
     
             const result = await runSidechainTransaction(mnemonic)('NFT', 'mint', address, hash, fileName, extName, description, quantity);
             status = result.status;
@@ -159,7 +161,6 @@ async function createToken(req, res, {web3, contracts}) {
         return res.json({status: ResponseStatus.Success, tokenIds, error: null});
     }
     try {
-        const {mnemonic, quantity} = req.body;
         let {resourceHash} = req.body;
 
         const file = req.files && req.files[0];
