@@ -4,7 +4,7 @@ const { hdkey } = require('ethereumjs-wallet');
 const { getBlockchain } = require('../../../blockchain.js');
 const { makePromise, setCorsHeaders } = require('../../../utils.js');
 const { getRedisItem, parseRedisItems, getRedisClient } = require('../../../redis.js');
-const { redisPrefixes, mainnetSignatureMessage, nftIndexName, mintingFee, burnAddress, zeroAddress, mainnetMnemonic, defaultTokenDescription } = require('../../../constants.js');
+const { redisPrefixes, mainnetSignatureMessage, nftIndexName, mintingFee, burnAddress, zeroAddress, MAINNET_MNEMONIC, defaultTokenDescription } = require('../../../constants.js');
 const { ResponseStatus } = require("../enums.js");
 const { runSidechainTransaction } = require("../../../tokens.js");
 const { production, development } = require("../environment.js");
@@ -214,8 +214,8 @@ async function deleteToken(req, res) {
 
         const currentHash = await contracts['mainnetsidechain'].NFT.methods.getHash(tokenId).call();
         const r = Math.random().toString(36);
-        await runSidechainTransaction(mainnetMnemonic)('NFT', 'updateHash', currentHash, r);
-        const result = await runSidechainTransaction(mainnetMnemonic)('NFT', 'transferFrom', address, burnAddress, tokenId);
+        await runSidechainTransaction(MAINNET_MNEMONIC)('NFT', 'updateHash', currentHash, r);
+        const result = await runSidechainTransaction(MAINNET_MNEMONIC)('NFT', 'transferFrom', address, burnAddress, tokenId);
 
         if (result) console.log("Result of delete transaction:", result);
         return res.json({ status: ResponseStatus.Success, error: null })
@@ -235,10 +235,10 @@ async function sendToken(req, res) {
             try {
                 const isApproved = await contracts.NFT.methods.isApprovedForAll(fromUserAddress, contracts['Trade']._address).call();
                 if (!isApproved) {
-                    await runSidechainTransaction(mainnetMnemonic)('NFT', 'setApprovalForAll', contracts['Trade']._address, true);
+                    await runSidechainTransaction(MAINNET_MNEMONIC)('NFT', 'setApprovalForAll', contracts['Trade']._address, true);
                 }
 
-                const result = await runSidechainTransaction(mainnetMnemonic)('NFT', 'transferFrom', fromUserAddress, toUserAddress, tokenId);
+                const result = await runSidechainTransaction(MAINNET_MNEMONIC)('NFT', 'transferFrom', fromUserAddress, toUserAddress, tokenId);
                 status = status && result.status;
             } catch (err) {
                 console.warn(err.stack);

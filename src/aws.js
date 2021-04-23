@@ -1,13 +1,18 @@
 const stream = require('stream');
 const AWS = require('aws-sdk');
-const { accessKeyId, secretAccessKey, awsRegion, tableNames } = require('./constants.js');
+const { tableNames } = require('./constants.js');
+
+let config = require('fs').existsSync('../config.json') ? require('../config.json') : require('../config.default.json');
+const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || config.AWS_ACCESS_KEY_ID;
+const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY || config.AWS_SECRET_ACCESS_KEY;
+const AWS_REGION = process.env.AWS_REGION || config.AWS_REGION;
 
 const awsConfig = new AWS.Config({
     credentials: new AWS.Credentials({
-        accessKeyId,
-        secretAccessKey,
+        AWS_ACCESS_KEY_ID,
+        AWS_SECRET_ACCESS_KEY,
     }),
-    region: awsRegion,
+    region: AWS_REGION,
 });
 
 const s3 = new AWS.S3(awsConfig);
@@ -89,10 +94,10 @@ function uploadFromStream(bucket, key, type) {
 
 const ses = new AWS.SES(new AWS.Config({
   credentials: new AWS.Credentials({
-    accessKeyId,
-    secretAccessKey,
+    AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY,
   }),
-  region: awsRegion,
+  region: AWS_REGION,
 }));
 
 module.exports = {

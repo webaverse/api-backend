@@ -4,7 +4,7 @@ const fs = require('fs').promises;
 const child_process = require('child_process');
 const ps = require('ps-node');
 const { setCorsHeaders } = require('../utils.js');
-const { privateIp, publicIp } = require('../constants.js');
+const { PRIVATE_IP_ADDRESS, PUBLIC_IP_ADDRESS } = require('../constants.js');
 const { s3 } = require('../aws.js');
 
 const jsPath = '../dialog/index.js';
@@ -49,12 +49,12 @@ class WorldManager {
             .filter(w => w.arguments[0] === jsPath)
             .map(w => {
               const { pid } = w;
-              let [name, publicIp, privateIp, port] = w.arguments.slice(1);
+              let [name, PUBLIC_IP_ADDRESS, PRIVATE_IP_ADDRESS, port] = w.arguments.slice(1);
               port = parseInt(port, 10);
               return {
                 name,
-                publicIp,
-                privateIp,
+                PUBLIC_IP_ADDRESS,
+                PRIVATE_IP_ADDRESS,
                 port,
                 [pidSymbol]: pid,
               };
@@ -106,15 +106,15 @@ class WorldManager {
           const cp = child_process.spawn(process.argv[0], [
             jsPath,
             name,
-            publicIp,
-            privateIp,
+            PUBLIC_IP_ADDRESS,
+            PRIVATE_IP_ADDRESS,
             port,
           ], {
             cwd: path.dirname(jsPath),
             env: {
               PROTOO_LISTEN_PORT: port,
-              MEDIASOUP_LISTEN_IP: privateIp,
-              MEDIASOUP_ANNOUNCED_IP: publicIp,
+              MEDIASOUP_LISTEN_IP: PRIVATE_IP_ADDRESS,
+              MEDIASOUP_ANNOUNCED_IP: PUBLIC_IP_ADDRESS,
               // NOTE: These certs will not be available in CI-produced builds
               HTTPS_CERT_FULLCHAIN: fullChainExists ? fullchain : null,
               HTTPS_CERT_PRIVKEY: privkeyExists ? privkey : null,
@@ -162,8 +162,8 @@ class WorldManager {
 
           return {
             name,
-            publicIp,
-            privateIp,
+            PUBLIC_IP_ADDRESS,
+            PRIVATE_IP_ADDRESS,
             port,
           };
         } else {

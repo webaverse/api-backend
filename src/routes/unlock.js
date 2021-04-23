@@ -6,13 +6,13 @@ const { hdkey } = require('ethereumjs-wallet');
 const { createDecipheriv } = require('crypto');
 const { jsonParse, setCorsHeaders } = require('../utils.js');
 const {
-  mainnetMnemonic,
-  testnetMnemonic,
-  polygonMnemonic,
-  testnetpolygonMnemonic,
-  infuraProjectId,
-  encryptionMnemonic,
-  polygonVigilKey,
+  MAINNET_MNEMONIC,
+  TESTNET_MNEMONIC,
+  POLYGON_MNEMONIC,
+  TESTNET_POLYGON_MNEMONIC,
+  INFURA_PROJECT_ID,
+  ENCRYPTION_MNEMONIC,
+  POLYGON_VIGIL_KEY,
   unlockableKey,
   ethereumHost
 } = require('../constants.js');
@@ -39,12 +39,12 @@ const loadPromise = (async () => {
   gethNodeUrl = `http://${ethereumHostAddress}`;
 
   const web3 = {
-    mainnet: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`)),
+    mainnet: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`)),
     mainnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8545')),
-    testnet: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
+    testnet: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${INFURA_PROJECT_ID}`)),
     testnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8546')),
-    polygon: new Web3(new Web3.providers.HttpProvider(`https://rpc-mainnet.maticvigil.com/v1/${polygonVigilKey}`)),
-    testnetpolygon: new Web3(new Web3.providers.HttpProvider(`https://rpc-mumbai.maticvigil.com/v1/${polygonVigilKey}`)),
+    polygon: new Web3(new Web3.providers.HttpProvider(`https://rpc-mainnet.maticvigil.com/v1/${POLYGON_VIGIL_KEY}`)),
+    testnetpolygon: new Web3(new Web3.providers.HttpProvider(`https://rpc-mumbai.maticvigil.com/v1/${POLYGON_VIGIL_KEY}`)),
   };
   const addresses = await fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
@@ -78,10 +78,10 @@ const loadPromise = (async () => {
   })();
 
   const wallets = {
-    mainnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mainnetMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
-    testnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(testnetMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
-    polygon: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(polygonMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
-    testnetpolygon: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(testnetpolygonMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    mainnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(MAINNET_MNEMONIC)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    testnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(TESTNET_MNEMONIC)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    polygon: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(POLYGON_MNEMONIC)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    testnetpolygon: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(TESTNET_POLYGON_MNEMONIC)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
   };
 
   return {
@@ -156,7 +156,7 @@ const handleUnlockRequest = async (req, res) => {
             let { ciphertext, tag } = value;
             ciphertext = Buffer.from(ciphertext, 'base64');
             tag = Buffer.from(tag, 'base64');
-            value = decodeSecret(encryptionMnemonic, { ciphertext, tag });
+            value = decodeSecret(ENCRYPTION_MNEMONIC, { ciphertext, tag });
           }
 
           res.end(JSON.stringify({

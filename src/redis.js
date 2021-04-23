@@ -1,7 +1,7 @@
 const redis = require('redis');
 const redisearch = require('redis-redisearch');
 const { makePromise } = require('./utils.js');
-const { ids, cacheHostUrl, redisKey, tableNames } = require('./constants.js');
+const { ids, REDIS_HOST, redisKey, tableNames } = require('./constants.js');
 
 redisearch(redis);
 
@@ -29,7 +29,7 @@ async function connect(port, host) {
 }
 
 const tryConnectRedis = () => {
-  connect(undefined, cacheHostUrl)
+  connect(undefined, REDIS_HOST)
     .then(() => {
       redisClient = getRedisClient();
       console.log('connected to redis');

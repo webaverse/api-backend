@@ -25,10 +25,10 @@ const {
     codeTestRegex,
     discordIdTestRegex,
     twitterIdTestRegex,
-    githubClientId,
-    githubClientSecret,
-    discordClientId,
-    discordClientSecret,
+    GITHUB_CLIENT_ID,
+    GITHUB_CLIENT_SECRET,
+    DISCORD_CLIENT_ID,
+    DISCORD_CLIENT_SECRET,
     defaultAvatarPreview
 } = require('./constants.js');
 
@@ -388,8 +388,8 @@ const handleLogin = async (req, res) => {
                         });
                     });
                     const s = formurlencoded({
-                        client_id: discordClientId,
-                        client_secret: discordClientSecret,
+                        client_id: DISCORD_CLIENT_ID,
+                        client_secret: DISCORD_CLIENT_SECRET,
                         code: discordcode,
                         grant_type: 'authorization_code',
                         scope: 'identify',
@@ -684,8 +684,8 @@ const handleOauth = async (req, res) => {
                         _respond(500, err.stack);
                     });
                     proxyReq.end(JSON.stringify({
-                        client_id: githubClientId,
-                        client_secret: githubClientSecret,
+                        client_id: GITHUB_CLIENT_ID,
+                        client_secret: GITHUB_CLIENT_SECRET,
                         code,
                         state,
                     }));

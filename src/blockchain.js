@@ -4,7 +4,7 @@ const dns = require('dns');
 const https = require('https');
 const fetch = require('node-fetch');
 const Web3 = require('web3');
-const { ethereumHost, polygonVigilKey, infuraProjectId  } = require('./constants.js');
+const { ethereumHost, POLYGON_VIGIL_KEY, INFURA_PROJECT_ID  } = require('./constants.js');
 
 let addresses,
   abis,
@@ -71,20 +71,20 @@ const loadPromise = (async () => {
 
   web3 = {
     mainnet: new Web3(new Web3.providers.HttpProvider(
-      `https://mainnet.infura.io/v3/${infuraProjectId}`
+      `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`
     )),
     mainnetsidechain: new Web3(new Web3.providers.HttpProvider(
       `${gethNodeUrl}:${ports.mainnetsidechain}`
     )),
     polygon: new Web3(new Web3.providers.HttpProvider(
-      `https://rpc-mainnet.maticvigil.com/v1/${polygonVigilKey}`
+      `https://rpc-mainnet.maticvigil.com/v1/${POLYGON_VIGIL_KEY}`
     )),
   };
 
   web3socketProviderUrls = {
-    mainnet: `wss://mainnet.infura.io/ws/v3/${infuraProjectId}`,
+    mainnet: `wss://mainnet.infura.io/ws/v3/${INFURA_PROJECT_ID}`,
     mainnetsidechain: `${gethNodeWSUrl}:${ports.mainnetsidechainWs}`,
-    polygon: `wss://rpc-webverse-mainnet.maticvigil.com/v1/${polygonVigilKey}`,
+    polygon: `wss://rpc-webverse-mainnet.maticvigil.com/v1/${POLYGON_VIGIL_KEY}`,
   };
 
   contracts = {};
