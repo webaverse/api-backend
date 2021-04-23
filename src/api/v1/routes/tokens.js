@@ -111,7 +111,7 @@ async function listTokens(req, res, web3) {
 
 async function createToken(req, res, {web3, contracts}) {
     let status, tokenIds;
-    function mintTokens(hash, quantity) {
+    async function mintTokens(hash, quantity) {
         const fullAmount = {
             t: 'uint256',
             v: new web3.utils.BN(1e9)
