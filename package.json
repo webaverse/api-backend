@@ -8,23 +8,23 @@
     "stop": "sudo $(which node) $(which forever) stop src/index.js",
     "dev": "sudo $(which node) src/index.js",
     "dev-api": "nodemon src/api/index.js",
-    "api": "cross-env PRODUCTION=true node src/api/index.js"
+    "api": "cross-env PRODUCTION=true node src/api/index.js",
+    "cache-server": "cross-env PRODUCTION=true node src/cache-server.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/modulesio/webaverse-server.git"
+    "url": "git+https://github.com/webaverse/api-backend.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/modulesio/webaverse-server/issues"
+    "url": "https://github.com/webaverse/api-backend"
   },
-  "homepage": "https://github.com/modulesio/webaverse-server#readme",
+  "homepage": "https://github.com/webaverse/api-backend#readme",
   "dependencies": {
     "aws-sdk": "^2.750.0",
     "bip39": "^3.0.2",
     "cross-env": "^7.0.3",
-    "dotenv": "^8.2.0",
     "dotenv-flow": "^3.2.0",
     "ethereumjs-wallet": "^1.0.1",
     "express": "^4.17.1",
@@ -36,7 +36,6 @@
     "mkdirp": "^1.0.4",
     "node-fetch": "^2.6.0",
     "ps-node": "^0.1.6",
-    "puppeteer": "^5.3.1",
     "redis": "^3.1.1",
     "redis-redisearch": "^1.0.1",
     "sha3": "^2.1.3",
