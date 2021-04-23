@@ -1,7 +1,7 @@
 Error.stackTraceLimit = 300;
 Error.stackTraceLimit = 300;
 
-require("dotenv").config();
+require('dotenv-flow').config();
 const fs = require("fs");
 const url = require("url");
 const http = require("http");

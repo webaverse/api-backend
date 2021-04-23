@@ -1,3 +1,5 @@
+require('dotenv-flow').config();
+
 const express = require('express');
 
 const { addV1Routes } = require("./v1/index.js");
