@@ -4,7 +4,7 @@ const fetch = require('node-fetch');
 const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
-const {setCorsHeaders} = require('../utils.js');
+const {setCorsHeaders} = require('../../utils.js');
 const {MAINNET_MNEMONIC,
   TESTNET_MNEMONIC,
   POLYGON_MNEMONIC,

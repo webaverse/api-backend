@@ -3,11 +3,11 @@ const url = require('url');
 const fs = require('fs').promises;
 const child_process = require('child_process');
 const ps = require('ps-node');
-const {setCorsHeaders} = require('../utils.js');
-const {PRIVATE_IP_ADDRESS, PUBLIC_IP_ADDRESS} = require('../constants.js');
-const {s3} = require('../aws.js');
+const {setCorsHeaders} = require('../../utils.js');
+const {PRIVATE_IP_ADDRESS, PUBLIC_IP_ADDRESS} = require('../../constants.js');
+const {s3} = require('../../aws.js');
 
-const jsPath = '../dialog/index.js';
+const jsPath = '../../dialog/index.js';
 const bucketName = 'worlds.exokit.org';
 const pidSymbol = Symbol('pid');
 
