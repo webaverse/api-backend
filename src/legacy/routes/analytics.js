@@ -1,7 +1,7 @@
 const url = require('url');
 const uuid = require('uuid');
-const {setCorsHeaders} = require('../utils.js');
-const {ddbd} = require('../utils.js');
+const {setCorsHeaders} = require('../../utils.js');
+const {ddbd} = require('../../aws.js');
 
 const handleAnalyticsRequest = async (req, res) => {
   const request = url.parse(req.url);

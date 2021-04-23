@@ -9,10 +9,10 @@ const {hdkey} = require('ethereumjs-wallet');
 const {makePromise, randomString, setCorsHeaders} = require('./utils.js');
 const {getBlockchain, BlockchainNetworks} = require('./blockchain.js');
 const {namegen} = require('./namegen.js');
-const {getRedisItem, getRedisAllItems, parseRedisItems, getRedisClient} = require('./redis.js');
-const {getStoreEntries, getChainNft, getChainOwnerNft, getChainToken, getAllWithdrawsDeposits} = require('./tokens.js');
-const {isCollaborator, isSingleCollaborator} = require('./blockchain.js');
-const {ddb, ses} = require('./aws.js');
+const {getRedisItem, getRedisAllItems, parseRedisItems, getRedisClient} = require('../redis.js');
+const {getStoreEntries, getChainNft, getChainOwnerNft, getChainToken, getAllWithdrawsDeposits} = require('../tokens.js');
+const {isCollaborator, isSingleCollaborator} = require('../blockchain.js');
+const {ddb, ses} = require('../aws.js');
 
 const {
     accountKeys,

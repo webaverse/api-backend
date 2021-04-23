@@ -22,8 +22,8 @@ const {
   handleStore,
 } = require("./handlers.js");
 
-const {HTTP_PORT, HTTPS_PORT} = require('./constants.js');
-const {tryConnectRedis} = require ('./redis.js');
+const {HTTP_PORT, HTTPS_PORT} = require('../constants.js');
+const {tryConnectRedis} = require ('../redis.js');
 // Routes
 const {worldManager, _handleWorldsRequest} = require("./routes/worlds.js");
 const {handleSignRequest} = require("./routes/sign.js");
@@ -32,8 +32,8 @@ const {handleAnalyticsRequest} = require("./routes/analytics.js");
 
 let CERT = null;
 let PRIVKEY = null;
-const fullchainPath = "./certs/fullchain.pem";
-const privkeyPath = "./certs/privkey.pem";
+const fullchainPath = "../../certs/fullchain.pem";
+const privkeyPath = "../../certs/privkey.pem";
 
 try {
   CERT = fs.readFileSync(fullchainPath);

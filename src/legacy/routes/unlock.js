@@ -4,7 +4,7 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {createDecipheriv} = require('crypto');
-const {jsonParse, setCorsHeaders} = require('../utils.js');
+const {jsonParse, setCorsHeaders} = require('../../utils.js');
 const {
   MAINNET_MNEMONIC,
   TESTNET_MNEMONIC,
@@ -15,8 +15,8 @@ const {
   POLYGON_VIGIL_KEY,
   unlockableKey,
   ETHEREUM_HOST
-} = require('../constants.js');
-const {areAddressesCollaborator} = require ('../blockchain.js');
+} = require('../../constants.js');
+const {areAddressesCollaborator} = require ('../../blockchain.js');
 
 const nonce = Buffer.alloc(12);
 
