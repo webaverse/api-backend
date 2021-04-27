@@ -333,12 +333,12 @@ const _handleLockRequest = async (req, res) => {
               req.on('end', () => {
                 const b = Buffer.concat(bs);
                 const s = b.toString('utf8');
-                const j = JSON.parse(s);
+                const j = jsonParse(s);
                 accept(j);
               });
               req.on('error', reject);
             });
-            const {id} = j;
+            const {id} = j || {};
 
             if (typeof id === 'number') {
               // console.log('do set', id, key, value);
@@ -402,64 +402,70 @@ const _handleDecryptRequest = async (req, res) => {
               req.on('end', () => {
                 const b = Buffer.concat(bs);
                 const s = b.toString('utf8');
-                const j = JSON.parse(s);
+                const j = jsonParse(s);
                 accept(j);
               });
               req.on('error', reject);
             });
-            const {signatures, id} = j;
-            // console.log('got j', j);
-            const key = encryptedKey;
-            // console.log('got sig', {signatures, id});
-            const addresses = [];
-            let ok = true;
-            for (const signature of signatures) {
-              try {
-                let address = await web3.mainnetsidechain.eth.accounts.recover(proofOfAddressMessage, signature);
-                address = address.toLowerCase();
-                addresses.push(address);
-              } catch(err) {
-                console.warn(err.stack);
-                ok = false;
-              }
-            }
+            const {signatures, id} = j || {};
             
-            // console.log('got sig 2', addresses);
-            if (ok) {
-              const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
-              const isCollaborator = await _areAddressesColaborator(addresses, hash);
-              if (isCollaborator) {
-                let value = await contracts.mainnetsidechain.NFT.methods.getMetadata(hash, key).call();
-                // console.log('pre value', {value});
-                value = jsonParse(value);
-                // console.log('final value', {value});
-                if (value !== null && typeof value.cipherhash === 'string' && typeof value.tag === 'string') {
-                  let {cipherhash, tag} = value;
-                  
-                  const ciphertext = await (async () => {
-                    const res = await fetch(`${storageHost}/ipfs/${cipherhash}`);
-                    const b = await res.buffer();
-                    return b;
-                  })();
+            if (Array.isArray(signatures) && signatures.every(signature => typeof signature === 'string') && typeof id === 'number') {
+              // console.log('got j', j);
+              const key = encryptedKey;
+              // console.log('got sig', {signatures, id});
+              const addresses = [];
+              let ok = true;
+              for (const signature of signatures) {
+                try {
+                  let address = await web3.mainnetsidechain.eth.accounts.recover(proofOfAddressMessage, signature);
+                  address = address.toLowerCase();
+                  addresses.push(address);
+                } catch(err) {
+                  console.warn(err.stack);
+                  ok = false;
+                }
+              }
+              
+              // console.log('got sig 2', addresses);
+              if (ok) {
+                const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
+                const isCollaborator = await _areAddressesColaborator(addresses, hash);
+                if (isCollaborator) {
+                  let value = await contracts.mainnetsidechain.NFT.methods.getMetadata(hash, key).call();
+                  // console.log('pre value', {value});
+                  value = jsonParse(value);
+                  // console.log('final value', {value});
+                  if (value !== null && typeof value.cipherhash === 'string' && typeof value.tag === 'string') {
+                    let {cipherhash, tag} = value;
+                    
+                    const ciphertext = await (async () => {
+                      const res = await fetch(`${storageHost}/ipfs/${cipherhash}`);
+                      const b = await res.buffer();
+                      return b;
+                    })();
 
-                  tag = Buffer.from(tag, 'base64');
-                  // console.log('got ciphertext 1', {ciphertext, tag});
-                  const plaintext = decodeSecret(encryptionMnemonic, id, {ciphertext, tag}, null);
-                  // console.log('got ciphertext 2', {ciphertext, tag, value});
-                  
-                  res.setHeader('Content-Type', 'application/octet-stream');
-                  res.end(plaintext);
+                    tag = Buffer.from(tag, 'base64');
+                    // console.log('got ciphertext 1', {ciphertext, tag});
+                    const plaintext = decodeSecret(encryptionMnemonic, id, {ciphertext, tag}, null);
+                    // console.log('got ciphertext 2', {ciphertext, tag, value});
+                    
+                    res.setHeader('Content-Type', 'application/octet-stream');
+                    res.end(plaintext);
+                  } else {
+                    res.statusCode = 500;
+                    res.end('could not decrypt ciphertext');
+                  }
                 } else {
-                  res.statusCode = 500;
-                  res.end('could not decrypt ciphertext');
+                  res.statusCode = 401;
+                  res.end('not a collaborator');
                 }
               } else {
-                res.statusCode = 401;
-                res.end('not a collaborator');
+                res.statusCode = 400;
+                res.end('signatures invalid');
               }
             } else {
               res.statusCode = 400;
-              res.end('signatures invalid');
+              res.end('invalid arguments');
             }
         } else {
             res.statusCode = 404;
