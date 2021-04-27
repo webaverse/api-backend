@@ -478,7 +478,7 @@ const _handleDecryptRequest = async (req, res) => {
                     res.end(plaintext);
                   } else {
                     res.statusCode = 500;
-                    res.end('could not decrypt ciphertext');
+                    res.end('could not interpret ciphertext for decryption: ' + JSON.stringify(value));
                   }
                 } else {
                   res.statusCode = 401;
