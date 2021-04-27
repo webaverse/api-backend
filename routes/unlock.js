@@ -351,7 +351,7 @@ const _handleLockRequest = async (req, res) => {
               }); */
               
               res.setHeader('Content-Type', 'application/octet-stream');
-              res.setHeader('tag', tag.);
+              res.setHeader('tag', tag);
               res.end(ciphertext);
             } else {
               res.statusCode = 404;
