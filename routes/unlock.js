@@ -10,7 +10,8 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {jsonParse, _setCorsHeaders} = require('../utils.js');
-const {polygonVigilKey} = require('../constants.js');
+const {encodeSecret, decodeSecret} = require('../encryption.js');
+const {storageHost, polygonVigilKey} = require('../constants.js');
 
 let config = require('fs').existsSync('./config.json') ? require('../config.json') : null;
 
@@ -37,45 +38,7 @@ const {randomBytes, createCipheriv, createDecipheriv} = require('crypto');
 
 const tableName = 'users';
 const unlockableKey = 'unlockable';
-const nonce = Buffer.alloc(12);
-const encodeSecret = (mnemonic, secret) => {
-  const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
-  const privateKey = wallet.privateKey;
-
-  const key = privateKey.slice(0, 24);
-  // const aad = Buffer.from('0123456789', 'hex');
-
-  const cipher = createCipheriv('aes-192-ccm', key, nonce, {
-    authTagLength: 16
-  });
-  /* cipher.setAAD(aad, {
-    plaintextLength: Buffer.byteLength(secret)
-  }); */
-  const ciphertext = cipher.update(secret, 'utf8');
-  cipher.final();
-  const tag = cipher.getAuthTag();
-  return {
-    ciphertext,
-    tag,
-  };
-};
-const decodeSecret = (mnemonic, {ciphertext, tag}) => {
-  const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
-  const privateKey = wallet.privateKey;
-
-  const key = privateKey.slice(0, 24);
-  // const aad = Buffer.from('0123456789', 'hex');
-
-  const decipher = createDecipheriv('aes-192-ccm', key, nonce, {
-    authTagLength: 16
-  });
-  decipher.setAuthTag(tag);
-  /* decipher.setAAD(aad, {
-    plaintextLength: ciphertext.length
-  }); */
-  const receivedPlaintext = decipher.update(ciphertext, null, 'utf8');
-  return receivedPlaintext;
-};
+const encryptedKey = 'encrypted';
 
 let contracts = null;
 const loadPromise = (async () => {
@@ -312,12 +275,12 @@ const _handleUnlockRequest = async (req, res) => {
                 // console.log('pre value', {value});
                 value = jsonParse(value);
                 // console.log('final value', {value});
-                if (value !== null) {
+                if (value !== null && typeof value.ciphertext === 'string' && typeof value.tag === 'string') {
                   let {ciphertext, tag} = value;
                   ciphertext = Buffer.from(ciphertext, 'base64');
                   tag = Buffer.from(tag, 'base64');
                   // console.log('got ciphertext 1', {ciphertext, tag});
-                  value = decodeSecret(encryptionMnemonic, {ciphertext, tag});
+                  value = decodeSecret(encryptionMnemonic, id, {ciphertext, tag}, 'utf8');
                   // console.log('got ciphertext 2', {ciphertext, tag, value});
                 }
 
@@ -348,7 +311,159 @@ const _handleUnlockRequest = async (req, res) => {
         res.statusCode = 500;
         res.end(err.stack);
     }
-}
+};
+const _handleLockRequest = async (req, res) => {
+    // console.log('unlock request', req.url);
+    
+    const {web3, addresses, abis, chainIds, contracts, wallets} = await loadPromise;
+    
+    const request = url.parse(req.url);
+    // const path = request.path.split('/')[1];
+    try {
+        res = _setCorsHeaders(res);
+        const {method} = req;
+        if (method === 'OPTIONS') {
+            res.end();
+        } else if (method === 'POST') {
+            let match, id;
+
+            if ((match = req.url.match(/^\/([0-9]+)$/)) && !isNaN(id = match && parseInt(match[1], 10))) {
+              // console.log('do set', id, key, value);
+
+              const b = await new Promise((accept, reject) => {
+                const bs = [];
+                req.on('data', d => {
+                  bs.push(d);
+                });
+                req.on('end', () => {
+                  const b = Buffer.concat(bs);
+                  bs.length = 0;
+                  accept(b);
+                });
+                req.on('error', reject);
+              });
+
+              let {ciphertext, tag} = encodeSecret(encryptionMnemonic, id, b);
+              // ciphertext = ciphertext.toString('base64');
+              tag = tag.toString('base64');
+              /* value = JSON.stringify({
+                ciphertext,
+                tag,
+              }); */
+              
+              res.setHeader('Content-Type', 'application/octet-stream');
+              res.setHeader('tag', tag);
+              res.end(ciphertext);
+            } else {
+              res.statusCode = 400;
+              res.end('invalid id');
+            }
+        } else {
+            res.statusCode = 404;
+            res.end('not found');
+        }
+    } catch (err) {
+        console.log(err);
+        res.statusCode = 500;
+        res.end(err.stack);
+    }
+};
+const _handleDecryptRequest = async (req, res) => {
+    // console.log('unlock request', req.url);
+    
+    const {web3, addresses, abis, chainIds, contracts, wallets} = await loadPromise;
+    
+    const request = url.parse(req.url);
+    // const path = request.path.split('/')[1];
+    try {
+        res = _setCorsHeaders(res);
+        const {method} = req;
+        if (method === 'OPTIONS') {
+            res.end();
+        } else if (method === 'POST') {
+            const j = await new Promise((accept, reject) => {
+              const bs = [];
+              req.on('data', d => {
+                bs.push(d);
+              });
+              req.on('end', () => {
+                const b = Buffer.concat(bs);
+                const s = b.toString('utf8');
+                const j = jsonParse(s);
+                accept(j);
+              });
+              req.on('error', reject);
+            });
+            const {signatures, id} = j || {};
+            
+            if (Array.isArray(signatures) && signatures.every(signature => typeof signature === 'string') && typeof id === 'number') {
+              // console.log('got j', j);
+              const key = encryptedKey;
+              // console.log('got sig', {signatures, id});
+              const addresses = [];
+              let ok = true;
+              for (const signature of signatures) {
+                try {
+                  let address = await web3.mainnetsidechain.eth.accounts.recover(proofOfAddressMessage, signature);
+                  address = address.toLowerCase();
+                  addresses.push(address);
+                } catch(err) {
+                  console.warn(err.stack);
+                  ok = false;
+                }
+              }
+              
+              // console.log('got sig 2', addresses);
+              if (ok) {
+                const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
+                const isCollaborator = await _areAddressesColaborator(addresses, hash);
+                if (isCollaborator) {
+                  let value = await contracts.mainnetsidechain.NFT.methods.getMetadata(hash, key).call();
+                  // console.log('pre value', {value});
+                  value = jsonParse(value);
+                  // console.log('final value', {value});
+                  if (value !== null && typeof value.cipherhash === 'string' && typeof value.tag === 'string') {
+                    let {cipherhash, tag} = value;
+                    
+                    const ciphertext = await (async () => {
+                      const res = await fetch(`${storageHost}/ipfs/${cipherhash}`);
+                      const b = await res.buffer();
+                      return b;
+                    })();
+
+                    tag = Buffer.from(tag, 'base64');
+                    // console.log('got ciphertext 1', {ciphertext, tag});
+                    const plaintext = decodeSecret(encryptionMnemonic, id, {ciphertext, tag}, null);
+                    // console.log('got ciphertext 2', {ciphertext, tag, value});
+                    
+                    res.setHeader('Content-Type', 'application/octet-stream');
+                    res.end(plaintext);
+                  } else {
+                    res.statusCode = 500;
+                    res.end('could not decrypt ciphertext');
+                  }
+                } else {
+                  res.statusCode = 401;
+                  res.end('not a collaborator');
+                }
+              } else {
+                res.statusCode = 400;
+                res.end('signatures invalid');
+              }
+            } else {
+              res.statusCode = 400;
+              res.end('invalid arguments');
+            }
+        } else {
+            res.statusCode = 404;
+            res.end('not found');
+        }
+    } catch (err) {
+        console.log(err);
+        res.statusCode = 500;
+        res.end(err.stack);
+    }
+};
 const _isCollaborator = async (tokenId, address) => {
   const hash = await contracts.mainnetsidechain.NFT.methods.getHash(tokenId).call();
   return await _areAddressesColaborator([address], hash);
@@ -357,6 +472,8 @@ const _isSingleCollaborator = async (tokenId, address) => await _areAddressesSin
 
 module.exports = {
   _handleUnlockRequest,
+  _handleLockRequest,
+  _handleDecryptRequest,
   _isCollaborator,
   _isSingleCollaborator,
 };
