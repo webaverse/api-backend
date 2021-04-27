@@ -54,8 +54,8 @@ const zeroAddress = '0x0000000000000000000000000000000000000000';
 const burnAddress = "0x000000000000000000000000000000000000dEaD";
 
 const proofOfAddressMessage = `Proof of address.`;
-const serverUnlockableMetadataKey = 'unlockable';
-const userUnlockableMetadataKey = 'unlockableByUser';
+const unlockableMetadataKey = 'unlockable';
+const encryptedMetadataKey = 'unlockableByUser';
 
 let config = require('fs').existsSync('../config.json') ? require('../config.json') : require('../config.default.json');
 
@@ -115,8 +115,8 @@ module.exports = {
   ETHEREUM_HOST,
   IPFS_HOST,
   defaultAvatarPreview,
-  serverUnlockableMetadataKey,
-  userUnlockableMetadataKey,
+  unlockableMetadataKey,
+  encryptedMetadataKey,
   proofOfAddressMessage,
   accountKeys,
   config,

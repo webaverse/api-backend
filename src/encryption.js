@@ -7,7 +7,6 @@ const encodeSecret = (mnemonic, id, secret, encoding) => {
   const privateKey = wallet.privateKey;
 
   const key = privateKey.slice(0, 24);
-  // const aad = Buffer.from('0123456789', 'hex');
 
   const nonce = Buffer.alloc(12);
   const dataView = new DataView(nonce.buffer);
@@ -15,9 +14,6 @@ const encodeSecret = (mnemonic, id, secret, encoding) => {
   const cipher = createCipheriv('aes-192-ccm', key, nonce, {
     authTagLength: 16,
   });
-  /* cipher.setAAD(aad, {
-    plaintextLength: Buffer.byteLength(secret)
-  }); */
   const ciphertext = cipher.update(secret, encoding);
   cipher.final();
   const tag = cipher.getAuthTag();
@@ -26,12 +22,12 @@ const encodeSecret = (mnemonic, id, secret, encoding) => {
     tag,
   };
 };
+
 const decodeSecret = (mnemonic, id, {ciphertext, tag}, encoding) => {
   const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
   const privateKey = wallet.privateKey;
 
   const key = privateKey.slice(0, 24);
-  // const aad = Buffer.from('0123456789', 'hex');
 
   const nonce = Buffer.alloc(12);
   const dataView = new DataView(nonce.buffer);
@@ -40,13 +36,11 @@ const decodeSecret = (mnemonic, id, {ciphertext, tag}, encoding) => {
     authTagLength: 16,
   });
   decipher.setAuthTag(tag);
-  /* decipher.setAAD(aad, {
-    plaintextLength: ciphertext.length
-  }); */
+
   const receivedPlaintext = decipher.update(ciphertext, null, encoding);
   return receivedPlaintext;
 };
-
+ 
 module.exports = {
   encodeSecret,
   decodeSecret,

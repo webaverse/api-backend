@@ -8,8 +8,8 @@ const {getRedisItem, parseRedisItems, getRedisClient} = require('../../../redis.
 const {
     ENCRYPTION_MNEMONIC,
     proofOfAddressMessage,
-    serverUnlockableMetadataKey,
-    userUnlockableMetadataKey,
+    unlockableMetadataKey,
+    encryptedMetadataKey,
     redisPrefixes,
     mainnetSignatureMessage,
     nftIndexName,
@@ -28,7 +28,7 @@ const {production, development} = require("../environment.js");
 
 const {jsonParse} = require('../../utils.js');
 
-const {encodeSecret, decodeSecret} = require('../../crypto.js');
+const {encodeSecret, decodeSecret} = require('../../encryption.js');
 
 const pinataSDK = require('@pinata/sdk');
 const pinata = (PINATA_API_KEY && PINATA_API_KEY !== "") ? pinataSDK(PINATA_API_KEY, PINATA_SECRET_API_KEY) : null;
@@ -178,8 +178,8 @@ async function mintTokens(resHash, mnemonic, quantity, privateData, web3, contra
         if(privateData)
         {
             const encryptedData = encodeSecret(privateData);
-            await runSidechainTransaction(mnemonic)('NFT', 'setMetadata', hash, serverUnlockableMetadataKey, encryptedData);
-            await runSidechainTransaction(mnemonic)('NFT', 'setMetadata', hash, userUnlockableMetadataKey, encryptedData);
+            await runSidechainTransaction(mnemonic)('NFT', 'setMetadata', hash, unlockableMetadataKey, encryptedData);
+            await runSidechainTransaction(mnemonic)('NFT', 'setMetadata', hash, encryptedMetadataKey, encryptedData);
         }
 
         const tokenId = new web3.utils.BN(result.logs[0].topics[3].slice(2), 16).toNumber();
@@ -270,15 +270,16 @@ async function readToken(req, res) {
     }
 }
 
-async function readTokenWithPrivateData(req, res) {
-    const {tokenId, userMnemonic} = req.params;
+// Same as read token, but return unlockable in plaintext
+async function readTokenWithUnlockable(req, res) {
+    const {tokenId} = req.params;
     let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
     let token = o.Item;
 
     if (development) setCorsHeaders(res);
     if (token) {
-        if(token[serverUnlockableMetadataKey] !== undefined && token[serverUnlockableMetadataKey] !== ""){
-            let value = token[serverUnlockableMetadataKey];
+        if(token[unlockableMetadataKey] !== undefined && token[unlockableMetadataKey] !== ""){
+            let value = token[unlockableMetadataKey];
             value = jsonParse(value);
             if (value !== null) {
               let {ciphertext, tag} = value;
@@ -286,24 +287,59 @@ async function readTokenWithPrivateData(req, res) {
               tag = Buffer.from(tag, 'base64');
               value = decodeSecret(ENCRYPTION_MNEMONIC, {ciphertext, tag});
             }
-            token.privateData = value;
+            token[unlockableMetadataKey] = value;
         }
+        return res.json({status: ResponseStatus.Success, token, error: null})
+    } else {
+        return res.json({status: ResponseStatus.Error, token: null, error: "The token could not be found"})
+    }
+}
 
-        if(userMnemonic !== undefined && token[userUnlockableMetadataKey] !== undefined && token[userUnlockableMetadataKey] !== ""){
-            let value = token[userUnlockableMetadataKey];
+async function readUnlockable(req, res) {
+    const {tokenId} = req.params;
+    let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
+    let token = o.Item;
+    let value = "";
+    if (development) setCorsHeaders(res);
+    if (token) {
+        if(token[unlockableMetadataKey] !== undefined && token[unlockableMetadataKey] !== ""){
+            value = token[unlockableMetadataKey];
             value = jsonParse(value);
             if (value !== null) {
               let {ciphertext, tag} = value;
               ciphertext = Buffer.from(ciphertext, 'base64');
               tag = Buffer.from(tag, 'base64');
-              value = decodeSecret(userMnemonic, {ciphertext, tag});
+              value = decodeSecret(ENCRYPTION_MNEMONIC, {ciphertext, tag});
             }
-            token.privateUserData = value;
+            token[unlockableMetadataKey] = value;
+            return res.json({status: ResponseStatus.Success, value, error: null})
+        } else {
+            return res.json({status: ResponseStatus.Error, value: null, error: "The token could not be unlocked"})
         }
-
-        return res.json({status: ResponseStatus.Success, token, error: null})
     } else {
-        return res.json({status: ResponseStatus.Error, token: null, error: "The token could not be found"})
+        return res.json({status: ResponseStatus.Error, value: null, error: "The token could not be found"})
+    }
+}
+
+async function readEncryptedData(req, res) {
+    const {tokenId} = req.params;
+    let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
+    let token = o.Item;
+    let value = "";
+    if (development) setCorsHeaders(res);
+    if (token) {
+        if(token[encryptedMetadataKey] !== undefined && token[encryptedMetadataKey] !== ""){
+            const url = token[encryptedMetadataKey];
+
+
+            
+            
+            return res.json({status: ResponseStatus.Success, value, error: null})
+        } else {
+            return res.json({status: ResponseStatus.Error, value: null, error: "The token does not appear to have encrypted data"})
+        }
+    } else {
+        return res.json({status: ResponseStatus.Error, value: null, error: "The token could not be found"})
     }
 }
 
@@ -414,7 +450,7 @@ async function signTransfer(req, res, blockchain) {
 
 async function getPrivateData(req, res) {
     const {signatures, id} = req.body;
-    const key = serverUnlockableMetadataKey;
+    const key = unlockableMetadataKey;
     const addresses = [];
     let unlockSuccessful = false;
     for (const signature of signatures) {
@@ -533,8 +569,8 @@ async function updatePrivateData(req, res, {contracts}) {
         // Set the new metadata
 
         const encryptedData = encodeSecret(privateData);
-        await runSidechainTransaction(mnemonic)('NFT', 'setMetadata', token.hash, serverUnlockableMetadataKey, encryptedData);
-        await runSidechainTransaction(mnemonic)('NFT', 'setMetadata', token.hash, userUnlockableMetadataKey, encryptedData);
+        await runSidechainTransaction(mnemonic)('NFT', 'setMetadata', token.hash, unlockableMetadataKey, encryptedData);
+        await runSidechainTransaction(mnemonic)('NFT', 'setMetadata', token.hash, encryptedMetadataKey, encryptedData);
 
     } 
     try {
@@ -612,7 +648,7 @@ module.exports = {
     createToken,
     updatePublicAsset,
     readToken,
-    readTokenWithPrivateData,
+    readTokenWithPrivateData: readTokenWithUnlockable,
     readTokenRange,
     deleteToken,
     sendToken,

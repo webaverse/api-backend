@@ -3,8 +3,10 @@ const fetch = require('node-fetch');
 const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
-const {createDecipheriv} = require('crypto');
+
 const {jsonParse, setCorsHeaders} = require('../../utils.js');
+const {areAddressesCollaborator} = require('../../blockchain.js');
+const {encodeSecret, decodeSecret} = require('../../crypto');
 const {
   MAINNET_MNEMONIC,
   TESTNET_MNEMONIC,
@@ -13,12 +15,12 @@ const {
   INFURA_PROJECT_ID,
   ENCRYPTION_MNEMONIC,
   POLYGON_VIGIL_KEY,
-  serverUnlockableMetadataKey,
-  ETHEREUM_HOST
+  unlockableMetadataKey,
+  encryptedMetadataKey,
+  ETHEREUM_HOST,
+  STORAGE_HOST,
+  proofOfAddressMessage
 } = require('../../constants.js');
-const {areAddressesCollaborator} = require ('../../blockchain.js');
-
-const nonce = Buffer.alloc(12);
 
 let contracts, gethNodeUrl = null;
 const loadPromise = (async () => {
@@ -94,22 +96,6 @@ const loadPromise = (async () => {
   };
 })();
 
-const decodeSecret = (mnemonic, {ciphertext, tag}) => {
-  const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
-  const privateKey = wallet.privateKey;
-
-  const key = privateKey.slice(0, 24);
-
-  const decipher = createDecipheriv('aes-192-ccm', key, nonce, {
-    authTagLength: 16
-  });
-  decipher.setAuthTag(tag);
-  const receivedPlaintext = decipher.update(ciphertext, null, 'utf8');
-  return receivedPlaintext;
-};
-
-const proofOfAddressMessage = `Proof of address.`;
-
 const handleUnlockRequest = async (req, res) => {
   const {web3, contracts} = await loadPromise;
   try {
@@ -118,7 +104,7 @@ const handleUnlockRequest = async (req, res) => {
     if (method === 'OPTIONS') {
       res.end();
     } else if (method === 'POST') {
-      const j = await new Promise((accept, reject) => {
+      const jsonDataToUnlock = await new Promise((accept, reject) => {
         const bs = [];
         req.on('data', d => {
           bs.push(d);
@@ -131,8 +117,9 @@ const handleUnlockRequest = async (req, res) => {
         });
         req.on('error', reject);
       });
-      const {signatures, id} = j;
-      const key = serverUnlockableMetadataKey;
+
+      const {signatures, id} = jsonDataToUnlock;
+      const key = unlockableMetadataKey;
       const addresses = [];
       let ok = true;
       for (const signature of signatures) {
@@ -152,11 +139,11 @@ const handleUnlockRequest = async (req, res) => {
         if (isCollaborator) {
           let value = await contracts.mainnetsidechain.NFT.methods.getMetadata(hash, key).call();
           value = jsonParse(value);
-          if (value !== null) {
+          if (value !== null && typeof value.ciphertext === 'string' && typeof value.tag === 'string') {
             let {ciphertext, tag} = value;
             ciphertext = Buffer.from(ciphertext, 'base64');
             tag = Buffer.from(tag, 'base64');
-            value = decodeSecret(ENCRYPTION_MNEMONIC, {ciphertext, tag});
+            value = decodeSecret(ENCRYPTION_MNEMONIC, id, {ciphertext, tag}, 'utf8');
           }
 
           res.end(JSON.stringify({
@@ -186,8 +173,138 @@ const handleUnlockRequest = async (req, res) => {
     res.statusCode = 500;
     res.end(err.stack);
   }
-}
+};
+
+const handleLockRequest = async (req, res) => {
+  try {
+    res = setCorsHeaders(res);
+    const {method} = req;
+    if (method === 'OPTIONS') {
+      res.end();
+    } else if (method === 'POST') {
+      let match, id;
+      if ((match = req.url.match(/^\/([0-9]+)$/)) && !isNaN(id = match && parseInt(match[1], 10))) {
+        const bufferToEncrypt = await new Promise((accept, reject) => {
+          const bufferString = [];
+          req.on('data', d => {
+            bufferString.push(d);
+          });
+          req.on('end', () => {
+            const b = Buffer.concat(bufferString);
+            bufferString.length = 0;
+            accept(b);
+          });
+          req.on('error', reject);
+        });
+
+        let {ciphertext, tag} = encodeSecret(ENCRYPTION_MNEMONIC, id, bufferToEncrypt);
+        tag = tag.toString('base64');
+
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('tag', tag);
+        res.end(ciphertext);
+      } else {
+        res.statusCode = 400;
+        res.end('invalid id');
+      }
+    } else {
+      res.statusCode = 404;
+      res.end('not found');
+    }
+  } catch (err) {
+    console.log(err);
+    res.statusCode = 500;
+    res.end(err.stack);
+  }
+};
+
+const handleDecryptRequest = async (req, res) => {
+  const {web3, contracts} = await loadPromise;
+  try {
+    res = setCorsHeaders(res);
+    const {method} = req;
+    if (method === 'OPTIONS') {
+      res.end();
+    } else if (method === 'POST') {
+      const j = await new Promise((accept, reject) => {
+        const bs = [];
+        req.on('data', d => {
+          bs.push(d);
+        });
+        req.on('end', () => {
+          const b = Buffer.concat(bs);
+          const s = b.toString('utf8');
+          const j = jsonParse(s);
+          accept(j);
+        });
+        req.on('error', reject);
+      });
+      const {signatures, id} = j || {};
+
+      if (Array.isArray(signatures) && signatures.every(signature => typeof signature === 'string') && typeof id === 'number') {
+        const key = encryptedMetadataKey;
+        const addresses = [];
+        let ok = true;
+        for (const signature of signatures) {
+          try {
+            let address = await web3.mainnetsidechain.eth.accounts.recover(proofOfAddressMessage, signature);
+            address = address.toLowerCase();
+            addresses.push(address);
+          } catch (err) {
+            console.warn(err.stack);
+            ok = false;
+          }
+        }
+
+        if (ok) {
+          const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
+          const isCollaborator = await areAddressesCollaborator(addresses, hash, id);
+          if (isCollaborator) {
+            let value = await contracts.mainnetsidechain.NFT.methods.getMetadata(hash, key).call();
+            value = jsonParse(value);
+            if (value !== null && typeof value.cipherhash === 'string' && typeof value.tag === 'string') {
+              let {cipherhash, tag} = value;
+
+              const ciphertext = await (async () => {
+                const res = await fetch(`${STORAGE_HOST}/ipfs/${cipherhash}`);
+                const b = await res.buffer();
+                return b;
+              })();
+
+              tag = Buffer.from(tag, 'base64');
+              const plaintext = decodeSecret(ENCRYPTION_MNEMONIC, id, {ciphertext, tag}, null);
+
+              res.setHeader('Content-Type', 'application/octet-stream');
+              res.end(plaintext);
+            } else {
+              res.statusCode = 500;
+              res.end('could not decrypt ciphertext');
+            }
+          } else {
+            res.statusCode = 401;
+            res.end('not a collaborator');
+          }
+        } else {
+          res.statusCode = 400;
+          res.end('signatures invalid');
+        }
+      } else {
+        res.statusCode = 400;
+        res.end('invalid arguments');
+      }
+    } else {
+      res.statusCode = 404;
+      res.end('not found');
+    }
+  } catch (err) {
+    console.log(err);
+    res.statusCode = 500;
+    res.end(err.stack);
+  }
+};
 
 module.exports = {
-  handleUnlockRequest
+  handleUnlockRequest,
+  handleLockRequest,
+  handleDecryptRequest
 };

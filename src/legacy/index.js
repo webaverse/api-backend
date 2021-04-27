@@ -26,7 +26,7 @@ const {tryConnectRedis} = require ('../redis.js');
 // Routes
 const {worldManager, _handleWorldsRequest} = require("./routes/worlds.js");
 const {handleSignRequest} = require("./routes/sign.js");
-const {handleUnlockRequest} = require("./routes/unlock.js");
+const {handleUnlockRequest, handleLockRequest} = require("./routes/unlock.js");
 const {handleAnalyticsRequest} = require("./routes/analytics.js");
 
 let CERT = null;
@@ -101,6 +101,9 @@ try {
         return;
       } else if (o.host === "unlock.exokit.org") {
         handleUnlockRequest(req, res);
+        return;
+      } else if (o.host === 'lock.exokit.org') {
+        handleLockRequest(req, res);
         return;
       } else if (o.host === "oauth.exokit.org") {
         handleOauth(req, res);

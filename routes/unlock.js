@@ -11,7 +11,7 @@ const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {jsonParse, _setCorsHeaders} = require('../utils.js');
 const {encodeSecret, decodeSecret} = require('../encryption.js');
-const {storageHost, polygonVigilKey} = require('../constants.js');
+const {MAX_SIZE, storageHost, polygonVigilKey} = require('../constants.js');
 
 let config = require('fs').existsSync('./config.json') ? require('../config.json') : null;
 
@@ -38,7 +38,7 @@ const {randomBytes, createCipheriv, createDecipheriv} = require('crypto');
 
 const tableName = 'users';
 const unlockableKey = 'unlockable';
-const encryptedKey = 'encrypted';
+const encryptedMetadataKey = 'encrypted';
 
 let contracts = null;
 const loadPromise = (async () => {
@@ -238,15 +238,28 @@ const _handleUnlockRequest = async (req, res) => {
         } else if (method === 'POST') {
             const j = await new Promise((accept, reject) => {
               const bs = [];
-              req.on('data', d => {
-                bs.push(d);
-              });
-              req.on('end', () => {
+              let totalSize = 0;
+              const _data = d => {
+                totalSize += d.byteLength;
+                if (totalSize < MAX_SIZE) {
+                  bs.push(d);
+                } else {
+                  reject(new Error('request too large'));
+                  _cleanup();
+                }
+              };
+              const _end = () => {
                 const b = Buffer.concat(bs);
                 const s = b.toString('utf8');
                 const j = JSON.parse(s);
                 accept(j);
-              });
+              };
+              const _cleanup = () => {
+                req.removeListener('data', _data);
+                req.removeListener('end', _end);
+              };
+              req.on('data', _data);
+              req.on('end', _end);
               req.on('error', reject);
             });
             const {signatures, id} = j;
@@ -332,14 +345,26 @@ const _handleLockRequest = async (req, res) => {
 
               const b = await new Promise((accept, reject) => {
                 const bs = [];
-                req.on('data', d => {
-                  bs.push(d);
-                });
-                req.on('end', () => {
+                let totalSize = 0;
+                const _data = d => {
+                  totalSize += d.byteLength;
+                  if (totalSize < MAX_SIZE) {
+                    bs.push(d);
+                  } else {
+                    reject(new Error('request too large'));
+                    _cleanup();
+                  }
+                };
+                const _end = () => {
                   const b = Buffer.concat(bs);
-                  bs.length = 0;
                   accept(b);
-                });
+                };
+                const _cleanup = () => {
+                  req.removeListener('data', _data);
+                  req.removeListener('end', _end);
+                };
+                req.on('data', _data);
+                req.on('end', _end);
                 req.on('error', reject);
               });
 
@@ -383,22 +408,35 @@ const _handleDecryptRequest = async (req, res) => {
         } else if (method === 'POST') {
             const j = await new Promise((accept, reject) => {
               const bs = [];
-              req.on('data', d => {
-                bs.push(d);
-              });
-              req.on('end', () => {
+              let totalSize = 0;
+              const _data = d => {
+                totalSize += d.byteLength;
+                if (totalSize < MAX_SIZE) {
+                  bs.push(d);
+                } else {
+                  reject(new Error('request too large'));
+                  _cleanup();
+                }
+              };
+              const _end = () => {
                 const b = Buffer.concat(bs);
                 const s = b.toString('utf8');
                 const j = jsonParse(s);
                 accept(j);
-              });
+              };
+              const _cleanup = () => {
+                req.removeListener('data', _data);
+                req.removeListener('end', _end);
+              };
+              req.on('data', _data);
+              req.on('end', _end);
               req.on('error', reject);
             });
             const {signatures, id} = j || {};
             
             if (Array.isArray(signatures) && signatures.every(signature => typeof signature === 'string') && typeof id === 'number') {
               // console.log('got j', j);
-              const key = encryptedKey;
+              const key = encryptedMetadataKey;
               // console.log('got sig', {signatures, id});
               const addresses = [];
               let ok = true;

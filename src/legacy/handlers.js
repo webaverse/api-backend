@@ -953,20 +953,20 @@ const handleCachedNft = contractName => (chainName, isAll) => async (req, res) =
                 const tokenId = parseInt(match[1], 10);
                 const address = match[2];
 
-                const _isCollaborator = await isCollaborator(tokenId, address);
+                const isCollaborator = await isCollaborator(tokenId, address);
 
                 setCorsHeaders(res);
                 res.setHeader('Content-Type', 'application/json');
-                _respond(200, JSON.stringify(_isCollaborator));
+                _respond(200, JSON.stringify(isCollaborator));
             } else if ((match = p.match(/^\/isSingleCollaborator\/([0-9]+)\/(0x[a-f0-9]+)$/i))) {
                 const tokenId = parseInt(match[1], 10);
                 const address = match[2];
 
-                const _isSingleCollaborator = await isSingleCollaborator(tokenId, address);
+                const isSingleCollaborator = await isSingleCollaborator(tokenId, address);
 
                 setCorsHeaders(res);
                 res.setHeader('Content-Type', 'application/json');
-                _respond(200, JSON.stringify(_isSingleCollaborator));
+                _respond(200, JSON.stringify(isSingleCollaborator));
             } else if ((match = req.url.match(/^\/search\?(.+)$/))) {
                 const qs = querystring.parse(match[1]);
                 const {q = '*', owner, minter} = qs;

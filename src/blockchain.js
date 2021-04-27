@@ -1,8 +1,6 @@
 const events = require('events');
 const {EventEmitter} = events;
 const dns = require('dns');
-const bip39 = require('bip39');
-const {hdkey} = require('ethereumjs-wallet');
 const https = require('https');
 const fetch = require('node-fetch');
 const Web3 = require('web3');
@@ -11,7 +9,6 @@ const {
   POLYGON_VIGIL_KEY,
   ETHEREUM_HOST,
 } = require('./constants.js');
-const {createDecipheriv} = require('crypto');
 
 let addresses,
   abis,
