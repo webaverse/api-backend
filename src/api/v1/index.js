@@ -117,6 +117,7 @@ app.post('/api/v1/wallet', authenticateToken, async (req, res) => {
 /**
  * GET /api/v1/tokens
  * @summary List tokens for a user
+ * @security bearerAuth
  * @return {TokenListResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
  * @param {string} address.required - Address of the user to list tokens for
@@ -129,6 +130,7 @@ app.get('/api/v1/tokens/:address/:mainnetAddress', authenticateToken, async (req
 /**
  * GET /api/v1/token/:tokenId
  * @summary Retrieve data for a non-fungible token
+ * @security bearerAuth
  * @return {TokenResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
  * @param {string} tokenId.required - Token to retrieve
@@ -140,6 +142,7 @@ app.get('/api/v1/token/:tokenId', authenticateToken, async (req, res) => {
 /**
  * GET /api/v1/token/:tokenStartId/:tokenEndId
  * @summary Retrieve a range of tokens
+ * @security bearerAuth
  * @return {TokenListResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
  * @param {string} tokenStartId.required - First token to retrieve
@@ -152,6 +155,7 @@ app.get('/api/v1/token/:tokenStartId/:tokenEndId', authenticateToken, async (req
 /**
  * POST /api/v1/token
  * @summary Create a non-fungible token with a file or IPFS hash
+ * @security bearerAuth
  * @return {TokenIdsResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
  * @param {string} userMnemonic.required - Mint the token using a user's private key
@@ -166,6 +170,7 @@ app.post('/api/v1/token', authenticateToken, async (req, res) => {
 /**
  * DELETE /api/v1/token
  * @summary Burn a token forever
+ * @security bearerAuth
  * @param {string} tokenId.required - Token to delete
  * @return {TokenStatusResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
@@ -177,6 +182,7 @@ app.delete('/api/v1/token', authenticateToken, async (req, res) => {
 /**
  * POST /api/v1/token/send
  * @summary Send this token from one user to another
+ * @security bearerAuth
  * @return {TokenStatusResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
  * @param {string} tokenId.required - Token to be sent
