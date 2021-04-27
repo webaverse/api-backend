@@ -2,7 +2,11 @@ FROM node:14
 
 WORKDIR /usr/src/app
 
-RUN apk add --update nodejs npm
+RUN apt-get update
+
+RUN apt-get -y install nodejs
+
+RUN npm install -g npm
 
 EXPOSE 8080
 
