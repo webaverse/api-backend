@@ -10,6 +10,7 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {jsonParse, _setCorsHeaders} = require('../utils.js');
+const {encodeSecret, decodeSecret} = require('../encryption.js');
 const {polygonVigilKey} = require('../constants.js');
 
 let config = require('fs').existsSync('./config.json') ? require('../config.json') : null;
@@ -37,45 +38,6 @@ const {randomBytes, createCipheriv, createDecipheriv} = require('crypto');
 
 const tableName = 'users';
 const unlockableKey = 'unlockable';
-const nonce = Buffer.alloc(12);
-const encodeSecret = (mnemonic, secret) => {
-  const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
-  const privateKey = wallet.privateKey;
-
-  const key = privateKey.slice(0, 24);
-  // const aad = Buffer.from('0123456789', 'hex');
-
-  const cipher = createCipheriv('aes-192-ccm', key, nonce, {
-    authTagLength: 16
-  });
-  /* cipher.setAAD(aad, {
-    plaintextLength: Buffer.byteLength(secret)
-  }); */
-  const ciphertext = cipher.update(secret, 'utf8');
-  cipher.final();
-  const tag = cipher.getAuthTag();
-  return {
-    ciphertext,
-    tag,
-  };
-};
-const decodeSecret = (mnemonic, {ciphertext, tag}) => {
-  const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
-  const privateKey = wallet.privateKey;
-
-  const key = privateKey.slice(0, 24);
-  // const aad = Buffer.from('0123456789', 'hex');
-
-  const decipher = createDecipheriv('aes-192-ccm', key, nonce, {
-    authTagLength: 16
-  });
-  decipher.setAuthTag(tag);
-  /* decipher.setAAD(aad, {
-    plaintextLength: ciphertext.length
-  }); */
-  const receivedPlaintext = decipher.update(ciphertext, null, 'utf8');
-  return receivedPlaintext;
-};
 
 let contracts = null;
 const loadPromise = (async () => {
@@ -317,7 +279,7 @@ const _handleUnlockRequest = async (req, res) => {
                   ciphertext = Buffer.from(ciphertext, 'base64');
                   tag = Buffer.from(tag, 'base64');
                   // console.log('got ciphertext 1', {ciphertext, tag});
-                  value = decodeSecret(encryptionMnemonic, {ciphertext, tag});
+                  value = decodeSecret(encryptionMnemonic, id, {ciphertext, tag}, 'utf8');
                   // console.log('got ciphertext 2', {ciphertext, tag, value});
                 }
 
@@ -380,7 +342,7 @@ const _handleLockRequest = async (req, res) => {
             const isC = await contracts.NFT.methods.isCollaborator(hash, address).call();
 
             if (isC) {
-              let {ciphertext, tag} = encodeSecret(encryptionMnemonic, value);
+              let {ciphertext, tag} = encodeSecret(encryptionMnemonic, id, value, 'utf8');
               ciphertext = ciphertext.toString('base64');
               tag = tag.toString('base64');
               value = JSON.stringify({
@@ -436,7 +398,7 @@ const _handleLockRequest = async (req, res) => {
                   ciphertext = Buffer.from(ciphertext, 'base64');
                   tag = Buffer.from(tag, 'base64');
                   // console.log('got ciphertext 1', {ciphertext, tag});
-                  value = decodeSecret(encryptionMnemonic, {ciphertext, tag});
+                  value = decodeSecret(encryptionMnemonic, id, {ciphertext, tag}, 'utf8');
                   // console.log('got ciphertext 2', {ciphertext, tag, value});
                 }
 
