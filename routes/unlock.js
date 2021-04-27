@@ -325,22 +325,9 @@ const _handleLockRequest = async (req, res) => {
         if (method === 'OPTIONS') {
             res.end();
         } else if (method === 'POST') {
-            const j = await new Promise((accept, reject) => {
-              const bs = [];
-              req.on('data', d => {
-                bs.push(d);
-              });
-              req.on('end', () => {
-                const b = Buffer.concat(bs);
-                const s = b.toString('utf8');
-                const j = jsonParse(s);
-                accept(j);
-              });
-              req.on('error', reject);
-            });
-            const {id} = j || {};
+            let match, id;
 
-            if (typeof id === 'number') {
+            if ((match = req.url.match(/^\/([0-9]+)$/)) && !isNaN(id = match && parseInt(match[1], 10))) {
               // console.log('do set', id, key, value);
 
               const b = await new Promise((accept, reject) => {
