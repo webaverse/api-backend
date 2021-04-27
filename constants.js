@@ -1,3 +1,4 @@
+const MAX_SIZE = 50 * 1024 * 1024;
 const accountKeys = [
   'name',
   'avatarId',
@@ -45,6 +46,7 @@ const storageHost = 'https://ipfs.exokit.org';
 const mainnetSignatureMessage = `Connecting mainnet address.`;
 const cacheHostUrl = 'cache.webaverse.com';
 module.exports = {
+  MAX_SIZE,
   accountKeys,
   ids,
   tableNames,
