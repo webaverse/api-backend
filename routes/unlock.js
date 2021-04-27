@@ -325,9 +325,22 @@ const _handleLockRequest = async (req, res) => {
         if (method === 'OPTIONS') {
             res.end();
         } else if (method === 'POST') {
-            let match, id;
-            
-            if ((match = req.url.match(/^\/([0-9]+)$/)) && !isNaN(id = match && parseInt(match[1], 10))) {
+            const j = await new Promise((accept, reject) => {
+              const bs = [];
+              req.on('data', d => {
+                bs.push(d);
+              });
+              req.on('end', () => {
+                const b = Buffer.concat(bs);
+                const s = b.toString('utf8');
+                const j = JSON.parse(s);
+                accept(j);
+              });
+              req.on('error', reject);
+            });
+            const {id} = j;
+
+            if (typeof id === 'number') {
               // console.log('do set', id, key, value);
 
               const b = await new Promise((accept, reject) => {
@@ -355,15 +368,12 @@ const _handleLockRequest = async (req, res) => {
               res.setHeader('tag', tag);
               res.end(ciphertext);
             } else {
-              res.statusCode = 404;
-              res.end(JSON.stringify({
-                ok: false,
-                result: null,
-              }));
+              res.statusCode = 400;
+              res.end('invalid id');
             }
         } else {
             res.statusCode = 404;
-            res.end();
+            res.end('not found');
         }
     } catch (err) {
         console.log(err);
@@ -453,7 +463,7 @@ const _handleDecryptRequest = async (req, res) => {
             }
         } else {
             res.statusCode = 404;
-            res.end();
+            res.end('not found');
         }
     } catch (err) {
         console.log(err);
