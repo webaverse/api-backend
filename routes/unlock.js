@@ -348,7 +348,126 @@ const _handleUnlockRequest = async (req, res) => {
         res.statusCode = 500;
         res.end(err.stack);
     }
-}
+};
+const _handleLockRequest = async (req, res) => {
+    // console.log('unlock request', req.url);
+    
+    const {web3, addresses, abis, chainIds, contracts, wallets} = await loadPromise;
+    
+    const request = url.parse(req.url);
+    // const path = request.path.split('/')[1];
+    try {
+        res = _setCorsHeaders(res);
+        const {method} = req;
+        if (method === 'OPTIONS') {
+            res.end();
+        } else if (method === 'POST') {
+            const id = parseInt(split[1], 10);
+            const key = unlockableKey;
+            let value = s.slice(words[2].index);
+
+            // console.log('do set', id, key, value);
+
+            let {mnemonic} = await _getUser();
+            if (!mnemonic) {
+                const spec = await _genKey();
+                mnemonic = spec.mnemonic;
+            }
+            const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
+            const address = wallet.getAddressString();
+
+            const hash = await contracts.NFT.methods.getHash(id).call();
+            const isC = await contracts.NFT.methods.isCollaborator(hash, address).call();
+
+            if (isC) {
+              let {ciphertext, tag} = encodeSecret(encryptionMnemonic, value);
+              ciphertext = ciphertext.toString('base64');
+              tag = tag.toString('base64');
+              value = JSON.stringify({
+                ciphertext,
+                tag,
+              });
+            } else {
+            }
+          
+          
+            
+            const j = await new Promise((accept, reject) => {
+              const bs = [];
+              req.on('data', d => {
+                bs.push(d);
+              });
+              req.on('end', () => {
+                const b = Buffer.concat(bs);
+                const s = b.toString('utf8');
+                const j = JSON.parse(s);
+                accept(j);
+              });
+              req.on('error', reject);
+            });
+            const {signatures, id} = j;
+            // console.log('got j', j);
+            const key = unlockableKey;
+            // console.log('got sig', {signatures, id});
+            const addresses = [];
+            let ok = true;
+            for (const signature of signatures) {
+              try {
+                let address = await web3.mainnetsidechain.eth.accounts.recover(proofOfAddressMessage, signature);
+                address = address.toLowerCase();
+                addresses.push(address);
+              } catch(err) {
+                console.warn(err.stack);
+                ok = false;
+              }
+            }
+            
+            // console.log('got sig 2', addresses);
+            if (ok) {
+              const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
+              const isCollaborator = await _areAddressesColaborator(addresses, hash);
+              if (isCollaborator) {
+                let value = await contracts.mainnetsidechain.NFT.methods.getMetadata(hash, key).call();
+                // console.log('pre value', {value});
+                value = jsonParse(value);
+                // console.log('final value', {value});
+                if (value !== null) {
+                  let {ciphertext, tag} = value;
+                  ciphertext = Buffer.from(ciphertext, 'base64');
+                  tag = Buffer.from(tag, 'base64');
+                  // console.log('got ciphertext 1', {ciphertext, tag});
+                  value = decodeSecret(encryptionMnemonic, {ciphertext, tag});
+                  // console.log('got ciphertext 2', {ciphertext, tag, value});
+                }
+
+                res.end(JSON.stringify({
+                  ok: true,
+                  result: value,
+                }));
+              } else {
+                res.statusCode = 401;
+                res.end(JSON.stringify({
+                  ok: false,
+                  result: null,
+                }));
+              }
+            } else {
+              res.statusCode = 400;
+              res.end(JSON.stringify({
+                ok: false,
+                result: null,
+              }));
+            }
+        } else {
+            res.statusCode = 404;
+            res.end();
+        }
+    } catch (err) {
+        console.log(err);
+        res.statusCode = 500;
+        res.end(err.stack);
+    }
+};
 const _isCollaborator = async (tokenId, address) => {
   const hash = await contracts.mainnetsidechain.NFT.methods.getHash(tokenId).call();
   return await _areAddressesColaborator([address], hash);
@@ -357,6 +476,7 @@ const _isSingleCollaborator = async (tokenId, address) => await _areAddressesSin
 
 module.exports = {
   _handleUnlockRequest,
+  _handleLockRequest,
   _isCollaborator,
   _isSingleCollaborator,
 };
