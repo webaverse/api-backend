@@ -81,7 +81,7 @@ const Discord = require('discord.js');
 // const { _handlePreviewRequest } = require('./routes/preview.js')
 const { worldManager, _handleWorldsRequest, _startWorldsRoute } = require('./routes/worlds.js');
 const { _handleSignRequest } = require('./routes/sign.js');
-const { _handleUnlockRequest, _handleLockRequest, _isCollaborator, _isSingleCollaborator} = require('./routes/unlock.js');
+const { _handleUnlockRequest, _handleLockRequest, _handleDecryptRequest, _isCollaborator, _isSingleCollaborator} = require('./routes/unlock.js');
 const { _handleAnalyticsRequest } = require('./routes/analytics.js');
 
 let CERT = null;
@@ -1982,6 +1982,9 @@ try {
     return;
   } else if (o.host === 'lock.exokit.org') {
     _handleLockRequest(req, res);
+    return;
+  } else if (o.host === 'decrypt.exokit.org') {
+    _handleDecryptRequest(req, res);
     return;
   } else if (o.host === 'oauth.exokit.org') {
     _handleOauth(req, res);
