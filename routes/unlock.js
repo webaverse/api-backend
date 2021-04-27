@@ -11,7 +11,7 @@ const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {jsonParse, _setCorsHeaders} = require('../utils.js');
 const {encodeSecret, decodeSecret} = require('../encryption.js');
-const {storageHost, polygonVigilKey} = require('../constants.js');
+const {MAX_SIZE, storageHost, polygonVigilKey} = require('../constants.js');
 
 let config = require('fs').existsSync('./config.json') ? require('../config.json') : null;
 
