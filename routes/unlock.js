@@ -238,15 +238,28 @@ const _handleUnlockRequest = async (req, res) => {
         } else if (method === 'POST') {
             const j = await new Promise((accept, reject) => {
               const bs = [];
-              req.on('data', d => {
-                bs.push(d);
-              });
-              req.on('end', () => {
+              let totalSize = 0;
+              const _data = d => {
+                totalSize += d.byteLength;
+                if (totalSize < MAX_SIZE) {
+                  bs.push(d);
+                } else {
+                  reject(new Error('request too large'));
+                  _cleanup();
+                }
+              };
+              const _end = () => {
                 const b = Buffer.concat(bs);
                 const s = b.toString('utf8');
                 const j = JSON.parse(s);
                 accept(j);
-              });
+              };
+              const _cleanup = () => {
+                req.removeListener('data', _data);
+                req.removeListener('end', _end);
+              };
+              req.on('data', _data);
+              req.on('end', _end);
               req.on('error', reject);
             });
             const {signatures, id} = j;
@@ -332,14 +345,26 @@ const _handleLockRequest = async (req, res) => {
 
               const b = await new Promise((accept, reject) => {
                 const bs = [];
-                req.on('data', d => {
-                  bs.push(d);
-                });
-                req.on('end', () => {
+                let totalSize = 0;
+                const _data = d => {
+                  totalSize += d.byteLength;
+                  if (totalSize < MAX_SIZE) {
+                    bs.push(d);
+                  } else {
+                    reject(new Error('request too large'));
+                    _cleanup();
+                  }
+                };
+                const _end = () => {
                   const b = Buffer.concat(bs);
-                  bs.length = 0;
                   accept(b);
-                });
+                };
+                const _cleanup = () => {
+                  req.removeListener('data', _data);
+                  req.removeListener('end', _end);
+                };
+                req.on('data', _data);
+                req.on('end', _end);
                 req.on('error', reject);
               });
 
@@ -383,15 +408,28 @@ const _handleDecryptRequest = async (req, res) => {
         } else if (method === 'POST') {
             const j = await new Promise((accept, reject) => {
               const bs = [];
-              req.on('data', d => {
-                bs.push(d);
-              });
-              req.on('end', () => {
+              let totalSize = 0;
+              const _data = d => {
+                totalSize += d.byteLength;
+                if (totalSize < MAX_SIZE) {
+                  bs.push(d);
+                } else {
+                  reject(new Error('request too large'));
+                  _cleanup();
+                }
+              };
+              const _end = () => {
                 const b = Buffer.concat(bs);
                 const s = b.toString('utf8');
                 const j = jsonParse(s);
                 accept(j);
-              });
+              };
+              const _cleanup = () => {
+                req.removeListener('data', _data);
+                req.removeListener('end', _end);
+              };
+              req.on('data', _data);
+              req.on('end', _end);
               req.on('error', reject);
             });
             const {signatures, id} = j || {};
