@@ -26,6 +26,7 @@ You can get these credentials from Avaer.
 
 ## API Docs
 
+
 ### worlds.exokit.org
 
 `GET` worlds.exokit.org/{worldId}

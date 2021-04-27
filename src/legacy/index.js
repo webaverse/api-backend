@@ -1,5 +1,4 @@
 Error.stackTraceLimit = 300;
-Error.stackTraceLimit = 300;
 
 require('dotenv-flow').config();
 const fs = require("fs");

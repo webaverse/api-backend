@@ -2,13 +2,33 @@ const path = require('path');
 const http = require('http');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
-const {getBlockchain} = require('../../../blockchain.js');
+const {getBlockchain, areAddressesCollaborator} = require('../../../blockchain.js');
 const {makePromise, setCorsHeaders} = require('../../../utils.js');
 const {getRedisItem, parseRedisItems, getRedisClient} = require('../../../redis.js');
-const {redisPrefixes, mainnetSignatureMessage, nftIndexName, mintingFee, burnAddress, zeroAddress, IPFS_HOST, MAINNET_MNEMONIC, PINATA_API_KEY, PINATA_SECRET_API_KEY, defaultTokenDescription} = require('../../../constants.js');
+const {
+    ENCRYPTION_MNEMONIC,
+    proofOfAddressMessage,
+    serverUnlockableMetadataKey,
+    userUnlockableMetadataKey,
+    redisPrefixes,
+    mainnetSignatureMessage,
+    nftIndexName,
+    mintingFee,
+    burnAddress,
+    zeroAddress,
+    IPFS_HOST,
+    MAINNET_MNEMONIC,
+    PINATA_API_KEY,
+    PINATA_SECRET_API_KEY,
+    defaultTokenDescription
+} = require('../../../constants.js');
 const {ResponseStatus} = require("../enums.js");
 const {runSidechainTransaction} = require("../../../tokens.js");
 const {production, development} = require("../environment.js");
+
+const {jsonParse} = require('../../utils.js');
+
+const {encodeSecret, decodeSecret} = require('../../crypto.js');
 
 const pinataSDK = require('@pinata/sdk');
 const pinata = (PINATA_API_KEY && PINATA_API_KEY !== "") ? pinataSDK(PINATA_API_KEY, PINATA_SECRET_API_KEY) : null;
@@ -36,10 +56,12 @@ const network = production ? 'mainnet' : 'testnet';
 
 const {Readable} = require('stream');
 
-let contracts;
+let web3, contracts;
 
 (async function () {
-    contracts = await getBlockchain().contracts;
+    const blockchain = await getBlockchain().contracts;
+    web3 = blockchain.web3;
+    contracts = blockchain.contracts;
 })();
 
 
@@ -109,7 +131,8 @@ async function listTokens(req, res, web3) {
     }
 }
 
-async function mintTokens(resHash, mnemonic, quantity, web3, contracts, res) {
+// Called by create token on successful resource upload
+async function mintTokens(resHash, mnemonic, quantity, privateData, web3, contracts, res) {
     let tokenIds, status;
     const fullAmount = {
         t: 'uint256',
@@ -151,6 +174,13 @@ async function mintTokens(resHash, mnemonic, quantity, web3, contracts, res) {
 
         const result = await runSidechainTransaction(mnemonic)('NFT', 'mint', address, hash, fileName, extName, description, quantity);
         status = result.status;
+
+        if(privateData)
+        {
+            const encryptedData = encodeSecret(privateData);
+            await runSidechainTransaction(mnemonic)('NFT', 'setMetadata', hash, serverUnlockableMetadataKey, encryptedData);
+            await runSidechainTransaction(mnemonic)('NFT', 'setMetadata', hash, userUnlockableMetadataKey, encryptedData);
+        }
 
         const tokenId = new web3.utils.BN(result.logs[0].topics[3].slice(2), 16).toNumber();
         tokenIds = [tokenId, tokenId + quantity - 1];
@@ -159,66 +189,66 @@ async function mintTokens(resHash, mnemonic, quantity, web3, contracts, res) {
 }
 
 async function createToken(req, res, {web3, contracts}) {
-    const {mnemonic, quantity} = req.body;
+    const {mnemonic, quantity, privateData} = req.body;
 
     try {
         let {resourceHash} = req.body;
 
         const file = req.files && req.files[0];
 
-        if(!bip39.validateMnemonic(mnemonic)){
+        if (!bip39.validateMnemonic(mnemonic)) {
             return res.json({status: ResponseStatus.Error, error: "Invalid mnemonic"});
         }
 
-        if(!resourceHash && !file){
+        if (!resourceHash && !file) {
             return res.json({status: ResponseStatus.Error, error: "POST did not include a file or resourceHash"});
         }
 
         // Check if there are any files -- if there aren't, check if there's a hash
-        if(resourceHash && file){
+        if (resourceHash && file) {
             return res.json({status: ResponseStatus.Error, error: "POST should include a resourceHash *or* file but not both"});
         }
 
-        if(file){
+        if (file) {
             const readableStream = new Readable({
                 read() {
-                  this.push(Buffer.from(file));
-                  this.push(null);
+                    this.push(Buffer.from(file));
+                    this.push(null);
                 }
-              });
+            });
 
             // Pinata API keys are valid, so this is probably what the user wants
-            if(pinata){
+            if (pinata) {
                 const {IpfsHash} = pinata.pinFileToIPFS(readableStream, pinataOptions)
-                if(IpfsHash) mintTokens(IpfsHash, mnemonic, quantity, web3, contracts, res);
+                if (IpfsHash) mintTokens(IpfsHash, mnemonic, quantity, web3, contracts, res);
                 else res.json({status: ResponseStatus.Error, error: "Error pinning to Pinata service, hash was not returned"});
             } else {
-            // Upload to our own IPFS node
-            const req = http.request(IPFS_HOST, {method: 'POST'}, res => {
-                const bufferString = [];
-                res.on('data', data => {
-                    bufferString.push(data);
+                // Upload to our own IPFS node
+                const req = http.request(IPFS_HOST, {method: 'POST'}, res => {
+                    const bufferString = [];
+                    res.on('data', data => {
+                        bufferString.push(data);
+                    });
+                    res.on('end', async () => {
+                        const buffer = Buffer.concat(bufferString);
+                        const string = buffer.toString('utf8');
+                        const {hash} = JSON.parse(string);
+                        if (hash) mintTokens(hash, mnemonic, quantity, web3, contracts, res);
+                        else return res.json({status: ResponseStatus.Error, error: "Error getting hash back from IPFS node"});
+                    });
+                    res.on('error', err => {
+                        console.warn(err.stack);
+                        return res.json({status: ResponseStatus.Error, error: err.stack});
+                    });
                 });
-                res.on('end', async () => {
-                    const buffer = Buffer.concat(bufferString);
-                    const string = buffer.toString('utf8');
-                    const {hash} = JSON.parse(string);
-                    if(hash) mintTokens(hash, mnemonic, quantity, web3, contracts, res);
-                    else return res.json({status: ResponseStatus.Error, error: "Error getting hash back from IPFS node"});
-                });
-                res.on('error', err => {
+                req.on('error', err => {
                     console.warn(err.stack);
-                    return res.json({status: ResponseStatus.Error, error: err.stack});
+                    res.json({status: ResponseStatus.Error, error: err.stack});
                 });
-            });
-            req.on('error', err => {
-                console.warn(err.stack);
-                res.json({status: ResponseStatus.Error, error: err.stack});
-            });
-            file.pipe(req);
-        }
+                file.pipe(req);
+            }
         } else {
-            mintTokens(resourceHash, mnemonic, quantity, web3, contracts, res);
+            mintTokens(resourceHash, mnemonic, quantity, privateData, web3, contracts, res);
         }
 
     } catch (error) {
@@ -227,131 +257,50 @@ async function createToken(req, res, {web3, contracts}) {
     }
 }
 
-async function mintTokens(resHash, mnemonic, quantity, web3, contracts, res) {
-    let tokenIds, status;
-    const fullAmount = {
-        t: 'uint256',
-        v: new web3.utils.BN(1e9)
-            .mul(new web3.utils.BN(1e9))
-            .mul(new web3.utils.BN(1e9)),
-    };
-
-    const fullAmountD2 = {
-        t: 'uint256',
-        v: fullAmount.v.div(new web3.utils.BN(2)),
-    };
-    const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
-    const address = wallet.getAddressString();
-
-    if (mintingFee > 0) {
-        let allowance = await contracts['FT'].methods.allowance(address, contracts['NFT']._address).call();
-        allowance = new web3.utils.BN(allowance, 0);
-        if (allowance.lt(fullAmountD2.v)) {
-            const result = await runSidechainTransaction(mnemonic)('FT', 'approve', contracts['NFT']._address, fullAmount.v);
-            status = result.status;
-        } else {
-            status = true;
-        }
-    } else status = true;
-
-    if (status) {
-        const description = defaultTokenDescription;
-
-        let fileName = resHash.split('/').pop();
-
-        let extName = path.extname(fileName).slice(1);
-        extName = extName === "" ? "png" : extName
-        extName = extName === "jpeg" ? "jpg" : extName
-
-        fileName = extName ? fileName.slice(0, -(extName.length + 1)) : fileName;
-
-        const {hash} = JSON.parse(Buffer.from(resHash, 'utf8').toString('utf8'));
-
-        const result = await runSidechainTransaction(mnemonic)('NFT', 'mint', address, hash, fileName, extName, description, quantity);
-        status = result.status;
-
-        const tokenId = new web3.utils.BN(result.logs[0].topics[3].slice(2), 16).toNumber();
-        tokenIds = [tokenId, tokenId + quantity - 1];
-    }
-    return res.json({status: ResponseStatus.Success, tokenIds, error: null});
-}
-
-async function updateToken(req, res, {web3, contracts}) {
-    const {mnemonic} = req.body;
-
-    try {
-        let {resourceHash} = req.body;
-
-        const file = req.files && req.files[0];
-
-        if(!bip39.validateMnemonic(mnemonic)){
-            return res.json({status: ResponseStatus.Error, error: "Invalid mnemonic"});
-        }
-
-        if(!resourceHash && !file){
-            return res.json({status: ResponseStatus.Error, error: "POST did not include a file or resourceHash"});
-        }
-
-        // Check if there are any files -- if there aren't, check if there's a hash
-        if(resourceHash && file){
-            return res.json({status: ResponseStatus.Error, error: "POST should include a resourceHash *or* file but not both"});
-        }
-
-        if(file){
-            const readableStream = new Readable({
-                read() {
-                  this.push(Buffer.from(file));
-                  this.push(null);
-                }
-              });
-
-            // Pinata API keys are valid, so this is probably what the user wants
-            if(pinata){
-                const {IpfsHash} = pinata.pinFileToIPFS(readableStream, pinataOptions)
-                if(IpfsHash) mintTokens(IpfsHash, mnemonic, quantity, web3, contracts, res);
-                else res.json({status: ResponseStatus.Error, error: "Error pinning to Pinata service, hash was not returned"});
-            } else {
-            // Upload to our own IPFS node
-            const req = http.request(IPFS_HOST, {method: 'POST'}, res => {
-                const bufferString = [];
-                res.on('data', data => {
-                    bufferString.push(data);
-                });
-                res.on('end', async () => {
-                    const buffer = Buffer.concat(bufferString);
-                    const string = buffer.toString('utf8');
-                    const {hash} = JSON.parse(string);
-                    if(hash) mintTokens(hash, mnemonic, quantity, web3, contracts, res);
-                    else return res.json({status: ResponseStatus.Error, error: "Error getting hash back from IPFS node"});
-                });
-                res.on('error', err => {
-                    console.warn(err.stack);
-                    return res.json({status: ResponseStatus.Error, error: err.stack});
-                });
-            });
-            req.on('error', err => {
-                console.warn(err.stack);
-                res.json({status: ResponseStatus.Error, error: err.stack});
-            });
-            file.pipe(req);
-        }
-        } else {
-            mintTokens(resourceHash, mnemonic, quantity, web3, contracts, res);
-        }
-
-    } catch (error) {
-        console.warn(error.stack);
-        return res.json({status: ResponseStatus.Error, tokenIds: [], error});
-    }
-}
 async function readToken(req, res) {
     const {tokenId} = req.params;
-
     let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
     let token = o.Item;
 
     if (development) setCorsHeaders(res);
     if (token) {
+        return res.json({status: ResponseStatus.Success, token, error: null})
+    } else {
+        return res.json({status: ResponseStatus.Error, token: null, error: "The token could not be found"})
+    }
+}
+
+async function readTokenWithPrivateData(req, res) {
+    const {tokenId, userMnemonic} = req.params;
+    let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
+    let token = o.Item;
+
+    if (development) setCorsHeaders(res);
+    if (token) {
+        if(token[serverUnlockableMetadataKey] !== undefined && token[serverUnlockableMetadataKey] !== ""){
+            let value = token[serverUnlockableMetadataKey];
+            value = jsonParse(value);
+            if (value !== null) {
+              let {ciphertext, tag} = value;
+              ciphertext = Buffer.from(ciphertext, 'base64');
+              tag = Buffer.from(tag, 'base64');
+              value = decodeSecret(ENCRYPTION_MNEMONIC, {ciphertext, tag});
+            }
+            token.privateData = value;
+        }
+
+        if(userMnemonic !== undefined && token[userUnlockableMetadataKey] !== undefined && token[userUnlockableMetadataKey] !== ""){
+            let value = token[userUnlockableMetadataKey];
+            value = jsonParse(value);
+            if (value !== null) {
+              let {ciphertext, tag} = value;
+              ciphertext = Buffer.from(ciphertext, 'base64');
+              tag = Buffer.from(tag, 'base64');
+              value = decodeSecret(userMnemonic, {ciphertext, tag});
+            }
+            token.privateUserData = value;
+        }
+
         return res.json({status: ResponseStatus.Success, token, error: null})
     } else {
         return res.json({status: ResponseStatus.Error, token: null, error: "The token could not be found"})
@@ -403,6 +352,7 @@ async function readTokenRange(req, res) {
     }
 }
 
+// TODO: Try to unpin from pinata if we are using pinata
 async function deleteToken(req, res) {
     try {
         const {tokenId} = req.body;
@@ -462,12 +412,210 @@ async function signTransfer(req, res, blockchain) {
     console.warn("Method not implemented", req, res, blockchain);
 }
 
+async function getPrivateData(req, res) {
+    const {signatures, id} = req.body;
+    const key = serverUnlockableMetadataKey;
+    const addresses = [];
+    let unlockSuccessful = false;
+    for (const signature of signatures) {
+        try {
+            let address = await web3.mainnetsidechain.eth.accounts.recover(proofOfAddressMessage, signature);
+            address = address.toLowerCase();
+            addresses.push(address);
+            unlockSuccessful = true;
+        } catch (err) {
+            console.warn(err.stack);
+            unlockSuccessful = false;
+        }
+    }
+
+    if (!unlockSuccessful)
+        return res.json({status: ResponseStatus.error, error: "Failed to unlock private token data"});
+
+    const hash = await contracts.mainnetsidechain.NFT.methods.getHash(id).call();
+    const isCollaborator = await areAddressesCollaborator(addresses, hash, id);
+    if (isCollaborator) {
+        let value = await contracts.mainnetsidechain.NFT.methods.getMetadata(hash, key).call();
+        value = jsonParse(value);
+        if (value !== null) {
+            let {ciphertext, tag} = value;
+            ciphertext = Buffer.from(ciphertext, 'base64');
+            tag = Buffer.from(tag, 'base64');
+            value = decodeSecret(ENCRYPTION_MNEMONIC, {ciphertext, tag});
+        }
+        return res.json({status: ResponseStatus.success, payload: value, error: null});
+    } else {
+        return res.json({status: ResponseStatus.error, payload: null, error: `Address is not a collaborator on ${hash}`});
+    }
+}
+
+// TODO: Try to unpin from pinata if we are using pinata and already have file
+async function updatePublicAsset(req, res, {contracts}) {
+    const {mnemonic, tokenId, resourceHash} = req.body;
+    const file = req.files && req.files[0];
+    try {
+        if (!bip39.validateMnemonic(mnemonic)) {
+            return res.json({status: ResponseStatus.Error, error: "Invalid mnemonic"});
+        }
+
+        if (!resourceHash && !file) {
+            return res.json({status: ResponseStatus.Error, error: "POST did not include a file or resourceHash"});
+        }
+
+        // Check if there are any files -- if there aren't, check if there's a hash
+        if (resourceHash && file) {
+            return res.json({status: ResponseStatus.Error, error: "POST should include a resourceHash *or* file but not both"});
+        }
+
+        if (file) {
+            const readableStream = new Readable({
+                read() {
+                    this.push(Buffer.from(file));
+                    this.push(null);
+                }
+            });
+
+            // Pinata API keys are valid, so this is probably what the user wants
+            if (pinata) {
+                // TODO: Try to unpin existing pinata hash
+                const {IpfsHash} = pinata.pinFileToIPFS(readableStream, pinataOptions);
+                if (IpfsHash){
+                    const currentHash = await contracts['mainnetsidechain'].NFT.methods.getHash(tokenId).call();
+                    await runSidechainTransaction(MAINNET_MNEMONIC)('NFT', 'updateHash', currentHash, IpfsHash);
+                } 
+                else res.json({status: ResponseStatus.Error, error: "Error pinning to Pinata service, hash was not returned"});
+            } else {
+                // Upload to our own IPFS node
+                const req = http.request(IPFS_HOST, {method: 'POST'}, res => {
+                    const bufferString = [];
+                    res.on('data', data => {
+                        bufferString.push(data);
+                    });
+                    res.on('end', async () => {
+                        const buffer = Buffer.concat(bufferString);
+                        const string = buffer.toString('utf8');
+                        const {hash} = JSON.parse(string);
+                        if (hash){
+                            const currentHash = await contracts['mainnetsidechain'].NFT.methods.getHash(tokenId).call();
+                            await runSidechainTransaction(MAINNET_MNEMONIC)('NFT', 'updateHash', currentHash, hash);
+                        } 
+                        else return res.json({status: ResponseStatus.Error, error: "Error getting hash back from IPFS node"});
+                    });
+                    res.on('error', err => {
+                        console.warn(err.stack);
+                        return res.json({status: ResponseStatus.Error, error: err.stack});
+                    });
+                });
+                req.on('error', err => {
+                    console.warn(err.stack);
+                    res.json({status: ResponseStatus.Error, error: err.stack});
+                });
+                file.pipe(req);
+            }
+        } else {
+            const currentHash = await contracts['mainnetsidechain'].NFT.methods.getHash(tokenId).call();
+            await runSidechainTransaction(MAINNET_MNEMONIC)('NFT', 'updateHash', currentHash, resourceHash);
+        }
+    } catch (error) {
+        console.warn(error.stack);
+        return res.json({status: ResponseStatus.Error, tokenIds: [], error});
+    }
+}
+
+// TODO: Try to unpin from pinata if we are using pinata
+async function updatePrivateData(req, res, {contracts}) {
+    async function updateHashForKeys(token, privateDataHash){
+        // TODO:
+        // First, check if it already has this private data
+        if(token.privateData)
+        // If yes, check if pinata is true -- if it is, unpin the hash
+        // Else, unpin the hash for local node
+        // Set the new metadata
+
+        const encryptedData = encodeSecret(privateData);
+        await runSidechainTransaction(mnemonic)('NFT', 'setMetadata', token.hash, serverUnlockableMetadataKey, encryptedData);
+        await runSidechainTransaction(mnemonic)('NFT', 'setMetadata', token.hash, userUnlockableMetadataKey, encryptedData);
+
+    } 
+    try {
+    const {mnemonic, tokenId, resourceHash, privateData} = req.body;
+    let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
+    let token = o.Item;
+    const file = req.files && req.files[0];
+        if (!bip39.validateMnemonic(mnemonic)) {
+            return res.json({status: ResponseStatus.Error, error: "Invalid mnemonic"});
+        }
+
+        if (!resourceHash && !file && !privateData) {
+            return res.json({status: ResponseStatus.Error, error: "POST did not include a privateData field or a file or resourceHash"});
+        }
+
+        // Check if there are any files -- if there aren't, check if there's a hash
+        if (resourceHash && file) {
+            return res.json({status: ResponseStatus.Error, error: "POST should include a privateData field, resourceHash *or* file but not more than one"});
+        }
+
+        if (file) {
+            const readableStream = new Readable({
+                read() {
+                    this.push(Buffer.from(file));
+                    this.push(null);
+                }
+            });
+
+            // Pinata API keys are valid, so this is probably what the user wants
+            if (pinata) {
+                // TODO: Try to unpin existing pinata hash
+                const {IpfsHash} = pinata.pinFileToIPFS(readableStream, pinataOptions);
+                if (IpfsHash){
+                    updateHashForKeys(token, IpfsHash);
+                } 
+                else res.json({status: ResponseStatus.Error, error: "Error pinning to Pinata service, hash was not returned"});
+            } else {
+                // Upload to our own IPFS node
+                const req = http.request(IPFS_HOST, {method: 'POST'}, res => {
+                    const bufferString = [];
+                    res.on('data', data => {
+                        bufferString.push(data);
+                    });
+                    res.on('end', async () => {
+                        const buffer = Buffer.concat(bufferString);
+                        const string = buffer.toString('utf8');
+                        const {hash} = JSON.parse(string);
+                        if (hash){
+                            updateHashForKeys(token, hash);
+                        } 
+                        else return res.json({status: ResponseStatus.Error, error: "Error getting hash back from IPFS node"});
+                    });
+                    res.on('error', err => {
+                        console.warn(err.stack);
+                        return res.json({status: ResponseStatus.Error, error: err.stack});
+                    });
+                });
+                req.on('error', err => {
+                    console.warn(err.stack);
+                    res.json({status: ResponseStatus.Error, error: err.stack});
+                });
+                file.pipe(req);
+            }
+        } else {
+            updateHashForKeys(token, resourceHash);
+        }
+    } catch (error) {
+        console.warn(error.stack);
+        return res.json({status: ResponseStatus.Error, tokenIds: [], error});
+    }
+}
+
 module.exports = {
     listTokens,
     createToken,
+    updatePublicAsset,
     readToken,
+    readTokenWithPrivateData,
     readTokenRange,
     deleteToken,
     sendToken,
+    getPrivateData,
     signTransfer
 }

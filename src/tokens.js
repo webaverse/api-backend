@@ -852,9 +852,64 @@ const getAllWithdrawsDeposits = contractName => async chainName => {
   };
 };
 
+const getChainOwnerNft = contractName => chainName => async (address, i, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
+  if (!storeEntries || !mainnetDepositedEntries || !mainnetWithdrewEntries || !sidechainDepositedEntries || !sidechainWithdrewEntries || !polygonDepositedEntries || !polygonWithdrewEntries) {
+    console.warn('bad arguments were', {
+      storeEntries,
+      mainnetDepositedEntries,
+      mainnetWithdrewEntries,
+      sidechainDepositedEntries,
+      sidechainWithdrewEntries,
+      polygonDepositedEntries,
+      polygonWithdrewEntries,
+    });
+    throw new Error('invalid arguments');
+  }
+ 
+  const tokenSrc = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
+  const token = _copy(tokenSrc);
+  const {hash} = token;
+  token.unlockable = await contracts[chainName][contractName].methods.getMetadata(hash, 'unlockable').call();
+  if (!token.unlockable) {
+    token.unlockable = '';
+  }
+
+  try {
+    if (contractName === 'NFT') {
+      return await formatToken(contractName)(chainName)(
+        token,
+        storeEntries,
+        mainnetDepositedEntries,
+        mainnetWithdrewEntries,
+        sidechainDepositedEntries,
+        sidechainWithdrewEntries,
+        polygonDepositedEntries,
+        polygonWithdrewEntries,
+      );
+    } else if (contractName === 'LAND') {
+      return await formatLand(contractName)(chainName)(
+        token,
+        storeEntries,
+        mainnetDepositedEntries,
+        mainnetWithdrewEntries,
+        sidechainDepositedEntries,
+        sidechainWithdrewEntries,
+        polygonDepositedEntries,
+        polygonWithdrewEntries,
+      );
+    } else {
+      return null;
+    }
+  } catch(err) {
+    console.warn(err);
+    return null;
+  }
+};
+
 module.exports = {
   getChainNft,
   getChainAccount,
+  getChainOwnerNft,
   getChainToken,
   getStoreEntries,
   getAllWithdrawsDeposits,

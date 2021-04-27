@@ -1,10 +1,17 @@
 const events = require('events');
 const {EventEmitter} = events;
 const dns = require('dns');
+const bip39 = require('bip39');
+const {hdkey} = require('ethereumjs-wallet');
 const https = require('https');
 const fetch = require('node-fetch');
 const Web3 = require('web3');
-const {ETHEREUM_HOST, POLYGON_VIGIL_KEY, INFURA_PROJECT_ID} = require('./constants.js');
+const { 
+  INFURA_PROJECT_ID,
+  POLYGON_VIGIL_KEY,
+  ETHEREUM_HOST,
+} = require('./constants.js');
+const {createDecipheriv} = require('crypto');
 
 let addresses,
   abis,
@@ -208,6 +215,7 @@ const areAddressesCollaborator = async (addresses, hash, id) => {
 
   return isC || isO1 || isO2;
 };
+
 const areAddressesSingleCollaborator = async (addresses, id) => {
   let isC = false; // collaborator
   let isO1 = false; // owner on sidechain
@@ -252,12 +260,13 @@ const areAddressesSingleCollaborator = async (addresses, id) => {
 
   return isC || isO1 || isO2;
 };
+
 const isCollaborator = async (tokenId, address) => {
   const hash = await contracts.mainnetsidechain.NFT.methods.getHash(tokenId).call();
   return await areAddressesCollaborator([address], hash, tokenId);
 };
-const isSingleCollaborator = async (tokenId, address) => await areAddressesSingleCollaborator([address], tokenId);
 
+const isSingleCollaborator = async (tokenId, address) => await areAddressesSingleCollaborator([address], tokenId);
 
 module.exports = {
   getBlockchain,

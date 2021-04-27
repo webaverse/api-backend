@@ -13,7 +13,7 @@ const {
   INFURA_PROJECT_ID,
   ENCRYPTION_MNEMONIC,
   POLYGON_VIGIL_KEY,
-  unlockableKey,
+  serverUnlockableMetadataKey,
   ETHEREUM_HOST
 } = require('../../constants.js');
 const {areAddressesCollaborator} = require ('../../blockchain.js');
@@ -132,7 +132,7 @@ const handleUnlockRequest = async (req, res) => {
         req.on('error', reject);
       });
       const {signatures, id} = j;
-      const key = unlockableKey;
+      const key = serverUnlockableMetadataKey;
       const addresses = [];
       let ok = true;
       for (const signature of signatures) {

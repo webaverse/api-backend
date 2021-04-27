@@ -53,7 +53,9 @@ const twitterIdTestRegex = /^@?(\w){1,15}$/;
 const zeroAddress = '0x0000000000000000000000000000000000000000';
 const burnAddress = "0x000000000000000000000000000000000000dEaD";
 
-const unlockableKey = 'unlockable';
+const proofOfAddressMessage = `Proof of address.`;
+const serverUnlockableMetadataKey = 'unlockable';
+const userUnlockableMetadataKey = 'unlockableByUser';
 
 let config = require('fs').existsSync('../config.json') ? require('../config.json') : require('../config.default.json');
 
@@ -113,7 +115,9 @@ module.exports = {
   ETHEREUM_HOST,
   IPFS_HOST,
   defaultAvatarPreview,
-  unlockableKey,
+  serverUnlockableMetadataKey,
+  userUnlockableMetadataKey,
+  proofOfAddressMessage,
   accountKeys,
   config,
   ids,
