@@ -607,29 +607,62 @@ try {
 
         const pubKey  = ethereumJsUtil.ecrecover(prefixedMsg, v, r, s);
         const addrBuf = ethereumJsUtil.pubToAddress(pubKey);
-        const address    = ethereumJsUtil.bufferToHex(addrBuf);
+        const address = ethereumJsUtil.bufferToHex(addrBuf);
         
-        console.log('recovered signature', address);
-      /* } else if (r && s && v) {
-        r = ethereumJsUtil.toBuffer('0x' + r);
-        s = ethereumJsUtil.toBuffer('0x' + s);
-        v = parseInt(v, 16);
+        console.log('recovered signature 1', {address, nonce});
         
-        const prefix = Buffer.from("\x19Ethereum Signed Message:\n");
-        const bs = [
-          prefix,
-          Buffer.from(String(proofOfAddressMessage.length)),
-          Buffer.from(proofOfAddressMessage),
-        ];
-        const prefixedMsg = ethereumJsUtil.sha3(
-          '0x' + Buffer.concat(bs).toString('hex')
-        );
+        const nonceSeen = await (async () => {
+          const nonceKey = address + ':' + nonce + '.nonce';
+          const tokenItem = await ddb.getItem({
+            TableName: tableName,
+            Key: {
+              email: {S: nonceKey},
+            },
+          }).promise();
+          if (tokenItem.Item) {
+            return true;
+          } else {
+            await ddb.putItem({
+              TableName: tableName,
+              Item: {
+                email: {S: nonceKey},
+                used: {S: '1'},
+              }
+            }).promise();
+            return false;
+          }
+        })();
+        console.log('recovered signature 2', {address, nonce, nonceSeen});
+        if (!nonceSeen) {
+          const tokenItem = await ddb.getItem({
+            TableName: tableName,
+            Key: {
+              email: {S: address + '.address'},
+            },
+          }).promise();
+          let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
+          // let addr = (tokenItem.Item && tokenItem.Item.address) ? tokenItem.Item.address.S : null;
+          
+          if (!mnemonic) {
+            mnemonic = bip39.generateMnemonic();
+          }
 
-        const pubKey  = ethereumJsUtil.ecrecover(prefixedMsg, v, r, s);
-        const addrBuf = ethereumJsUtil.pubToAddress(pubKey);
-        const address    = ethereumJsUtil.bufferToHex(addrBuf);
-        
-        console.log('recovered signature', address); */
+          await ddb.putItem({
+            TableName: tableName,
+            Item: {
+              email: {S: address + '.address'},
+              mnemonic: {S: mnemonic},
+              // address: {S: addr},
+            }
+          }).promise();
+          
+          _setCorsHeaders(res);
+          res.end(JSON.stringify({mnemonic}));
+        } else {
+          _setCorsHeaders(res);
+          res.statusCode = 403;
+          res.end();
+        }
       } else if (autoip) {
         const ip = req.connection.remoteAddress;
         if (autoip === 'src' && mnemonic) {
