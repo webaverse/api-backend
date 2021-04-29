@@ -161,7 +161,7 @@ try {
     const {method} = req;
     const {query, pathname: p} = url.parse(req.url, true);
 
-    console.log('got login', {method, p, query});
+    console.log('got login', JSON.stringify({method, p, query}, null, 2));
 
     if (method === 'POST') {
       let {email, code, token, discordcode, discordid, twittercode, twitterid, autoip, mnemonic, signature, nonce} = query;
