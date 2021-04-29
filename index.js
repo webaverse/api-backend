@@ -38,6 +38,7 @@ const {getBlockchain} = require('./blockchain.js');
 // const browserManager = require('./browser-manager.js');
 const {accountKeys, ids, nftIndexName, redisPrefixes, mainnetSignatureMessage, cacheHostUrl} = require('./constants.js');
 const {connect: redisConnect, getRedisClient} = require('./redis');
+const ethereumJsUtil = require('./ethereumjs-util.js');
 
 let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
 
@@ -163,7 +164,7 @@ try {
     console.log('got login', {method, p, query});
 
     if (method === 'POST') {
-      let {email, code, token, discordcode, discordid, twittercode, twitterid, autoip, mnemonic} = query;
+      let {email, code, token, discordcode, discordid, twittercode, twitterid, autoip, mnemonic, signature, nonce} = query;
       if (email && emailRegex.test(email)) {
         if (token) {
           const tokenItem = await ddb.getItem({
@@ -589,6 +590,46 @@ try {
             error: 'Invalid Twitter ID',
           }));
         }
+      } else if (signature && nonce) {
+        const proofOfAddressMessage = `Proof of address. Nonce: ` + nonce;
+        
+        const {r, s, v} = ethereumJsUtil.fromRpcSig(signature);
+        
+        const prefix = Buffer.from("\x19Ethereum Signed Message:\n");
+        const bs = [
+          prefix,
+          Buffer.from(String(proofOfAddressMessage.length)),
+          Buffer.from(proofOfAddressMessage),
+        ];
+        const prefixedMsg = ethereumJsUtil.sha3(
+          '0x' + Buffer.concat(bs).toString('hex')
+        );
+
+        const pubKey  = ethereumJsUtil.ecrecover(prefixedMsg, v, r, s);
+        const addrBuf = ethereumJsUtil.pubToAddress(pubKey);
+        const address    = ethereumJsUtil.bufferToHex(addrBuf);
+        
+        console.log('recovered signature', address);
+      /* } else if (r && s && v) {
+        r = ethereumJsUtil.toBuffer('0x' + r);
+        s = ethereumJsUtil.toBuffer('0x' + s);
+        v = parseInt(v, 16);
+        
+        const prefix = Buffer.from("\x19Ethereum Signed Message:\n");
+        const bs = [
+          prefix,
+          Buffer.from(String(proofOfAddressMessage.length)),
+          Buffer.from(proofOfAddressMessage),
+        ];
+        const prefixedMsg = ethereumJsUtil.sha3(
+          '0x' + Buffer.concat(bs).toString('hex')
+        );
+
+        const pubKey  = ethereumJsUtil.ecrecover(prefixedMsg, v, r, s);
+        const addrBuf = ethereumJsUtil.pubToAddress(pubKey);
+        const address    = ethereumJsUtil.bufferToHex(addrBuf);
+        
+        console.log('recovered signature', address); */
       } else if (autoip) {
         const ip = req.connection.remoteAddress;
         if (autoip === 'src' && mnemonic) {
