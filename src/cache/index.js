@@ -31,7 +31,7 @@ async function initNftCache({chainName}) {
     web3
   } = await getBlockchain();
 
-  await connect(REDIS_HOST, REDIS_PORT);
+  await connect(REDIS_PORT, REDIS_HOST);
 
   const currentBlockNumber = await web3[chainName].eth.getBlockNumber();
 

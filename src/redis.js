@@ -1,7 +1,7 @@
 const redis = require('redis');
 const redisearch = require('redis-redisearch');
 const {makePromise} = require('./utils.js');
-const {ids, REDIS_HOST, redisKey, tableNames} = require('./constants.js');
+const {ids, REDIS_HOST, REDIS_PORT, redisKey, tableNames} = require('./constants.js');
 
 redisearch(redis);
 
@@ -46,6 +46,11 @@ function getRedisClient() {
 
 async function getRedisItem(id, TableName) {
   const p = makePromise();
+  
+  if (!redisClient) {
+    await connect(REDIS_PORT, REDIS_HOST);
+  }
+
   redisClient.hgetall(`${TableName}:${id}`, (err, result) => {
     if (!err) {
       for (const k in result) {

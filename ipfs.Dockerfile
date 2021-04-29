@@ -13,4 +13,4 @@ RUN npm install
 
 COPY . .
 
-CMD [ "node", "src/cache/index.js" ]
+CMD [ "node", "src/ipfs/index.js" ]

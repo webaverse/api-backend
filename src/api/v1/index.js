@@ -38,6 +38,24 @@ function addV1Routes(app){
   
   expressJSDocSwagger(app)(swaggerOptions);
 
+/**
+ * Authentication payload
+ * @typedef {object} AuthPayload
+ * @property {string} authSecretKey.required -  Auth Secret Key
+ */
+/**
+ * Authentication response
+ * @typedef {object} AuthResponse
+ * @property {string} status - The status of the authentication request (success/error)
+ * @property {string} accessToken - JWT token for authentication
+ * @property {string} error - If the status is error, the error can be read from here 
+ */
+/**
+ * POST /api/v1/authorizeServer
+ * @summary Get authentication token
+ * @param {AuthPayload} request.body.required - AuthPayload object for authentication
+ * @return {AuthResponse} 200 - success response
+ */
 app.post('/api/v1/authorizeServer', async (req, res) => {
   return await handleServerSideAuth(req, res);
 });
@@ -115,23 +133,25 @@ app.post('/api/v1/wallet', authenticateToken, async (req, res) => {
  */
 
 /**
- * GET /api/v1/tokens
+ * GET /api/v1/tokens/:address/:mainnetAddress
  * @summary List tokens for a user
+ * @security bearerAuth
  * @return {TokenListResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
- * @param {string} address.required - Address of the user to list tokens for
- * @param {string} mainnetAddress.optional - Mainnet address of the user to list tokens for (optional)
+ * @param {string} address.path.required - Address of the user to list tokens for
+ * @param {string} mainnetAddress.path.optional - Mainnet address of the user to list tokens for (optional)
  */
-app.get('/api/v1/tokens/:address/:mainnetAddress', authenticateToken, async (req, res) => {
+app.get('/api/v1/tokens/:address/:mainnetAddress?', authenticateToken, async (req, res) => {
   return await listTokens(req, res, blockchain.web3);
 });
 
 /**
  * GET /api/v1/token/:tokenId
  * @summary Retrieve data for a non-fungible token
+ * @security bearerAuth
  * @return {TokenResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
- * @param {string} tokenId.required - Token to retrieve
+ * @param {string} tokenId.path.required - Token to retrieve
  */
 app.get('/api/v1/token/:tokenId', authenticateToken, async (req, res) => {
   return await readToken(req, res);
@@ -140,10 +160,11 @@ app.get('/api/v1/token/:tokenId', authenticateToken, async (req, res) => {
 /**
  * GET /api/v1/token/:tokenStartId/:tokenEndId
  * @summary Retrieve a range of tokens
+ * @security bearerAuth
  * @return {TokenListResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
- * @param {string} tokenStartId.required - First token to retrieve
- * @param {string} tokenEndId.required - Last token in range to retrieve
+ * @param {string} tokenStartId.path.required - First token to retrieve
+ * @param {string} tokenEndId.path.required - Last token in range to retrieve
  */
 app.get('/api/v1/token/:tokenStartId/:tokenEndId', authenticateToken, async (req, res) => {
   return await readTokenRange(req, res);
@@ -152,6 +173,7 @@ app.get('/api/v1/token/:tokenStartId/:tokenEndId', authenticateToken, async (req
 /**
  * POST /api/v1/token
  * @summary Create a non-fungible token with a file or IPFS hash
+ * @security bearerAuth
  * @return {TokenIdsResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
  * @param {string} userMnemonic.required - Mint the token using a user's private key
@@ -166,6 +188,7 @@ app.post('/api/v1/token', authenticateToken, async (req, res) => {
 /**
  * DELETE /api/v1/token
  * @summary Burn a token forever
+ * @security bearerAuth
  * @param {string} tokenId.required - Token to delete
  * @return {TokenStatusResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
@@ -177,6 +200,7 @@ app.delete('/api/v1/token', authenticateToken, async (req, res) => {
 /**
  * POST /api/v1/token/send
  * @summary Send this token from one user to another
+ * @security bearerAuth
  * @return {TokenStatusResponse} 200 - success response
  * @return {AuthenticationErrorResponse} 401 - authentication error response
  * @param {string} tokenId.required - Token to be sent
