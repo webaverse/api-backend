@@ -21,12 +21,14 @@ const {
   handleStore,
 } = require("./handlers.js");
 
+const ethereumJsUtil = require('./ethereumjs-util.js');
+
 const {HTTP_PORT, HTTPS_PORT} = require('../constants.js');
 const {tryConnectRedis} = require ('../redis.js');
 // Routes
-const {worldManager, _handleWorldsRequest} = require("./routes/worlds.js");
+const {worldManager, handleWorldsRequest} = require("./routes/worlds.js");
 const {handleSignRequest} = require("./routes/sign.js");
-const {handleUnlockRequest, handleLockRequest} = require("./routes/unlock.js");
+const {handleUnlockRequest, handleLockRequest, handleDecryptRequest} = require("./routes/unlock.js");
 const {handleAnalyticsRequest} = require("./routes/analytics.js");
 
 let CERT = null;
@@ -104,6 +106,9 @@ try {
         return;
       } else if (o.host === 'lock.exokit.org') {
         handleLockRequest(req, res);
+        return;
+      } else if (o.host === 'decrypt.exokit.org') {
+        handleDecryptRequest(req, res);
         return;
       } else if (o.host === "oauth.exokit.org") {
         handleOauth(req, res);
@@ -190,7 +195,7 @@ try {
         handleLand("testnetpolygon", false)(req, res);
         return;
       } else if (o.host === "worlds.exokit.org") {
-        _handleWorldsRequest(req, res);
+        handleWorldsRequest(req, res);
         return;
       } else if (
         o.host === "store.webaverse.com" ||

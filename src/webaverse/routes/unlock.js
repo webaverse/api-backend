@@ -4,8 +4,8 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 
-const {jsonParse, setCorsHeaders} = require('../../utils.js');
-const {areAddressesCollaborator} = require('../../blockchain.js');
+const {jsonParse, setCorsHeaders} = require('../utils.js');
+const {areAddressesCollaborator} = require('../blockchain.js');
 const {encodeSecret, decodeSecret} = require('../../crypto');
 const {
   MAINNET_MNEMONIC,
@@ -20,7 +20,7 @@ const {
   ETHEREUM_HOST,
   STORAGE_HOST,
   proofOfAddressMessage
-} = require('../../constants.js');
+} = require('../constants.js');
 
 let contracts, gethNodeUrl = null;
 const loadPromise = (async () => {

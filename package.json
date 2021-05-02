@@ -4,9 +4,9 @@
   "description": "Webaverse API server",
   "main": "src/index.js",
   "scripts": {
-    "start": "sudo $(which node) $(which forever) start -a -l forever.log -o stdout.log -e stderr.log src/legacy/index.js",
-    "stop": "sudo $(which node) $(which forever) stop src/legacy/index.js",
-    "dev": "sudo $(which node) src/legacy/index.js",
+    "start": "sudo $(which node) $(which forever) start -a -l forever.log -o stdout.log -e stderr.log src/webaverse/index.js",
+    "stop": "sudo $(which node) $(which forever) stop src/webaverse/index.js",
+    "dev": "sudo $(which node) src/webaverse/index.js",
     "dev-api": "nodemon src/api/index.js",
     "api": "cross-env PRODUCTION=true node src/api/index.js",
     "cache-server": "cross-env PRODUCTION=true node src/cache/index.js",

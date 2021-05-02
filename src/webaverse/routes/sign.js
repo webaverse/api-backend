@@ -4,7 +4,7 @@ const fetch = require('node-fetch');
 const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
-const {setCorsHeaders} = require('../../utils.js');
+const {setCorsHeaders} = require('../utils.js');
 const {MAINNET_MNEMONIC,
   TESTNET_MNEMONIC,
   POLYGON_MNEMONIC,
@@ -12,7 +12,7 @@ const {MAINNET_MNEMONIC,
   INFURA_PROJECT_ID,
   POLYGON_VIGIL_KEY,
   ETHEREUM_HOST
-} = require('../../constants.js');
+} = require('../constants.js');
 
 let gethNodeUrl = null;
 const loadPromise = (async () => {

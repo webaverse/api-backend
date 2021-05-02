@@ -464,7 +464,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
 const formatToken = chainName => async (token, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
 
   const tokenId = parseInt(token.id, 10);
-  const {name, ext, unlockable, hash} = token;
+  const {name, ext, unlockable, encrypted, hash} = token;
 
   const {
     contracts,
@@ -567,6 +567,7 @@ const formatToken = chainName => async (token, storeEntries, mainnetDepositedEnt
       hash,
       ext,
       unlockable,
+      encrypted
     },
     minterAddress: minter.address.toLowerCase(),
     minter,
@@ -594,7 +595,7 @@ const formatLand = chainName => async (token) => {
   const owner = await _fetchAccount(token.owner, sidechainChainName);
 
   const tokenId = parseInt(token.id, 10);
-  const {name, hash, ext, unlockable} = token;
+  const {name, hash, ext, unlockable, encrypted} = token;
   const [
     description,
     rarity,
@@ -628,6 +629,7 @@ const formatLand = chainName => async (token) => {
       extents,
       ext,
       unlockable,
+      encrypted
     },
     owner,
     balance: parseInt(token.balance, 10),

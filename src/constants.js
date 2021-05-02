@@ -55,7 +55,7 @@ const burnAddress = "0x000000000000000000000000000000000000dEaD";
 
 const proofOfAddressMessage = `Proof of address.`;
 const unlockableMetadataKey = 'unlockable';
-const encryptedMetadataKey = 'unlockableByUser';
+const encryptedMetadataKey = 'encrypted';
 
 let config = require('fs').existsSync('../config.json') ? require('../config.json') : require('../config.default.json');
 

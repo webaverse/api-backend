@@ -12,4 +12,4 @@ RUN npm install
 
 COPY . .
 
-CMD [ "node", "src/legacy/index.js" ]
+CMD [ "node", "src/webaverse/index.js" ]

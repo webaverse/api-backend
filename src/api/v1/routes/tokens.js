@@ -325,16 +325,11 @@ async function readEncryptedData(req, res) {
     const {tokenId} = req.params;
     let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
     let token = o.Item;
-    let value = "";
     if (development) setCorsHeaders(res);
     if (token) {
         if(token[encryptedMetadataKey] !== undefined && token[encryptedMetadataKey] !== ""){
             const url = token[encryptedMetadataKey];
-
-
-            
-            
-            return res.json({status: ResponseStatus.Success, value, error: null})
+            await fetch(url).then(data => res.send(data));
         } else {
             return res.json({status: ResponseStatus.Error, value: null, error: "The token does not appear to have encrypted data"})
         }
@@ -648,10 +643,11 @@ module.exports = {
     createToken,
     updatePublicAsset,
     readToken,
-    readTokenWithPrivateData: readTokenWithUnlockable,
+    readTokenWithUnlockable,
     readTokenRange,
     deleteToken,
     sendToken,
     getPrivateData,
-    signTransfer
+    signTransfer,
+    readEncryptedData
 }

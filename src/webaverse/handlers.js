@@ -29,7 +29,7 @@ const {
     DISCORD_CLIENT_ID,
     DISCORD_CLIENT_SECRET,
     defaultAvatarPreview
-} = require('../constants.js');
+} = require('../../constants.js');
 
 const redisClient = getRedisClient();
 
@@ -68,10 +68,10 @@ const handleLogin = async (req, res) => {
         const {method} = req;
         const {query, pathname: p} = url.parse(req.url, true);
 
-        console.log('got login', {method, p, query});
+        console.log('got login', JSON.stringify({method, p, query}, null, 2));
 
         if (method === 'POST') {
-            let {email, code, token, discordcode, discordid, twittercode, twitterid, autoip, mnemonic} = query;
+            let {email, code, token, discordcode, discordid, twittercode, twitterid, autoip, mnemonic, signature, nonce} = query;
             if (email && emailRegex.test(email)) {
                 if (token) {
                     const tokenItem = await ddb.getItem({
@@ -464,7 +464,79 @@ const handleLogin = async (req, res) => {
                         error: 'Invalid Twitter ID',
                     }));
                 }
-            } else if (autoip) {
+            } else if (signature && nonce) {
+                const proofOfAddressMessage = `Proof of address. Nonce: ` + nonce;
+        
+                const {r, s, v} = ethereumJsUtil.fromRpcSig(signature);
+        
+                const prefix = Buffer.from("\x19Ethereum Signed Message:\n");
+                const bs = [
+                  prefix,
+                  Buffer.from(String(proofOfAddressMessage.length)),
+                  Buffer.from(proofOfAddressMessage),
+                ];
+                const prefixedMsg = ethereumJsUtil.sha3(
+                  '0x' + Buffer.concat(bs).toString('hex')
+                );
+        
+                const pubKey  = ethereumJsUtil.ecrecover(prefixedMsg, v, r, s);
+                const addrBuf = ethereumJsUtil.pubToAddress(pubKey);
+                const address = ethereumJsUtil.bufferToHex(addrBuf);
+        
+                console.log('recovered signature 1', {address, nonce});
+                const nonceSeen = await (async () => {
+                    const nonceKey = address + ':' + nonce + '.nonce';
+                    const tokenItem = await ddb.getItem({
+                      TableName: tableName,
+                      Key: {
+                        email: {S: nonceKey},
+                      },
+                    }).promise();
+                    if (tokenItem.Item) {
+                      return true;
+                    } else {
+                      await ddb.putItem({
+                        TableName: tableName,
+                        Item: {
+                          email: {S: nonceKey},
+                          used: {S: '1'},
+                        }
+                      }).promise();
+                      return false;
+                    }
+                  })();
+                  console.log('recovered signature 2', {address, nonce, nonceSeen});
+                  if (!nonceSeen) {
+                    const tokenItem = await ddb.getItem({
+                      TableName: tableName,
+                      Key: {
+                        email: {S: address + '.address'},
+                      },
+                    }).promise();
+                    let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
+                    // let addr = (tokenItem.Item && tokenItem.Item.address) ? tokenItem.Item.address.S : null;
+          
+                    if (!mnemonic) {
+                      mnemonic = bip39.generateMnemonic();
+                    }
+                    await ddb.putItem({
+                        TableName: tableName,
+                        Item: {
+                          email: {S: address + '.address'},
+                          mnemonic: {S: mnemonic},
+                          // address: {S: addr},
+                        }
+                      }).promise();
+            
+                      _setCorsHeaders(res);
+                      res.end(JSON.stringify({mnemonic}));
+                    } else {
+                      _setCorsHeaders(res);
+                      res.statusCode = 403;
+                      res.end();
+                    }
+            }
+             else if (autoip) {
                 const ip = req.connection.remoteAddress;
                 if (autoip === 'src' && mnemonic) {
                     console.log('got remote address src', ip);
