@@ -1,7 +1,8 @@
 const redis = require('redis');
 const redisearch = require('redis-redisearch');
 const {makePromise} = require('./utils.js');
-const {ids, REDIS_HOST, REDIS_PORT, redisKey, tableNames} = require('./constants.js');
+const {ids, redisKey, tableNames} = require('./constants.js');
+const {REDIS_HOST, REDIS_PORT} = require('./config.js');
 
 redisearch(redis);
 

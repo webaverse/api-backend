@@ -8,6 +8,13 @@ const {jsonParse, setCorsHeaders} = require('../utils.js');
 const {areAddressesCollaborator} = require('../blockchain.js');
 const {encodeSecret, decodeSecret} = require('../../crypto');
 const {
+  maxFileSize,
+  unlockableMetadataKey,
+  encryptedMetadataKey,
+  proofOfAddressMessage
+} = require('../../constants.js');
+
+const {
   MAINNET_MNEMONIC,
   TESTNET_MNEMONIC,
   POLYGON_MNEMONIC,
@@ -15,12 +22,9 @@ const {
   INFURA_PROJECT_ID,
   ENCRYPTION_MNEMONIC,
   POLYGON_VIGIL_KEY,
-  unlockableMetadataKey,
-  encryptedMetadataKey,
   ETHEREUM_HOST,
-  STORAGE_HOST,
-  proofOfAddressMessage
-} = require('../constants.js');
+  STORAGE_HOST
+} = require('../../config.js');
 
 let contracts, gethNodeUrl = null;
 const loadPromise = (async () => {
@@ -106,15 +110,28 @@ const handleUnlockRequest = async (req, res) => {
     } else if (method === 'POST') {
       const jsonDataToUnlock = await new Promise((accept, reject) => {
         const bs = [];
-        req.on('data', d => {
-          bs.push(d);
-        });
-        req.on('end', () => {
+        let totalSize = 0;
+        const _data = d => {
+          totalSize += d.byteLength;
+          if (totalSize < maxFileSize) {
+            bs.push(d);
+          } else {
+            reject(new Error('request too large'));
+            _cleanup();
+          }
+        };
+        const _end = () => {
           const b = Buffer.concat(bs);
           const s = b.toString('utf8');
           const j = JSON.parse(s);
           accept(j);
-        });
+        };
+        const _cleanup = () => {
+          req.removeListener('data', _data);
+          req.removeListener('end', _end);
+        };
+        req.on('data', _data);
+        req.on('end', _end);
         req.on('error', reject);
       });
 
@@ -185,18 +202,30 @@ const handleLockRequest = async (req, res) => {
       let match, id;
       if ((match = req.url.match(/^\/([0-9]+)$/)) && !isNaN(id = match && parseInt(match[1], 10))) {
         const bufferToEncrypt = await new Promise((accept, reject) => {
-          const bufferString = [];
-          req.on('data', d => {
-            bufferString.push(d);
-          });
-          req.on('end', () => {
-            const b = Buffer.concat(bufferString);
-            bufferString.length = 0;
+          const bs = [];
+          let totalSize = 0;
+          const _data = d => {
+            totalSize += d.byteLength;
+            if (totalSize < maxFileSize) {
+              bs.push(d);
+            } else {
+              reject(new Error('request too large'));
+              _cleanup();
+            }
+          };
+          const _end = () => {
+            const b = Buffer.concat(bs);
+            bs.length = 0;
             accept(b);
-          });
+          };
+          const _cleanup = () => {
+            req.removeListener('data', _data);
+            req.removeListener('end', _end);
+          };
+          req.on('data', _data);
+          req.on('end', _end);
           req.on('error', reject);
         });
-
         let {ciphertext, tag} = encodeSecret(ENCRYPTION_MNEMONIC, id, bufferToEncrypt);
         tag = tag.toString('base64');
 
@@ -228,15 +257,28 @@ const handleDecryptRequest = async (req, res) => {
     } else if (method === 'POST') {
       const j = await new Promise((accept, reject) => {
         const bs = [];
-        req.on('data', d => {
-          bs.push(d);
-        });
-        req.on('end', () => {
+        let totalSize = 0;
+              const _data = d => {
+                totalSize += d.byteLength;
+                if (totalSize < maxFileSize) {
+                  bs.push(d);
+                } else {
+                  reject(new Error('request too large'));
+                  _cleanup();
+                }
+              };
+              const _end = () => {
           const b = Buffer.concat(bs);
           const s = b.toString('utf8');
           const j = jsonParse(s);
           accept(j);
-        });
+        };
+        const _cleanup = () => {
+          req.removeListener('data', _data);
+          req.removeListener('end', _end);
+        };
+        req.on('data', _data);
+        req.on('end', _end);
         req.on('error', reject);
       });
       const {signatures, id} = j || {};
@@ -278,7 +320,7 @@ const handleDecryptRequest = async (req, res) => {
               res.end(plaintext);
             } else {
               res.statusCode = 500;
-              res.end('could not decrypt ciphertext');
+              res.end('could not interpret ciphertext for decryption: ' + JSON.stringify(value));
             }
           } else {
             res.statusCode = 401;

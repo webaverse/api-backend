@@ -9,7 +9,7 @@ const httpProxy = require('http-proxy');
 
 const IPFS_HOST_PORT = parseInt(process.env.IPFS_HOST_PORT, 10) || 8081;
 
-const MAX_SIZE = 50 * 1024 * 1024;
+const maxFileSize = 50 * 1024 * 1024;
 const IPFS_HTTP_PORT = 8080;
 const IPFS_PORT = 5001;
 
@@ -109,7 +109,7 @@ Error.stackTraceLimit = 300;
         const _data = d => {
           bs.push(d);
           totalSize += d.byteLength;
-          if (totalSize >= MAX_SIZE) {
+          if (totalSize >= maxFileSize) {
             _respond(413, JSON.stringify({
               error: 'payload too large',
             }));

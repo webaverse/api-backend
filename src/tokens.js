@@ -2,8 +2,8 @@ const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {Transaction} = require('@ethereumjs/tx');
 const {default: Common} = require('@ethereumjs/common');
-
-const {accountKeys, zeroAddress, defaultAvatarPreview, IPFS_HOST} = require('./constants.js');
+const {IPFS_HOST} = require('./config.js');
+const {accountKeys, zeroAddress, defaultAvatarPreview} = require('./constants.js');
 const {getBlockchain, getPastEvents} = require('./blockchain.js');
 const {makePromise} = require('./utils.js');
 const txQueues = [];

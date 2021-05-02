@@ -8,7 +8,7 @@ const {
   INFURA_PROJECT_ID,
   POLYGON_VIGIL_KEY,
   ETHEREUM_HOST,
-} = require('./constants.js');
+} = require('./config.js');
 
 let addresses,
   abis,

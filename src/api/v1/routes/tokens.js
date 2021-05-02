@@ -6,22 +6,24 @@ const {getBlockchain, areAddressesCollaborator} = require('../../../blockchain.j
 const {makePromise, setCorsHeaders} = require('../../../utils.js');
 const {getRedisItem, parseRedisItems, getRedisClient} = require('../../../redis.js');
 const {
-    ENCRYPTION_MNEMONIC,
     proofOfAddressMessage,
     unlockableMetadataKey,
     encryptedMetadataKey,
     redisPrefixes,
     mainnetSignatureMessage,
     nftIndexName,
-    mintingFee,
     burnAddress,
-    zeroAddress,
+    zeroAddress
+} = require('../../../constants.js');
+const {
+    ENCRYPTION_MNEMONIC,
+    MINTING_FEE,
     IPFS_HOST,
     MAINNET_MNEMONIC,
     PINATA_API_KEY,
     PINATA_SECRET_API_KEY,
-    defaultTokenDescription
-} = require('../../../constants.js');
+    DEFAULT_TOKEN_DESCRIPTION
+} = require('../../../config.js');
 const {ResponseStatus} = require("../enums.js");
 const {runSidechainTransaction} = require("../../../tokens.js");
 const {production, development} = require("../environment.js");
@@ -148,7 +150,7 @@ async function mintTokens(resHash, mnemonic, quantity, privateData, web3, contra
     const wallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet();
     const address = wallet.getAddressString();
 
-    if (mintingFee > 0) {
+    if (MINTING_FEE > 0) {
         let allowance = await contracts['FT'].methods.allowance(address, contracts['NFT']._address).call();
         allowance = new web3.utils.BN(allowance, 0);
         if (allowance.lt(fullAmountD2.v)) {
@@ -160,7 +162,7 @@ async function mintTokens(resHash, mnemonic, quantity, privateData, web3, contra
     } else status = true;
 
     if (status) {
-        const description = defaultTokenDescription;
+        const description = DEFAULT_TOKEN_DESCRIPTION;
 
         let fileName = resHash.split('/').pop();
 

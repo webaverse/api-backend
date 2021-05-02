@@ -5,7 +5,7 @@ const fileUpload = require('express-fileupload');
 
 const {addV1Routes} = require("./v1/index.js");
 
-const {HTTP_PORT} = require('../constants.js');
+const {HTTP_PORT} = require('../config.js');
 
 const app = express();
 
