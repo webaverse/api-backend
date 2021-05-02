@@ -297,48 +297,48 @@ async function readTokenWithUnlockable(req, res) {
     }
 }
 
-async function readUnlockable(req, res) {
-    const {tokenId} = req.params;
-    let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
-    let token = o.Item;
-    let value = "";
-    if (development) setCorsHeaders(res);
-    if (token) {
-        if(token[unlockableMetadataKey] !== undefined && token[unlockableMetadataKey] !== ""){
-            value = token[unlockableMetadataKey];
-            value = jsonParse(value);
-            if (value !== null) {
-              let {ciphertext, tag} = value;
-              ciphertext = Buffer.from(ciphertext, 'base64');
-              tag = Buffer.from(tag, 'base64');
-              value = decodeSecret(ENCRYPTION_MNEMONIC, {ciphertext, tag});
-            }
-            token[unlockableMetadataKey] = value;
-            return res.json({status: ResponseStatus.Success, value, error: null})
-        } else {
-            return res.json({status: ResponseStatus.Error, value: null, error: "The token could not be unlocked"})
-        }
-    } else {
-        return res.json({status: ResponseStatus.Error, value: null, error: "The token could not be found"})
-    }
-}
+// async function readUnlockable(req, res) {
+//     const {tokenId} = req.params;
+//     let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
+//     let token = o.Item;
+//     let value = "";
+//     if (development) setCorsHeaders(res);
+//     if (token) {
+//         if(token[unlockableMetadataKey] !== undefined && token[unlockableMetadataKey] !== ""){
+//             value = token[unlockableMetadataKey];
+//             value = jsonParse(value);
+//             if (value !== null) {
+//               let {ciphertext, tag} = value;
+//               ciphertext = Buffer.from(ciphertext, 'base64');
+//               tag = Buffer.from(tag, 'base64');
+//               value = decodeSecret(ENCRYPTION_MNEMONIC, {ciphertext, tag});
+//             }
+//             token[unlockableMetadataKey] = value;
+//             return res.json({status: ResponseStatus.Success, value, error: null})
+//         } else {
+//             return res.json({status: ResponseStatus.Error, value: null, error: "The token could not be unlocked"})
+//         }
+//     } else {
+//         return res.json({status: ResponseStatus.Error, value: null, error: "The token could not be found"})
+//     }
+// }
 
-async function readEncryptedData(req, res) {
-    const {tokenId} = req.params;
-    let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
-    let token = o.Item;
-    if (development) setCorsHeaders(res);
-    if (token) {
-        if(token[encryptedMetadataKey] !== undefined && token[encryptedMetadataKey] !== ""){
-            const url = token[encryptedMetadataKey];
-            await fetch(url).then(data => res.send(data));
-        } else {
-            return res.json({status: ResponseStatus.Error, value: null, error: "The token does not appear to have encrypted data"})
-        }
-    } else {
-        return res.json({status: ResponseStatus.Error, value: null, error: "The token could not be found"})
-    }
-}
+// async function readEncryptedData(req, res) {
+//     const {tokenId} = req.params;
+//     let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
+//     let token = o.Item;
+//     if (development) setCorsHeaders(res);
+//     if (token) {
+//         if(token[encryptedMetadataKey] !== undefined && token[encryptedMetadataKey] !== ""){
+//             const url = token[encryptedMetadataKey];
+//             await fetch(url).then(data => res.send(data));
+//         } else {
+//             return res.json({status: ResponseStatus.Error, value: null, error: "The token does not appear to have encrypted data"})
+//         }
+//     } else {
+//         return res.json({status: ResponseStatus.Error, value: null, error: "The token could not be found"})
+//     }
+// }
 
 async function readTokenRange(req, res) {
     if (development) setCorsHeaders(res);
@@ -555,90 +555,90 @@ async function updatePublicAsset(req, res, {contracts}) {
     }
 }
 
-// TODO: Try to unpin from pinata if we are using pinata
-async function updatePrivateData(req, res, {contracts}) {
-    async function updateHashForKeys(token, privateDataHash){
-        // TODO:
-        // First, check if it already has this private data
-        if(token.privateData)
-        // If yes, check if pinata is true -- if it is, unpin the hash
-        // Else, unpin the hash for local node
-        // Set the new metadata
+// // TODO: Try to unpin from pinata if we are using pinata
+// async function updatePrivateData(req, res, {contracts}) {
+//     async function updateHashForKeys(token, privateDataHash){
+//         // TODO:
+//         // First, check if it already has this private data
+//         // if(token.privateData)
+//         // If yes, check if pinata is true -- if it is, unpin the hash
+//         // Else, unpin the hash for local node
+//         // Set the new metadata
 
-        const encryptedData = encodeSecret(privateData);
-        await runSidechainTransaction(mnemonic)('NFT', 'setMetadata', token.hash, unlockableMetadataKey, encryptedData);
-        await runSidechainTransaction(mnemonic)('NFT', 'setMetadata', token.hash, encryptedMetadataKey, encryptedData);
+//         // const encryptedData = encodeSecret(privateData);
+//         // await runSidechainTransaction(mnemonic)('NFT', 'setMetadata', token.hash, unlockableMetadataKey, encryptedData);
+//         // await runSidechainTransaction(mnemonic)('NFT', 'setMetadata', token.hash, encryptedMetadataKey, encryptedData);
 
-    } 
-    try {
-    const {mnemonic, tokenId, resourceHash, privateData} = req.body;
-    let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
-    let token = o.Item;
-    const file = req.files && req.files[0];
-        if (!bip39.validateMnemonic(mnemonic)) {
-            return res.json({status: ResponseStatus.Error, error: "Invalid mnemonic"});
-        }
+//     } 
+//     try {
+//     const {mnemonic, tokenId, resourceHash, privateData} = req.body;
+//     let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
+//     let token = o.Item;
+//     const file = req.files && req.files[0];
+//         if (!bip39.validateMnemonic(mnemonic)) {
+//             return res.json({status: ResponseStatus.Error, error: "Invalid mnemonic"});
+//         }
 
-        if (!resourceHash && !file && !privateData) {
-            return res.json({status: ResponseStatus.Error, error: "POST did not include a privateData field or a file or resourceHash"});
-        }
+//         if (!resourceHash && !file && !privateData) {
+//             return res.json({status: ResponseStatus.Error, error: "POST did not include a privateData field or a file or resourceHash"});
+//         }
 
-        // Check if there are any files -- if there aren't, check if there's a hash
-        if (resourceHash && file) {
-            return res.json({status: ResponseStatus.Error, error: "POST should include a privateData field, resourceHash *or* file but not more than one"});
-        }
+//         // Check if there are any files -- if there aren't, check if there's a hash
+//         if (resourceHash && file) {
+//             return res.json({status: ResponseStatus.Error, error: "POST should include a privateData field, resourceHash *or* file but not more than one"});
+//         }
 
-        if (file) {
-            const readableStream = new Readable({
-                read() {
-                    this.push(Buffer.from(file));
-                    this.push(null);
-                }
-            });
+//         if (file) {
+//             const readableStream = new Readable({
+//                 read() {
+//                     this.push(Buffer.from(file));
+//                     this.push(null);
+//                 }
+//             });
 
-            // Pinata API keys are valid, so this is probably what the user wants
-            if (pinata) {
-                // TODO: Try to unpin existing pinata hash
-                const {IpfsHash} = pinata.pinFileToIPFS(readableStream, pinataOptions);
-                if (IpfsHash){
-                    updateHashForKeys(token, IpfsHash);
-                } 
-                else res.json({status: ResponseStatus.Error, error: "Error pinning to Pinata service, hash was not returned"});
-            } else {
-                // Upload to our own IPFS node
-                const req = http.request(IPFS_HOST, {method: 'POST'}, res => {
-                    const bufferString = [];
-                    res.on('data', data => {
-                        bufferString.push(data);
-                    });
-                    res.on('end', async () => {
-                        const buffer = Buffer.concat(bufferString);
-                        const string = buffer.toString('utf8');
-                        const {hash} = JSON.parse(string);
-                        if (hash){
-                            updateHashForKeys(token, hash);
-                        } 
-                        else return res.json({status: ResponseStatus.Error, error: "Error getting hash back from IPFS node"});
-                    });
-                    res.on('error', err => {
-                        console.warn(err.stack);
-                        return res.json({status: ResponseStatus.Error, error: err.stack});
-                    });
-                });
-                req.on('error', err => {
-                    console.warn(err.stack);
-                    res.json({status: ResponseStatus.Error, error: err.stack});
-                });
-                file.pipe(req);
-            }
-        } else {
-            updateHashForKeys(token, resourceHash);
-        }
-    } catch (error) {
-        console.warn(error.stack);
-        return res.json({status: ResponseStatus.Error, tokenIds: [], error});
-    }
-}
+//             // Pinata API keys are valid, so this is probably what the user wants
+//             if (pinata) {
+//                 // TODO: Try to unpin existing pinata hash
+//                 const {IpfsHash} = pinata.pinFileToIPFS(readableStream, pinataOptions);
+//                 if (IpfsHash){
+//                     updateHashForKeys(token, IpfsHash);
+//                 } 
+//                 else res.json({status: ResponseStatus.Error, error: "Error pinning to Pinata service, hash was not returned"});
+//             } else {
+//                 // Upload to our own IPFS node
+//                 const req = http.request(IPFS_HOST, {method: 'POST'}, res => {
+//                     const bufferString = [];
+//                     res.on('data', data => {
+//                         bufferString.push(data);
+//                     });
+//                     res.on('end', async () => {
+//                         const buffer = Buffer.concat(bufferString);
+//                         const string = buffer.toString('utf8');
+//                         const {hash} = JSON.parse(string);
+//                         if (hash){
+//                             updateHashForKeys(token, hash);
+//                         } 
+//                         else return res.json({status: ResponseStatus.Error, error: "Error getting hash back from IPFS node"});
+//                     });
+//                     res.on('error', err => {
+//                         console.warn(err.stack);
+//                         return res.json({status: ResponseStatus.Error, error: err.stack});
+//                     });
+//                 });
+//                 req.on('error', err => {
+//                     console.warn(err.stack);
+//                     res.json({status: ResponseStatus.Error, error: err.stack});
+//                 });
+//                 file.pipe(req);
+//             }
+//         } else {
+//             updateHashForKeys(token, resourceHash);
+//         }
+//     } catch (error) {
+//         console.warn(error.stack);
+//         return res.json({status: ResponseStatus.Error, tokenIds: [], error});
+//     }
+// }
 
 module.exports = {
     listTokens,
@@ -651,5 +651,5 @@ module.exports = {
     sendToken,
     getPrivateData,
     signTransfer,
-    readEncryptedData
+    // readEncryptedData
 }
