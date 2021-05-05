@@ -1,4 +1,4 @@
-let config = require('fs').existsSync('../config.json') ? require('../config.json') : require('../config.default.json');
+let config = require('fs').existsSync(__dirname + '/../config.json') ? require('../config.json') : require('../config.default.json');
 
 const MAINNET_MNEMONIC = process.env.MAINNET_MNEMONIC || config.MAINNET_MNEMONIC;
 const TESTNET_MNEMONIC = process.env.TESTNET_MNEMONIC || config.TESTNET_MNEMONIC;

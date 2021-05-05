@@ -9,6 +9,9 @@ redisearch(redis);
 let redisClient = null;
 let loadPromise = null;
 
+console.log("REDIS KEY IS", REDIS_KEY);
+console.log("REDIS REDIS_PORT IS", REDIS_PORT);
+
 async function connect(port, host) {
   if (!loadPromise) {
     loadPromise = new Promise((accept, reject) => {
