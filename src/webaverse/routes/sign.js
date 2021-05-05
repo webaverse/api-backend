@@ -13,7 +13,7 @@ const {
   INFURA_PROJECT_ID,
   POLYGON_VIGIL_KEY,
   ETHEREUM_HOST
-} = require('../config.js');
+} = require('../../config.js');
 
 let gethNodeUrl = null;
 const loadPromise = (async () => {

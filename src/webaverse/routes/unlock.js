@@ -6,7 +6,7 @@ const {hdkey} = require('ethereumjs-wallet');
 
 const {jsonParse, setCorsHeaders} = require('../../utils.js');
 const {areAddressesCollaborator} = require('../../blockchain.js');
-const {encodeSecret, decodeSecret} = require('../../crypto');
+const {encodeSecret, decodeSecret} = require('../../encryption.js');
 const {
   maxFileSize,
   unlockableMetadataKey,
