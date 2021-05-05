@@ -28,9 +28,9 @@ const {ResponseStatus} = require("../enums.js");
 const {runSidechainTransaction} = require("../../../tokens.js");
 const {production, development} = require("../environment.js");
 
-const {jsonParse} = require('../../utils.js');
+const {jsonParse} = require('../../../utils.js');
 
-const {encodeSecret, decodeSecret} = require('../../encryption.js');
+const {encodeSecret, decodeSecret} = require('../../../encryption.js');
 
 const pinataSDK = require('@pinata/sdk');
 const pinata = (PINATA_API_KEY && PINATA_API_KEY !== "") ? pinataSDK(PINATA_API_KEY, PINATA_SECRET_API_KEY) : null;

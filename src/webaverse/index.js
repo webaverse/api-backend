@@ -35,7 +35,7 @@ const {
 // api docs deps
 const express = require('express');
 const fileUpload = require('express-fileupload');
-const {addV1Routes} = require("../v1/index.js");
+const {addV1Routes} = require("../api/v1/index.js");
 
 const {
   accountKeys,
