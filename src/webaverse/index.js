@@ -13,6 +13,7 @@ const fs = require("fs");
 const http = require("http");
 const ws = require("ws");
 
+// api deps
 const {tryConnectRedis} = require('../redis.js');
 const {makePromise, randomString, setCorsHeaders} = require('../utils.js');
 const {getBlockchain, BlockchainNetworks, isCollaborator, isSingleCollaborator} = require('../blockchain.js');
@@ -30,6 +31,11 @@ const {handleAnalyticsRequest} = require("./routes/analytics.js");
 const {
   HTTP_PORT, HTTPS_PORT, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET
 } = require('../config.js');
+
+// api docs deps
+const express = require('express');
+const fileUpload = require('express-fileupload');
+const {addV1Routes} = require("../v1/index.js");
 
 const {
   accountKeys,
@@ -325,14 +331,21 @@ const {
     }
   };
 
-  const server = http.createServer(_req("http:"));
+  const _makeApp = protocol => {
+    const app = express();
+    app.use(fileUpload());
+    addV1Routes(app);
+    app.all('*', _req("http:"));
+    return app;
+  };
+  const server = http.createServer(_makeApp('http:'));
   server.on("upgrade", _ws("http:"));
   const server2 = https.createServer(
     {
       cert: CERT,
       key: PRIVKEY,
     },
-    _req("https:")
+    _makeApp('https:')
   );
   server2.on("upgrade", _ws("https:"));
 
