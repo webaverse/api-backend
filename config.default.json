@@ -21,6 +21,7 @@
   "HTTPS_PORT": 8443,
   "REDIS_HOST": "cache.webaverse.com",
   "REDIS_PORT": 6379,
+  "REDIS_KEY": "",
 
   "IPFS_HOST": "https://ipfs.exokit.org",
   "IPFS_HOST_PORT": 8081,

@@ -14,6 +14,7 @@ const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || config.DISCOR
 
 const REDIS_HOST = process.env.REDIS_HOST || config.REDIS_HOST;
 const REDIS_PORT = process.env.REDIS_PORT || config.REDIS_PORT;
+const REDIS_KEY = process.env.REDIS_KEY || config.REDIS_KEY;
 
 const HTTP_PORT = parseInt(process.env.HTTP_PORT || config.HTTP_PORT, 10) || 80;
 const HTTPS_PORT = parseInt(process.env.HTTPS_PORT || config.HTTPS_PORT, 10) || 443;
@@ -38,6 +39,7 @@ module.exports = {
   HTTPS_PORT,
   REDIS_HOST,
   REDIS_PORT,
+  REDIS_KEY,
   GITHUB_CLIENT_ID,
   GITHUB_CLIENT_SECRET,
   DISCORD_CLIENT_ID,
