@@ -61,7 +61,7 @@ const {Readable} = require('stream');
 let web3, contracts;
 
 (async function () {
-    const blockchain = await getBlockchain().contracts;
+    const blockchain = await getBlockchain();
     web3 = blockchain.web3;
     contracts = blockchain.contracts;
 })();
