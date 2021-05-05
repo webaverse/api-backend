@@ -50,6 +50,7 @@ function addV1Routes(app){
  * @property {string} accessToken - JWT token for authentication
  * @property {string} error - If the status is error, the error can be read from here 
  */
+
 /**
  * POST /api/v1/authorizeServer
  * @summary Get authentication token
@@ -76,7 +77,7 @@ app.post('/api/v1/authorizeServer', async (req, res) => {
  * @summary Create a wallet for a user
  * @security bearerAuth
  * @return {WalletCreationResponse} 200 - success response
- * @return {AuthenticationErrorResponse} 401 - authentication error response
+ * @return {AuthResponse} 401 - authentication error response
  */
 app.post('/api/v1/wallet', authenticateToken, async (req, res) => {
   return await createWallet(req, res);
@@ -104,7 +105,7 @@ app.post('/api/v1/wallet', authenticateToken, async (req, res) => {
  * Response for user account creation and retrieval
  * @typedef {object} TokenIdListResponse
  * @property {string} status - The status of the list request (success/error)
- * @property {array} tokenIds - Token id returned
+ * @property {object} tokenIds - Token id returned
  * @property {string} error - If the status is error, the error can be read from here 
  */
 
@@ -112,7 +113,7 @@ app.post('/api/v1/wallet', authenticateToken, async (req, res) => {
  * Response for user account creation and retrieval
  * @typedef {object} TokenListResponse
  * @property {string} status - The status of the list request (success/error)
- * @property {array} tokens - Array of token objects returned
+ * @property {object} tokens - Array of token objects returned
  * @property {string} error - If the status is error, the error can be read from here 
  */
 
@@ -137,7 +138,7 @@ app.post('/api/v1/wallet', authenticateToken, async (req, res) => {
  * @summary List tokens for a user
  * @security bearerAuth
  * @return {TokenListResponse} 200 - success response
- * @return {AuthenticationErrorResponse} 401 - authentication error response
+ * @return {AuthResponse} 401 - authentication error response
  * @param {string} address.path.required - Address of the user to list tokens for
  * @param {string} mainnetAddress.path.optional - Mainnet address of the user to list tokens for (optional)
  */
@@ -150,7 +151,7 @@ app.get('/api/v1/tokens/:address/:mainnetAddress?', authenticateToken, async (re
  * @summary Retrieve data for a non-fungible token
  * @security bearerAuth
  * @return {TokenResponse} 200 - success response
- * @return {AuthenticationErrorResponse} 401 - authentication error response
+ * @return {AuthResponse} 401 - authentication error response
  * @param {string} tokenId.path.required - Token to retrieve
  */
 app.get('/api/v1/token/:tokenId', authenticateToken, async (req, res) => {
@@ -162,7 +163,7 @@ app.get('/api/v1/token/:tokenId', authenticateToken, async (req, res) => {
  * @summary Retrieve a range of tokens
  * @security bearerAuth
  * @return {TokenListResponse} 200 - success response
- * @return {AuthenticationErrorResponse} 401 - authentication error response
+ * @return {AuthResponse} 401 - authentication error response
  * @param {string} tokenStartId.path.required - First token to retrieve
  * @param {string} tokenEndId.path.required - Last token in range to retrieve
  */
@@ -174,8 +175,8 @@ app.get('/api/v1/token/:tokenStartId/:tokenEndId', authenticateToken, async (req
  * POST /api/v1/token
  * @summary Create a non-fungible token with a file or IPFS hash
  * @security bearerAuth
- * @return {TokenIdsResponse} 200 - success response
- * @return {AuthenticationErrorResponse} 401 - authentication error response
+ * @return {TokenListResponse} 200 - success response
+ * @return {AuthResponse} 401 - authentication error response
  * @param {string} userMnemonic.required - Mint the token using a user's private key
  * @param {string} file.optional - File to upload to IPFS
  * @param {string} resourceHash.optional - IPFS resource hash or other URI
@@ -191,7 +192,7 @@ app.post('/api/v1/token', authenticateToken, async (req, res) => {
  * @security bearerAuth
  * @param {string} tokenId.required - Token to delete
  * @return {TokenStatusResponse} 200 - success response
- * @return {AuthenticationErrorResponse} 401 - authentication error response
+ * @return {AuthResponse} 401 - authentication error response
  */
 app.delete('/api/v1/token', authenticateToken, async (req, res) => {
   return await deleteToken(req, res, blockchain);
@@ -202,7 +203,7 @@ app.delete('/api/v1/token', authenticateToken, async (req, res) => {
  * @summary Send this token from one user to another
  * @security bearerAuth
  * @return {TokenStatusResponse} 200 - success response
- * @return {AuthenticationErrorResponse} 401 - authentication error response
+ * @return {AuthResponse} 401 - authentication error response
  * @param {string} tokenId.required - Token to be sent
  * @param {string} fromUserAddress.required - Token sent by this user (public address)
  * @param {string} toUserAddress.required - Token received by this user (public address)
@@ -214,7 +215,7 @@ app.post('/api/v1/token/send', authenticateToken, async (req, res) => {
 /**
  * POST /api/v1/token/signTransfer
  * @summary Prepare a token to be transferred, either mainnet <-> sidechain or polygon <-> sidechain
- * @return {SignatureResponse} 200 - success response
+ * @return {TokenSignatureResponse} 200 - success response
  * @return {object} 401 - forbidden request response
  * @property {string} tokenId - Token to be sent
  * @property {string} transferToChain - Transfer to this chain

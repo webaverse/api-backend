@@ -58,7 +58,7 @@ const {
   let CERT = null;
   let PRIVKEY = null;
   const fullchainPath = __dirname + "/../../certs/fullchain.pem";
-  const privkeyPath =  __dirname +"/../../certs/privkey.pem";
+  const privkeyPath =  __dirname + "/../../certs/privkey.pem";
 
   try {
     CERT = fs.readFileSync(fullchainPath);
