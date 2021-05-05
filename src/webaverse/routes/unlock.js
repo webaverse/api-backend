@@ -4,8 +4,8 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 
-const {jsonParse, setCorsHeaders} = require('../utils.js');
-const {areAddressesCollaborator} = require('../blockchain.js');
+const {jsonParse, setCorsHeaders} = require('../../utils.js');
+const {areAddressesCollaborator} = require('../../blockchain.js');
 const {encodeSecret, decodeSecret} = require('../../crypto');
 const {
   maxFileSize,
