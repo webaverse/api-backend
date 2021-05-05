@@ -1,7 +1,7 @@
 const redis = require('redis');
 const redisearch = require('redis-redisearch');
 const {makePromise} = require('./utils.js');
-const {ids, tableNames} = require('./constants.js');
+const {ids} = require('./constants.js');
 const {REDIS_HOST, REDIS_PORT, REDIS_KEY} = require('./config.js');
 
 redisearch(redis);
@@ -9,25 +9,6 @@ redisearch(redis);
 let redisClient = null;
 let loadPromise = null;
 
-async function connect(port, host) {
-  if (!loadPromise) {
-    loadPromise = new Promise((accept, reject) => {
-      redisClient = redis.createClient(port, host);
-      try {
-        redisClient.auth(REDIS_KEY, err => {
-          if (!err) {
-            accept();
-          } else {
-            reject(err);
-          }
-        });
-      } catch (error) {
-        console.error("Unable to connect to redis -- is redis running?");
-      }
-    });
-  }
-  await loadPromise;
-}
 
 const tryConnectRedis = () => {
   connect(REDIS_PORT, REDIS_HOST)
@@ -41,29 +22,41 @@ const tryConnectRedis = () => {
     });
 };
 
+
+async function connect(port, host) {
+  if (!loadPromise) {
+    loadPromise = new Promise((accept, reject) => {
+      redisClient = redis.createClient(port, host);
+      redisClient.auth(REDIS_KEY, err => {
+        if (!err) {
+          accept();
+        } else {
+          reject(err);
+        }
+      });
+    });
+  }
+  await loadPromise;
+}
 function getRedisClient() {
   return redisClient;
 }
 
 async function getRedisItem(id, TableName) {
   const p = makePromise();
-  
-  if (!redisClient) {
-    await connect(REDIS_PORT, REDIS_HOST);
-  }
-
   redisClient.hgetall(`${TableName}:${id}`, (err, result) => {
     if (!err) {
       for (const k in result) {
         result[k] = JSON.parse(result[k]);
       }
+      // console.log('got result', result);
       p.accept({
         Item: result,
       });
     } else {
       p.reject(err);
     }
-  });
+  }); 
   return await p;
 }
 
@@ -74,21 +67,23 @@ async function putRedisItem(id, data, TableName) {
   for (const k in data) {
     args.push(k, JSON.stringify(data[k]));
   }
-
+  // console.log('putting', args);
   const p = makePromise();
   args.push(err => {
     if (!err) {
+      // console.log('accept');
       p.accept();
     } else {
       console.warn('error', err);
       p.reject(err);
     }
   });
-  redisClient.hmset.apply(redisClient, args);
+  redisClient.hmset.apply(redisClient, args); 
   await p;
 }
 
-async function getRedisAllItems(TableName = tableNames.defaultCacheTable) {
+async function getRedisAllItems(TableName) {
+  // console.time('lol 1');
   let keys = await new Promise((accept, reject) => {
     redisClient.keys(`${TableName}:*`, (err, result) => {
       if (!err) {
@@ -98,10 +93,13 @@ async function getRedisAllItems(TableName = tableNames.defaultCacheTable) {
       }
     });
   });
+  // console.log('got old keys', keys, {lastCachedBlockAccountId: ids.lastCachedBlockAccount});
   const filterKey = `${TableName}:${ids.lastCachedBlockAccount}`;
   keys = keys.filter(key => key !== filterKey);
-
-  const _runJobs = jobs => new Promise((accept) => {
+  // console.timeEnd('lol 1');
+  
+  // console.time('lol 2');
+  const _runJobs = jobs => new Promise((accept, reject) => {
     const maxTasksInFlight = 100;
     let tasksInFlight = 0;
     const _recurse = async () => {
@@ -109,7 +107,7 @@ async function getRedisAllItems(TableName = tableNames.defaultCacheTable) {
         tasksInFlight++;
         try {
           await jobs.shift()();
-        } catch (err) {
+        } catch(err) {
           console.warn(err);
         } finally {
           tasksInFlight--;
@@ -123,9 +121,10 @@ async function getRedisAllItems(TableName = tableNames.defaultCacheTable) {
       _recurse();
     }
   });
-
+  
   const items = [];
   await _runJobs(keys.map(k => async () => {
+    // console.time('inner 1: ' + k);
     const item = await new Promise((accept, reject) => {
       redisClient.hgetall(k, (err, result) => {
         if (!err) {
@@ -142,9 +141,23 @@ async function getRedisAllItems(TableName = tableNames.defaultCacheTable) {
         }
       });
     });
+    // console.timeEnd('inner 1: ' + k);
     items.push(item);
   }));
+  // console.timeEnd('lol 2');
   return items;
+
+  /* const params = {
+    TableName,
+  };
+  try {
+    const o = await ddbd.scan(params).promise();
+    const items = (o && o.Items) || [];
+    return items;
+  } catch (e) {
+    console.error(e);
+    return null;
+  } */
 }
 
 const parseRedisItems = result => {
@@ -166,11 +179,11 @@ const parseRedisItems = result => {
 };
 
 module.exports = {
-  tryConnectRedis,
   connect,
   getRedisClient,
   getRedisItem,
   putRedisItem,
   getRedisAllItems,
+  tryConnectRedis,
   parseRedisItems,
 };
