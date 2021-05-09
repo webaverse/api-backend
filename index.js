@@ -1405,8 +1405,8 @@ const _isTokenZero = token => {
     token.owner.address === "0x0000000000000000000000000000000000000000"
   ) ||
   (
-    token.properties.hash.startsWith('0xdeaddeaddeaddead') &&
-    token.owner.address.toLowerCase().startsWith('0xdeaddeaddeaddead')
+    token.properties.hash.startsWith('0xdeaddeaddeaddeaddead') &&
+    token.owner.address.toLowerCase().startsWith('0xdeaddeaddeaddeaddead')
   )
 };
 const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) => {
