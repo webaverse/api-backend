@@ -1399,6 +1399,16 @@ const _handleProxyApp = (() => {
     });
   };
 })();
+const _isTokenZero = token => {
+  return (
+    token.properties.hash === "" &&
+    token.owner.address === "0x0000000000000000000000000000000000000000"
+  ) ||
+  (
+    token.properties.hash.startsWith('0xdeaddeaddeaddead') &&
+    token.owner.address.toLowerCase().startsWith('0xdeaddeaddeaddead')
+  )
+};
 const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -1464,7 +1474,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
         tokens.sort((a, b) => a.id - b.id);
         if (contractName === 'NFT') {
           tokens = tokens.filter((token, i) => { // filter unique hashes
-            if (token.properties.hash === "" && token.owner.address === "0x0000000000000000000000000000000000000000") {
+            if (_isTokenZero(token)) {
               return false;
             }
             for (let j = 0; j < i; j++) {
@@ -1576,7 +1586,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
       tokens.sort((a, b) => a.id - b.id);
       if (contractName === 'NFT') {
         tokens = tokens.filter((token, i) => { // filter unique hashes
-          if (token === "0" || (token.properties.hash === "" && token.owner.address === "0x0000000000000000000000000000000000000000")) {
+          if (_isTokenZero(token)) {
             return false;
           }
           for (let j = 0; j < i; j++) {
@@ -1790,7 +1800,7 @@ try {
         tokens.sort((a, b) => a.id - b.id);
         if (contractName === 'NFT') {
           tokens = tokens.filter((token, i) => { // filter unique hashes
-            if (token.properties.hash === "" && token.owner.address === "0x0000000000000000000000000000000000000000") {
+            if (_isTokenZero(token)) {
                 return false;
             }
             for (let j = 0; j < i; j++) {
@@ -1888,7 +1898,7 @@ try {
       tokens.sort((a, b) => a.id - b.id);
       if (contractName === 'NFT') {
         tokens = tokens.filter((token, i) => { // filter unique hashes
-          if (token === "0" || (token.properties.hash === "" && token.owner.address === "0x0000000000000000000000000000000000000000")) {
+          if (_isTokenZero(token)) {
             return false;
           }
           for (let j = 0; j < i; j++) {
