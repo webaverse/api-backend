@@ -35,14 +35,14 @@ const loadPromise = (async () => {
         if (addresses.length > 0) {
           accept(addresses[0]);
         } else {
-          reject(new Error('no addresses resolved for ' + ETHEREUM_HOSTname));
+          reject(new Error('no addresses resolved for ' + ETHEREUM_HOST));
         }
       } else {
         reject(err);
       }
     });
   });
-  gethNodeUrl = `http://${ethereumHostAddress}`;
+  const gethNodeUrl = `http://${ethereumHostAddress}`;
 
   const web3 = {
     mainnet: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`)),
