@@ -11,61 +11,48 @@ const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {jsonParse, _setCorsHeaders} = require('../utils.js');
 const {encodeSecret, decodeSecret} = require('../encryption.js');
-const {MAX_SIZE, storageHost, polygonVigilKey} = require('../constants.js');
+const {MAX_SIZE} = require('../constants.js');
 
-let config = require('fs').existsSync('./config.json') ? require('../config.json') : null;
+const {
+  MAINNET_MNEMONIC,
+  TESTNET_MNEMONIC,
+  POLYGON_MNEMONIC,
+  TESTNET_POLYGON_MNEMONIC,
+  INFURA_PROJECT_ID,
+  ENCRYPTION_MNEMONIC,
+  POLYGON_VIGIL_KEY,
+  STORAGE_HOST
+} = require('../config.js');
 
-const accessKeyId = process.env.accessKeyId || config.accessKeyId;
-const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
-const mainnetMnemonic = process.env.mainnetMnemonic || config.mainnetMnemonic;
-const testnetMnemonic = process.env.testnetMnemonic || config.testnetMnemonic;
-const polygonMnemonic = process.env.polygonMnemonic || config.polygonMnemonic;
-const testnetpolygonMnemonic = process.env.testnetpolygonMnemonic || config.testnetpolygonMnemonic;
-const infuraProjectId = process.env.infuraProjectId || config.infuraProjectId;
-const encryptionMnemonic = process.env.encryptionMnemonic || config.encryptionMnemonic;
-
-const awsConfig = new AWS.Config({
-  credentials: new AWS.Credentials({
-    accessKeyId,
-    secretAccessKey,
-  }),
-  region: 'us-west-1',
-});
-const ddb = new AWS.DynamoDB(awsConfig);
-
-const {pipeline, PassThrough} = require('stream');
-const {randomBytes, createCipheriv, createDecipheriv} = require('crypto');
-
-const tableName = 'users';
 const unlockableKey = 'unlockable';
 const encryptedKey = 'encrypted';
 
 let contracts = null;
 const loadPromise = (async () => {
-  const ethereumHost = 'ethereum.exokit.org';
+  const ETHEREUM_HOST = 'ethereum.exokit.org';
 
   const ethereumHostAddress = await new Promise((accept, reject) => {
-    dns.resolve4(ethereumHost, (err, addresses) => {
+    dns.resolve4(ETHEREUM_HOST, (err, addresses) => {
       if (!err) {
         if (addresses.length > 0) {
           accept(addresses[0]);
         } else {
-          reject(new Error('no addresses resolved for ' + ethereumHostname));
+          reject(new Error('no addresses resolved for ' + ETHEREUM_HOST));
         }
       } else {
         reject(err);
       }
     });
   });
-  gethNodeUrl = `http://${ethereumHostAddress}`;
+  const gethNodeUrl = `http://${ethereumHostAddress}`;
 
   const web3 = {
-    mainnet: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`)),
+    mainnet: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`)),
     mainnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8545')),
-    testnet: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
+    testnet: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${INFURA_PROJECT_ID}`)),
     testnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8546')),
-    polygon: new Web3(new Web3.providers.HttpProvider(`https://rpc-mainnet.maticvigil.com/v1/${polygonVigilKey}`)),
-    testnetpolygon: new Web3(new Web3.providers.HttpProvider(`https://rpc-mumbai.maticvigil.com/v1/${polygonVigilKey}`)),
+    polygon: new Web3(new Web3.providers.HttpProvider(`https://rpc-mainnet.maticvigil.com/v1/${POLYGON_VIGIL_KEY}`)),
+    testnetpolygon: new Web3(new Web3.providers.HttpProvider(`https://rpc-mumbai.maticvigil.com/v1/${POLYGON_VIGIL_KEY}`)),
   };
   const addresses = await fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
@@ -100,10 +87,10 @@ const loadPromise = (async () => {
   })();
 
   const wallets = {
-    mainnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mainnetMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
-    testnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(testnetMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
-    polygon: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(polygonMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
-    testnetpolygon: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(testnetpolygonMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    mainnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(MAINNET_MNEMONIC)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    testnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(TESTNET_MNEMONIC)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    polygon: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(POLYGON_MNEMONIC)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    testnetpolygon: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(TESTNET_POLYGON_MNEMONIC)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
   };
 
   return {
@@ -293,7 +280,7 @@ const _handleUnlockRequest = async (req, res) => {
                   ciphertext = Buffer.from(ciphertext, 'base64');
                   tag = Buffer.from(tag, 'base64');
                   // console.log('got ciphertext 1', {ciphertext, tag});
-                  value = decodeSecret(encryptionMnemonic, id, {ciphertext, tag}, 'utf8');
+                  value = decodeSecret(ENCRYPTION_MNEMONIC, id, {ciphertext, tag}, 'utf8');
                   // console.log('got ciphertext 2', {ciphertext, tag, value});
                 }
 
@@ -368,7 +355,7 @@ const _handleLockRequest = async (req, res) => {
                 req.on('error', reject);
               });
 
-              let {ciphertext, tag} = encodeSecret(encryptionMnemonic, id, b);
+              let {ciphertext, tag} = encodeSecret(ENCRYPTION_MNEMONIC, id, b);
               // ciphertext = ciphertext.toString('base64');
               tag = tag.toString('base64');
               /* value = JSON.stringify({
@@ -464,14 +451,14 @@ const _handleDecryptRequest = async (req, res) => {
                     let {cipherhash, tag} = value;
                     
                     const ciphertext = await (async () => {
-                      const res = await fetch(`${storageHost}/ipfs/${cipherhash}`);
+                      const res = await fetch(`${STORAGE_HOST}/ipfs/${cipherhash}`);
                       const b = await res.buffer();
                       return b;
                     })();
 
                     tag = Buffer.from(tag, 'base64');
                     // console.log('got ciphertext 1', {ciphertext, tag});
-                    const plaintext = decodeSecret(encryptionMnemonic, id, {ciphertext, tag}, null);
+                    const plaintext = decodeSecret(ENCRYPTION_MNEMONIC, id, {ciphertext, tag}, null);
                     // console.log('got ciphertext 2', {ciphertext, tag, value});
                     
                     res.setHeader('Content-Type', 'application/octet-stream');

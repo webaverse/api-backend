@@ -1,8 +1,6 @@
-const {accountKeys, storageHost} = require('./constants.js');
+const {accountKeys, zeroAddress, defaultAvatarPreview} = require('./constants.js');
 const {getBlockchain, getPastEvents} = require('./blockchain.js');
-
-const zeroAddress = '0x0000000000000000000000000000000000000000';
-const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
+const {STORAGE_HOST} = require('./config.js');
 const _log = async (text, p) => {
   // console.log('start pull', text);
   try {
@@ -496,7 +494,7 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     description,
     image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
     external_url: 'https://app.webaverse.com?h=' + hash,
-    animation_url: `${storageHost}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+    animation_url: `${STORAGE_HOST}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
     properties: {
       name,
       hash,
@@ -560,7 +558,7 @@ const formatLand = contractName => chainName => async (token, storeEntries) => {
     description,
     image: coord ? `https://land-preview.exokit.org/32/${coord[0]}/${coord[2]}?${extentsJson ? `e=${JSON.stringify(extentsJson)}` : ''}` : null,
     external_url: `https://app.webaverse.com?${coord ? `c=${JSON.stringify(coord)}` : ''}`,
-    // animation_url: `${storageHost}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+    // animation_url: `${STORAGE_HOST}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
     properties: {
       name,
       hash,

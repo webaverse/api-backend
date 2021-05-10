@@ -13,6 +13,7 @@ const mime = require('mime');
 const {getObject, putObject} = require('../aws.js');
 const puppeteer = require('puppeteer');
 const browserManager = require('../browser-manager.js');
+const {STORAGE_HOST} = require('../config.js');
 
 const PREVIEW_HOST = '127.0.0.1';
 const PREVIEW_PORT = 8999;
@@ -20,7 +21,6 @@ const PREVIEW_PORT = 8999;
 const bucketNames = {
   preview: 'preview.exokit.org',
 };
-const storageHost = 'https://storage.exokit.org';
 
 const _makePromise = () => {
   let accept, reject;
@@ -107,7 +107,7 @@ const _handlePreviewRequest = async (req, res) => {
         const hash = match[1];
         const ext = match[2].toLowerCase();
         const type = match[4].toLowerCase();
-        const url = `${storageHost}/${hash}`;
+        const url = `${STORAGE_HOST}/${hash}`;
         return {
           url,
           hash,
