@@ -8,10 +8,6 @@
 
 const Stream = require('stream');
 
-
-const internals = {};
-
-
 exports.encode = function (buffer) {
 
     return Buffer.from(buffer.toString('base64'));

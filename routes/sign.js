@@ -8,41 +8,39 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {_setCorsHeaders} = require('../utils.js');
-const {polygonVigilKey} = require('../constants.js');
-
-const config = require('fs').existsSync('./config.json') ? require('../config.json') : null;
-const mainnetMnemonic = process.env.mainnetMnemonic || config.mainnetMnemonic;
-const testnetMnemonic = process.env.testnetMnemonic || config.testnetMnemonic;
-const polygonMnemonic = process.env.polygonMnemonic || config.polygonMnemonic;
-const testnetpolygonMnemonic = process.env.testnetpolygonMnemonic || config.testnetpolygonMnemonic;
-const infuraProjectId = process.env.infuraProjectId || config.infuraProjectId;
-const encryptionMnemonic = process.env.encryptionMnemonic || config.encryptionMnemonic;
+const {
+  POLYGON_VIGIL_KEY,
+  MAINNET_MNEMONIC,
+  TESTNET_MNEMONIC,
+  POLYGON_MNEMONIC,
+  TESTNET_POLYGON_MNEMONIC,
+  INFURA_PROJECT_ID,
+  ETHEREUM_HOST
+} = require('../config.js');
 
 const loadPromise = (async () => {
-  const ethereumHost = 'ethereum.exokit.org';
-
   const ethereumHostAddress = await new Promise((accept, reject) => {
-    dns.resolve4(ethereumHost, (err, addresses) => {
+    dns.resolve4(ETHEREUM_HOST, (err, addresses) => {
       if (!err) {
         if (addresses.length > 0) {
           accept(addresses[0]);
         } else {
-          reject(new Error('no addresses resolved for ' + ethereumHostname));
+          reject(new Error('no addresses resolved for ' + ETHEREUM_HOST));
         }
       } else {
         reject(err);
       }
     });
   });
-  gethNodeUrl = `http://${ethereumHostAddress}`;
+  const gethNodeUrl = `http://${ethereumHostAddress}`;
 
   const web3 = {
-    mainnet: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${infuraProjectId}`)),
+    mainnet: new Web3(new Web3.providers.HttpProvider(`https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`)),
     mainnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8545')),
-    testnet: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${infuraProjectId}`)),
+    testnet: new Web3(new Web3.providers.HttpProvider(`https://rinkeby.infura.io/v3/${INFURA_PROJECT_ID}`)),
     testnetsidechain: new Web3(new Web3.providers.HttpProvider(gethNodeUrl + ':8546')),
-    polygon: new Web3(new Web3.providers.HttpProvider(`https://rpc-mainnet.maticvigil.com/v1/${polygonVigilKey}`)),
-    testnetpolygon: new Web3(new Web3.providers.HttpProvider(`https://rpc-mumbai.maticvigil.com/v1/${polygonVigilKey}`)),
+    polygon: new Web3(new Web3.providers.HttpProvider(`https://rpc-mainnet.maticvigil.com/v1/${POLYGON_VIGIL_KEY}`)),
+    testnetpolygon: new Web3(new Web3.providers.HttpProvider(`https://rpc-mumbai.maticvigil.com/v1/${POLYGON_VIGIL_KEY}`)),
   };
   const addresses = await fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
   const abis = await fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, '')));
@@ -76,11 +74,11 @@ const loadPromise = (async () => {
     return result;
   })();
   const wallets = {
-    mainnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mainnetMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
-    mainnetsidechain: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(mainnetMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
-    testnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(testnetMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
-    polygon: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(polygonMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
-    testnetpolygon: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(testnetpolygonMnemonic)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    mainnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(MAINNET_MNEMONIC)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    mainnetsidechain: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(MAINNET_MNEMONIC)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    testnet: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(TESTNET_MNEMONIC)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    polygon: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(POLYGON_MNEMONIC)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
+    testnetpolygon: hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(TESTNET_POLYGON_MNEMONIC)).derivePath(`m/44'/60'/0'/0/0`).getWallet(),
   };
 
   return {
@@ -96,7 +94,7 @@ const loadPromise = (async () => {
 const _handleSignRequest = async (req, res) => {
     // console.log('sign request', req.url);
     
-    const {web3, addresses, abis, chainIds, contracts, wallets} = await loadPromise;
+    const {web3, addresses, chainIds, wallets} = await loadPromise;
     
     const request = url.parse(req.url);
     // const path = request.path.split('/')[1];
@@ -133,7 +131,7 @@ const _handleSignRequest = async (req, res) => {
                         // console.log('got log', logs, log);
                         if (log) {
                           const wallet = wallets[destinationChainName];
-                          const proxyContractAddress = addresses[destinationChainName][proxyContractName];
+                          // const proxyContractAddress = addresses[destinationChainName][proxyContractName];
                           
                           // const {returnValues} = log;
                           // const {from, to: toInverse} = returnValues;

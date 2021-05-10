@@ -1,18 +1,9 @@
-const path = require('path');
-const stream = require('stream');
-const fs = require('fs');
 const url = require('url');
-const querystring = require('querystring');
 const http = require('http');
-const https = require('https');
-const crypto = require('crypto');
-const zlib = require('zlib');
-const child_process = require('child_process');
 const mime = require('mime');
-
 const {getObject, putObject} = require('../aws.js');
-const puppeteer = require('puppeteer');
 const browserManager = require('../browser-manager.js');
+const {STORAGE_HOST} = require('../config.js');
 
 const PREVIEW_HOST = '127.0.0.1';
 const PREVIEW_PORT = 8999;
@@ -20,7 +11,6 @@ const PREVIEW_PORT = 8999;
 const bucketNames = {
   preview: 'preview.exokit.org',
 };
-const storageHost = 'https://storage.exokit.org';
 
 const _makePromise = () => {
   let accept, reject;
@@ -107,7 +97,7 @@ const _handlePreviewRequest = async (req, res) => {
         const hash = match[1];
         const ext = match[2].toLowerCase();
         const type = match[4].toLowerCase();
-        const url = `${storageHost}/${hash}`;
+        const url = `${STORAGE_HOST}/${hash}`;
         return {
           url,
           hash,
@@ -174,7 +164,7 @@ const _handlePreviewRequest = async (req, res) => {
       proxyReq.on('data', d => {
         bs.push(d);
       });
-      await new Promise((accept, reject) => {
+      await new Promise((accept) => {
         proxyReq.on('end', accept);
       });
       proxyRes.end();

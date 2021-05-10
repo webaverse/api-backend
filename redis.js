@@ -1,10 +1,9 @@
-const stream = require('stream');
 const redis = require('redis');
 const redisearch = require('redis-redisearch');
 redisearch(redis);
 const {makePromise} = require('./utils.js');
 const {ids} = require('./constants.js');
-const {redisKey} = require('./config.json');
+const {REDIS_KEY} = require('./config.js');
 
 // c = r.createClient(); c.auth('lol', err => {c.hset('cities', 'id', 'A Town Created from Grafting.', err => { c.hget('cities', 'id', console.log); }); c.on('error', console.warn); }); c.ft_create.apply(c, 'idx SCHEMA id TEXT SORTABLE'.split(' ').concat([console.warn])); 1
 
@@ -14,7 +13,7 @@ async function connect(port, host) {
   if (!loadPromise) {
     loadPromise = new Promise((accept, reject) => {
       redisClient = redis.createClient(port, host);
-      redisClient.auth(redisKey, err => {
+      redisClient.auth(REDIS_KEY, err => {
         if (!err) {
           accept();
         } else {
@@ -69,7 +68,7 @@ async function putRedisItem(id, data, TableName) {
   await p;
 }
 
-async function getRedisAllItems(TableName = defaultDynamoTable) {
+async function getRedisAllItems(TableName) {
   // console.time('lol 1');
   let keys = await new Promise((accept, reject) => {
     redisClient.keys(`${TableName}:*`, (err, result) => {
@@ -86,7 +85,7 @@ async function getRedisAllItems(TableName = defaultDynamoTable) {
   // console.timeEnd('lol 1');
   
   // console.time('lol 2');
-  const _runJobs = jobs => new Promise((accept, reject) => {
+  const _runJobs = jobs => new Promise((accept) => {
     const maxTasksInFlight = 100;
     let tasksInFlight = 0;
     const _recurse = async () => {

@@ -1,9 +1,7 @@
 const events = require('events');
 const {EventEmitter} = events;
-const AWS = require('aws-sdk');
 const blockchain = require('./blockchain.js');
 const flowConstants = require('./flow-constants.js');
-
 class EventsManager extends EventEmitter {
   constructor() {
     super();

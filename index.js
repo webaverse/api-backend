@@ -1,89 +1,30 @@
 require('dotenv').config();
-const path = require('path');
-const stream = require('stream');
 const fs = require('fs');
 const url = require('url');
 const querystring = require('querystring');
 const http = require('http');
 const https = require('https');
-const dns = require('dns');
 const crypto = require('crypto');
-const zlib = require('zlib');
-const os = require('os');
-const child_process = require('child_process');
-const mkdirp = require('mkdirp');
-const FormData = require('form-data');
-// const express = require('express');
 const httpProxy = require('http-proxy');
 const ws = require('ws');
-// const LRU = require('lru');
-const mime = require('mime');
-const AWS = require('aws-sdk');
-const Stripe = require('stripe');
-// const puppeteer = require('puppeteer');
 const namegen = require('./namegen.js');
-const Base64Encoder = require('./encoder.js').Encoder;
-// const {JSONServer, CustomEvent} = require('./dist/sync-server.js');
-const fetch = require('node-fetch');
-const {SHA3} = require('sha3');
 const {default: formurlencoded} = require('form-urlencoded');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
-const {getDynamoItem, getDynamoAllItems, putDynamoItem} = require('./aws.js');
+const {ddb, ses} = require('./aws.js');
 const {getRedisItem, getRedisAllItems, parseRedisItems} = require('./redis.js');
-const {getExt, makePromise} = require('./utils.js');
-const Timer = require('./timer.js');
+const {makePromise} = require('./utils.js');
 const {getStoreEntries, getChainNft, getAllWithdrawsDeposits} = require('./tokens.js');
-const {getBlockchain} = require('./blockchain.js');
-// const browserManager = require('./browser-manager.js');
-const {accountKeys, ids, nftIndexName, redisPrefixes, mainnetSignatureMessage, cacheHostUrl} = require('./constants.js');
+const {NetworkNames, getBlockchain} = require('./blockchain.js');
+const {accountKeys, ids, nftIndexName, redisPrefixes, mainnetSignatureMessage} = require('./constants.js');
 const {connect: redisConnect, getRedisClient} = require('./redis');
 const ethereumJsUtil = require('./ethereumjs-util.js');
-
-let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
-
-const accessKeyId = process.env.accessKeyId || config.accessKeyId;
-const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
-const githubClientId = process.env.githubClientId || config.githubClientId;
-const githubClientSecret = process.env.githubClientSecret || config.githubClientSecret;
-const discordClientId = process.env.discordClientId || config.discordClientId;
-const discordClientSecret = process.env.discordClientSecret || config.discordClientSecret;
-
-const awsConfig = new AWS.Config({
-  credentials: new AWS.Credentials({
-    accessKeyId,
-    secretAccessKey,
-  }),
-  region: 'us-west-1',
-});
-const ddb = new AWS.DynamoDB(awsConfig);
-const ddbd = new AWS.DynamoDB.DocumentClient(awsConfig);
-const s3 = new AWS.S3(awsConfig);
-const ses = new AWS.SES(new AWS.Config({
-  credentials: new AWS.Credentials({
-    accessKeyId,
-    secretAccessKey,
-  }),
-  region: 'us-west-2',
-}));
-/* const apiKeyCache = new LRU({
-  max: 1024,
-  maxAge: 60 * 1000,
-}); */
-// const stripe = Stripe(stripeClientSecret);
-// const accountManager = require('./account-manager.js');
-// const eventsManager = require('./events-manager.js');
-
-const Discord = require('discord.js');
-
-// const api = require('./api.js');
-// const { _handleStorageRequest } = require('./routes/storage.js');
-// const { _handleAccountsRequest } = require('./routes/accounts.js');
-// const { _handlePreviewRequest } = require('./routes/preview.js')
-const { worldManager, _handleWorldsRequest, _startWorldsRoute } = require('./routes/worlds.js');
-const { _handleSignRequest } = require('./routes/sign.js');
-const { _handleUnlockRequest, _handleLockRequest, _handleDecryptRequest, _isCollaborator, _isSingleCollaborator} = require('./routes/unlock.js');
-const { _handleAnalyticsRequest } = require('./routes/analytics.js');
+const {GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, CACHE_HOST_URL} = require('./config.js');
+const {getChainToken, getChainOwnerNft} = require("./tokens.js");
+const {worldManager, _handleWorldsRequest} = require('./routes/worlds.js');
+const {_handleSignRequest} = require('./routes/sign.js');
+const {_handleUnlockRequest, _handleLockRequest, _handleDecryptRequest, _isCollaborator, _isSingleCollaborator} = require('./routes/unlock.js');
+const {_handleAnalyticsRequest} = require('./routes/analytics.js');
 
 let CERT = null;
 let PRIVKEY = null;
@@ -507,8 +448,8 @@ try {
             });
           });
           const s = formurlencoded({
-            client_id: discordClientId,
-            client_secret: discordClientSecret,
+            client_id: DISCORD_CLIENT_ID,
+            client_secret: DISCORD_CLIENT_SECRET,
             code: discordcode,
             grant_type: 'authorization_code',
             scope: 'identify',
@@ -818,16 +759,7 @@ const _handleEthereum = port => async (req, res) => { // XXX make this per-port
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.end(body);
   };
-  const _setCorsHeaders = res => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', '*');
-    res.setHeader('Access-Control-Allow-Methods', '*');
-  };
-
 try {
-    const {method} = req;
-    const {query, pathname: p} = url.parse(req.url, true);
-
     const {
       gethNodeUrl,
     } = await getBlockchain();
@@ -855,6 +787,7 @@ try {
 }
 };
 
+// eslint-disable-next-line no-unused-vars
 const _handleAccounts = chainName => async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -1249,8 +1182,8 @@ try {
           _respond(500, err.stack);
         });
         proxyReq.end(JSON.stringify({
-          client_id: githubClientId,
-          client_secret: githubClientSecret,
+          client_id: GITHUB_CLIENT_ID,
+          client_secret: GITHUB_CLIENT_SECRET,
           code,
           state,
         }));
@@ -1287,9 +1220,9 @@ try {
     const {pathname: p} = url.parse(req.url, true);
     // console.log('got p', p);
     let match;
-    if (match = p.match(/^\/(0x[a-f0-9]+)$/)) {
+    if ((match = p.match(/^\/(0x[a-f0-9]+)$/))) {
       const address = match[1];
-
+      const {contracts} = await getBlockchain();
       const tokenIds = await contracts[chainName].NFT.methods.getTokenIdsOf(address).call();
 
       let username = await contracts[chainName].Account.methods.getMetadata(address, 'name').call();
@@ -1433,7 +1366,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
   if (method === 'GET') {
     const {pathname: p} = url.parse(req.url, true);
     let match;
-    if (match = p.match(/^\/([0-9]+)$/)) {
+    if ((match = p.match(/^\/([0-9]+)$/))) {
       const tokenId = parseInt(match[1], 10);
 
 
@@ -1449,7 +1382,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
       } else {
         _respond(404, JSON.stringify(null));
       }
-    } else if (match = p.match(/^\/([0-9]+)-([0-9]+)$/)) {
+    } else if ((match = p.match(/^\/([0-9]+)-([0-9]+)$/))) {
       const startTokenId = parseInt(match[1], 10);
       const endTokenId = parseInt(match[2], 10);
 
@@ -1497,7 +1430,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
           "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.png',
           "external_url": "https://app.webaverse.com?h=" + p.slice(1),
           // "background_color": "000000",
-          "animation_url": `${storageHost}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+          "animation_url": `${STORAGE_HOST}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
           // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
           "properties": {
                   "filename": filename,
@@ -1524,7 +1457,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
       } else {
         _respond(400, 'invalid range');
       }
-    } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
+    } else if ((match = p.match(/^\/(0x[a-f0-9]+)$/i))) {
       const address = match[1];
 
       const [
@@ -1536,6 +1469,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
             let mainnetAddress = null;
             const account = await getRedisItem(address, redisPrefixes.mainnetsidechainAccount);
             const signature = account?.metadata?.['mainnetAddress'];
+            const {web3} = await getBlockchain();
             if (signature) {
               mainnetAddress = await web3.testnet.eth.accounts.recover(mainnetSignatureMessage, signature);
             }
@@ -1600,7 +1534,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
         tokens = tokens.filter(token => !!token.name);
       }
       _respond(200, JSON.stringify(tokens));
-    } else if (match = p.match(/^\/isCollaborator\/([0-9]+)\/(0x[a-f0-9]+)$/i)) {
+    } else if ((match = p.match(/^\/isCollaborator\/([0-9]+)\/(0x[a-f0-9]+)$/i))) {
       const tokenId = parseInt(match[1], 10);
       const address = match[2];
       
@@ -1609,7 +1543,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
       _respond(200, JSON.stringify(isCollaborator));
-    } else if (match = p.match(/^\/isSingleCollaborator\/([0-9]+)\/(0x[a-f0-9]+)$/i)) {
+    } else if ((match = p.match(/^\/isSingleCollaborator\/([0-9]+)\/(0x[a-f0-9]+)$/i))) {
       const tokenId = parseInt(match[1], 10);
       const address = match[2];
       
@@ -1618,14 +1552,14 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
       _setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
       _respond(200, JSON.stringify(isSingleCollaborator));
-    } else if (match = req.url.match(/^\/search\?(.+)$/)) {
+    } else if ((match = req.url.match(/^\/search\?(.+)$/))) {
       const qs = querystring.parse(match[1]);
-      const {q = '*', ext, owner, minter} = qs;
+      const {q = '*', owner, minter} = qs;
       if (q) {
         const regex = /(\w+)/g;
         const words = [];
         let match;
-        while (match = regex.exec(q)) {
+        while ((match = regex.exec(q))) {
           words.push(`%${match[1]}%`);
         }
         
@@ -1705,7 +1639,7 @@ try {
   if (method === 'GET') {
     const {pathname: p} = url.parse(req.url, true);
     let match;
-    if (match = p.match(/^\/([0-9]+)$/)) {
+    if ((match = p.match(/^\/([0-9]+)$/))) {
       const tokenId = parseInt(match[1], 10);
 
       const storeEntries = await _maybeGetStoreEntries();
@@ -1737,7 +1671,7 @@ try {
         "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.png',
         "external_url": "https://app.webaverse.com?h=" + p.slice(1),
         // "background_color": "000000",
-        "animation_url": `${storageHost}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+        "animation_url": `${STORAGE_HOST}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
         // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
         "properties": {
                 "filename": filename,
@@ -1761,7 +1695,7 @@ try {
                 }
         }
       })); */
-    } else if (match = p.match(/^\/([0-9]+)-([0-9]+)$/)) {
+    } else if ((match = p.match(/^\/([0-9]+)-([0-9]+)$/))) {
       const startTokenId = parseInt(match[1], 10);
       const endTokenId = parseInt(match[2], 10);
 
@@ -1823,7 +1757,7 @@ try {
           "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.png',
           "external_url": "https://app.webaverse.com?h=" + p.slice(1),
           // "background_color": "000000",
-          "animation_url": `${storageHost}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+          "animation_url": `${STORAGE_HOST}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
           // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
           "properties": {
                   "filename": filename,
@@ -1850,9 +1784,9 @@ try {
       } else {
         _respond(400, 'invalid range');
       }
-    } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
+    } else if ((match = p.match(/^\/(0x[a-f0-9]+)$/i))) {
       const address = match[1];
-
+      const {contracts, web3} = await getBlockchain();
       const signature = await contracts[NetworkNames.mainnetsidechain].Account.methods.getMetadata(address, "mainnetAddress").call();
 
       let mainnetAddress = null;
@@ -1884,6 +1818,7 @@ try {
       let tokens = await Promise.all(promises);
 
       if (isAll && mainnetAddress) {
+        // TODO: 'otherChainName' is not defined -- is this code not getting called?
         const nftMainnetBalance = await contracts[otherChainName][contractName].methods.balanceOf(mainnetAddress).call();
         const mainnetPromises = Array(nftMainnetBalance);
         for (let i = 0; i < nftMainnetBalance; i++) {
@@ -1975,7 +1910,7 @@ try {
   if (method === 'GET' & p === '/') {
     const booths = await _getBooths();
     _respond(200, JSON.stringify(booths));
-  } else if (match = p.match(/^\/(0x[a-f0-9]+)$/i)) {
+  } else if ((match = p.match(/^\/(0x[a-f0-9]+)$/i))) {
     const seller = match[1];
     let booths = await _getBooths();
     booths = booths.filter(booth => booth.seller === seller);
@@ -1994,7 +1929,7 @@ try {
 
 let redisClient = null;
 const _tryConnectRedis = () => {
-  redisConnect(undefined, cacheHostUrl)
+  redisConnect(undefined, CACHE_HOST_URL)
     .then(() => {
       redisClient = getRedisClient();
       console.log('connected to redis');
@@ -2147,7 +2082,7 @@ try {
     return;
   }
 
-  if (match = o.host.match(/^(.+)\.proxy\.exokit.org$/)) {
+  if ((match = o.host.match(/^(.+)\.proxy\.exokit.org$/))) {
     const raw = match[1];
     const match2 = raw.match(/^(https?-)(.+?)(-[0-9]+)?$/);
     if (match2) {
@@ -2160,7 +2095,6 @@ try {
       } else {
         o.protocol = match2[1].replace(/-/g, ':');
         o.host = match2[2].replace(/--/g, '=').replace(/-/g, '.').replace(/=/g, '-').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
-        const oldUrl = req.url;
         req.url = url.format(o);
 
         // console.log(oldUrl, '->', req.url);
@@ -2211,7 +2145,7 @@ const _ws = protocol => (req, socket, head) => {
     const o = url.parse(protocol + '//' + (req.headers['host'] || '') + req.url);
     console.log('got', protocol, req.headers['host'], req.url, o);
     let match;
-    if (match = o.host.match(/^(.+)\.proxy\.exokit.org$/)) {
+    if ((match = o.host.match(/^(.+)\.proxy\.exokit.org$/))) {
       const raw = match[1];
       const match2 = raw.match(/^(https?-)(.+?)(-[0-9]+)?$/);
       console.log('match 2', raw, match2);
