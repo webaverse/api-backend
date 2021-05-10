@@ -1,6 +1,6 @@
 const url = require('url');
 const https = require('https');
-const { putObject, uploadFromStream } = require('../aws.js');
+const {uploadFromStream} = require('../aws.js');
 const crypto = require('crypto');
 const mime = require('mime');
 const {_setCorsHeaders, getExt} = require('../utils.js');
@@ -16,7 +16,7 @@ const _handleStorageRequest = async (req, res) => {
         const filename = match && match[2];
 
         res = _setCorsHeaders(res);
-        const {method, headers} = req;
+        const {method} = req;
         if (method === 'OPTIONS') {
             res.end();
         } else if (method === 'POST') {
@@ -44,7 +44,7 @@ const _handleStorageRequest = async (req, res) => {
                   res.status = 500;
                   res.end(err.stack);
                 });
-                ws.on('done', data => {
+                ws.on('done', () => {
                   // console.log('got done', data);
                   res.end(JSON.stringify({
                     hash: hashHex,

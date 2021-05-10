@@ -1,4 +1,3 @@
-const url = require('url');
 const dns = require('dns');
 // const util = require('util');
 // const fs = require('fs');
@@ -211,10 +210,8 @@ const _areAddressesSingleColaborator = async (addresses, id) => {
 const _handleUnlockRequest = async (req, res) => {
     // console.log('unlock request', req.url);
     
-    const {web3, addresses, abis, chainIds, contracts, wallets} = await loadPromise;
+    const {web3, contracts} = await loadPromise;
     
-    const request = url.parse(req.url);
-    // const path = request.path.split('/')[1];
     try {
         res = _setCorsHeaders(res);
         const {method} = req;
@@ -312,11 +309,7 @@ const _handleUnlockRequest = async (req, res) => {
 };
 const _handleLockRequest = async (req, res) => {
     // console.log('unlock request', req.url);
-    
-    const {web3, addresses, abis, chainIds, contracts, wallets} = await loadPromise;
-    
-    const request = url.parse(req.url);
-    // const path = request.path.split('/')[1];
+
     try {
         res = _setCorsHeaders(res);
         const {method} = req;
@@ -381,10 +374,8 @@ const _handleLockRequest = async (req, res) => {
 const _handleDecryptRequest = async (req, res) => {
     // console.log('unlock request', req.url);
     
-    const {web3, addresses, abis, chainIds, contracts, wallets} = await loadPromise;
-    
-    const request = url.parse(req.url);
-    // const path = request.path.split('/')[1];
+    const {web3, contracts} = await loadPromise;
+
     try {
         res = _setCorsHeaders(res);
         const {method} = req;

@@ -1,4 +1,3 @@
-const stream = require('stream');
 const redis = require('redis');
 const redisearch = require('redis-redisearch');
 redisearch(redis);
@@ -69,7 +68,7 @@ async function putRedisItem(id, data, TableName) {
   await p;
 }
 
-async function getRedisAllItems(TableName = defaultDynamoTable) {
+async function getRedisAllItems(TableName) {
   // console.time('lol 1');
   let keys = await new Promise((accept, reject) => {
     redisClient.keys(`${TableName}:*`, (err, result) => {
@@ -86,7 +85,7 @@ async function getRedisAllItems(TableName = defaultDynamoTable) {
   // console.timeEnd('lol 1');
   
   // console.time('lol 2');
-  const _runJobs = jobs => new Promise((accept, reject) => {
+  const _runJobs = jobs => new Promise((accept) => {
     const maxTasksInFlight = 100;
     let tasksInFlight = 0;
     const _recurse = async () => {

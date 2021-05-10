@@ -9,7 +9,7 @@ const {INFURA_PROJECT_ID, POLYGON_VIGIL_KEY, ETHEREUM_HOST} = require('./config.
 let addresses,
   abis,
   web3,
-  web3socketProviders,
+  // web3socketProviders,
   web3sockets,
   contracts,
   // wsContracts,
