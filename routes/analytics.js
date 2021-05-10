@@ -1,6 +1,6 @@
 const url = require('url');
 const uuid = require('uuid');
-const { _setCorsHeaders } = require('../utils.js');
+const {_setCorsHeaders} = require('../utils.js');
 const {ddbd} = require('../aws.js');
 
 const _handleAnalyticsRequest = async (req, res) => {

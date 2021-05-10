@@ -1,10 +1,8 @@
-const crypto = require('crypto');
 const url = require('url');
 const dns = require('dns');
 // const util = require('util');
 // const fs = require('fs');
 // const {spawn} = require('child_process');
-const AWS = require('aws-sdk');
 const fetch = require('node-fetch');
 const Web3 = require('web3');
 const bip39 = require('bip39');

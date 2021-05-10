@@ -1,5 +1,5 @@
 const url = require('url');
-const { _setCorsHeaders } = require('../utils.js');
+const {_setCorsHeaders} = require('../utils.js');
 const blockchain = require('../blockchain.js');
 const accountManager = require('../account-manager.js');
 
@@ -25,7 +25,7 @@ const _handleAccountsRequest = async (req, res) => {
                 const latestBlock = await blockchain.getLatestBlock();
                 res.setHeader('Content-Type', 'application/json');
                 res.end(JSON.stringify(latestBlock, null, 2));
-            } else if (match = request.path.match(/^\/getEvents\/([^\/]+)\/([0-9]+)\/([0-9]+)$/)) {
+            } else if ((match = request.path.match(/^\/getEvents\/([^\/]+)\/([0-9]+)\/([0-9]+)$/))) {
                 const eventTypes = match[1].split(',');
                 const startBlock = parseInt(match[2], 10);
                 const endBlock = parseInt(match[3], 10);

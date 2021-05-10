@@ -94,7 +94,7 @@ const loadPromise = (async () => {
 const _handleSignRequest = async (req, res) => {
     // console.log('sign request', req.url);
     
-    const {web3, addresses, abis, chainIds, contracts, wallets} = await loadPromise;
+    const {web3, addresses, chainIds, wallets} = await loadPromise;
     
     const request = url.parse(req.url);
     // const path = request.path.split('/')[1];
@@ -131,7 +131,7 @@ const _handleSignRequest = async (req, res) => {
                         // console.log('got log', logs, log);
                         if (log) {
                           const wallet = wallets[destinationChainName];
-                          const proxyContractAddress = addresses[destinationChainName][proxyContractName];
+                          // const proxyContractAddress = addresses[destinationChainName][proxyContractName];
                           
                           // const {returnValues} = log;
                           // const {from, to: toInverse} = returnValues;
