@@ -7,25 +7,9 @@ const fs = require('fs').promises;
 const child_process = require('child_process');
 // const mime = require('mime');
 const {_setCorsHeaders, getExt} = require('../utils.js');
-const AWS = require('aws-sdk');
 const ps = require('ps-node');
-let config = require('fs').existsSync('./config.json') ? require('../config.json') : null;
-
-const accessKeyId = process.env.accessKeyId || config.accessKeyId;
-const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
-const privateIp = process.env.privateIp || config.privateIp;
-const publicIp = process.env.publicIp || config.publicIp;
-
-const awsConfig = new AWS.Config({
-  credentials: new AWS.Credentials({
-    accessKeyId,
-    secretAccessKey,
-  }),
-  region: 'us-west-1',
-});
-// const ddb = new AWS.DynamoDB(awsConfig);
-// const ddbd = new AWS.DynamoDB.DocumentClient(awsConfig);
-const s3 = new AWS.S3(awsConfig);
+const {s3} = require('../aws.js');
+const {privateIp, publicIp} = require('../config.js');
 
 const jsPath = '../dialog/index.js';
 const bucketName = 'worlds.exokit.org';

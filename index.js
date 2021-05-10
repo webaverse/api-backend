@@ -29,43 +29,18 @@ const {SHA3} = require('sha3');
 const {default: formurlencoded} = require('form-urlencoded');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
-const {getDynamoItem, getDynamoAllItems, putDynamoItem} = require('./aws.js');
+const {ddb, ses} = require('./aws.js');
 const {getRedisItem, getRedisAllItems, parseRedisItems} = require('./redis.js');
 const {getExt, makePromise} = require('./utils.js');
 const Timer = require('./timer.js');
 const {getStoreEntries, getChainNft, getAllWithdrawsDeposits} = require('./tokens.js');
 const {getBlockchain} = require('./blockchain.js');
 // const browserManager = require('./browser-manager.js');
-const {accountKeys, ids, nftIndexName, redisPrefixes, mainnetSignatureMessage, cacheHostUrl} = require('./constants.js');
+const {accountKeys, ids, nftIndexName, redisPrefixes, mainnetSignatureMessage} = require('./constants.js');
 const {connect: redisConnect, getRedisClient} = require('./redis');
 const ethereumJsUtil = require('./ethereumjs-util.js');
+const{GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, CACHE_HOST_URL} = require('./config.js');
 
-let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
-
-const accessKeyId = process.env.accessKeyId || config.accessKeyId;
-const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
-const githubClientId = process.env.githubClientId || config.githubClientId;
-const githubClientSecret = process.env.githubClientSecret || config.githubClientSecret;
-const discordClientId = process.env.discordClientId || config.discordClientId;
-const discordClientSecret = process.env.discordClientSecret || config.discordClientSecret;
-
-const awsConfig = new AWS.Config({
-  credentials: new AWS.Credentials({
-    accessKeyId,
-    secretAccessKey,
-  }),
-  region: 'us-west-1',
-});
-const ddb = new AWS.DynamoDB(awsConfig);
-const ddbd = new AWS.DynamoDB.DocumentClient(awsConfig);
-const s3 = new AWS.S3(awsConfig);
-const ses = new AWS.SES(new AWS.Config({
-  credentials: new AWS.Credentials({
-    accessKeyId,
-    secretAccessKey,
-  }),
-  region: 'us-west-2',
-}));
 /* const apiKeyCache = new LRU({
   max: 1024,
   maxAge: 60 * 1000,
@@ -507,8 +482,8 @@ try {
             });
           });
           const s = formurlencoded({
-            client_id: discordClientId,
-            client_secret: discordClientSecret,
+            client_id: DISCORD_CLIENT_ID,
+            client_secret: DISCORD_CLIENT_SECRET,
             code: discordcode,
             grant_type: 'authorization_code',
             scope: 'identify',
@@ -1249,8 +1224,8 @@ try {
           _respond(500, err.stack);
         });
         proxyReq.end(JSON.stringify({
-          client_id: githubClientId,
-          client_secret: githubClientSecret,
+          client_id: GITHUB_CLIENT_ID,
+          client_secret: GITHUB_CLIENT_SECRET,
           code,
           state,
         }));
@@ -1497,7 +1472,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
           "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.png',
           "external_url": "https://app.webaverse.com?h=" + p.slice(1),
           // "background_color": "000000",
-          "animation_url": `${storageHost}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+          "animation_url": `${STORAGE_HOST}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
           // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
           "properties": {
                   "filename": filename,
@@ -1737,7 +1712,7 @@ try {
         "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.png',
         "external_url": "https://app.webaverse.com?h=" + p.slice(1),
         // "background_color": "000000",
-        "animation_url": `${storageHost}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+        "animation_url": `${STORAGE_HOST}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
         // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
         "properties": {
                 "filename": filename,
@@ -1823,7 +1798,7 @@ try {
           "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.png',
           "external_url": "https://app.webaverse.com?h=" + p.slice(1),
           // "background_color": "000000",
-          "animation_url": `${storageHost}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+          "animation_url": `${STORAGE_HOST}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
           // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
           "properties": {
                   "filename": filename,
@@ -1994,7 +1969,7 @@ try {
 
 let redisClient = null;
 const _tryConnectRedis = () => {
-  redisConnect(undefined, cacheHostUrl)
+  redisConnect(undefined, CACHE_HOST_URL)
     .then(() => {
       redisClient = getRedisClient();
       console.log('connected to redis');

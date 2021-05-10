@@ -1,16 +1,13 @@
 const stream = require('stream');
 const AWS = require('aws-sdk');
-let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
-
-const accessKeyId = process.env.accessKeyId || config.accessKeyId;
-const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
+const {AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION} = require('./config.js');
 
 const awsConfig = new AWS.Config({
     credentials: new AWS.Credentials({
-        accessKeyId,
-        secretAccessKey,
+        AWS_ACCESS_KEY_ID,
+        AWS_SECRET_ACCESS_KEY,
     }),
-    region: 'us-west-1',
+    region: AWS_REGION,
 });
 const s3 = new AWS.S3(awsConfig);
 

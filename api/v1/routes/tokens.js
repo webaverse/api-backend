@@ -23,7 +23,7 @@ const {
     PINATA_API_KEY,
     PINATA_SECRET_API_KEY,
     DEFAULT_TOKEN_DESCRIPTION
-} = require('../../config.js');
+} = require('../../../config.js');
 const {ResponseStatus} = require("../enums.js");
 const {runSidechainTransaction} = require("../../../tokens.js");
 const {production, development} = require("../environment.js");
