@@ -4,16 +4,12 @@ const dns = require('dns');
 const https = require('https');
 const fetch = require('node-fetch');
 const Web3 = require('web3');
-const {polygonVigilKey, ethereumHost} = require('./constants.js');
-
-let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
-
-const infuraProjectId = process.env.infuraProjectId || config.infuraProjectId;
+const {INFURA_PROJECT_ID, POLYGON_VIGIL_KEY, ETHEREUM_HOST} = require('./config.js')
 
 let addresses,
   abis,
   web3,
-  web3socketProviders,
+  // web3socketProviders,
   web3sockets,
   contracts,
   // wsContracts,
@@ -40,12 +36,12 @@ const loadPromise = (async() => {
     fetch('https://contracts.webaverse.com/config/addresses.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, ''))),
     fetch('https://contracts.webaverse.com/config/abi.js').then(res => res.text()).then(s => JSON.parse(s.replace(/^\s*export\s*default\s*/, ''))),
     new Promise((accept, reject) => {
-      dns.resolve4(ethereumHost, (err, addresses) => {
+      dns.resolve4(ETHEREUM_HOST, (err, addresses) => {
         if (!err) {
           if (addresses.length > 0) {
             accept(addresses[0]);
           } else {
-            reject(new Error('no addresses resolved for ' + ethereumHost));
+            reject(new Error('no addresses resolved for ' + ETHEREUM_HOST));
           }
         } else {
           reject(err);
@@ -82,36 +78,36 @@ const loadPromise = (async() => {
 
   web3 = {
     mainnet: new Web3(new Web3.providers.HttpProvider(
-      `https://mainnet.infura.io/v3/${infuraProjectId}`
+      `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`
     )),
     mainnetsidechain: new Web3(new Web3.providers.HttpProvider(
       `${gethNodeUrl}:${ports.mainnetsidechain}`
     )),
 
     /* testnet: new Web3(new Web3.providers.HttpProvider(
-      `https://rinkeby.infura.io/v3/${infuraProjectId}`
+      `https://rinkeby.infura.io/v3/${INFURA_PROJECT_ID}`
     )),
     testnetsidechain: new Web3(new Web3.providers.HttpProvider(
       `${gethNodeUrl}:${ports.testnetsidechain}`
     )), */
     
     polygon: new Web3(new Web3.providers.HttpProvider(
-      `https://rpc-mainnet.maticvigil.com/v1/${polygonVigilKey}`
+      `https://rpc-mainnet.maticvigil.com/v1/${POLYGON_VIGIL_KEY}`
     )),
     /* testnetpolygon: new Web3(new Web3.providers.HttpProvider(
-      `https://rpc-mumbai.maticvigil.com/v1/${polygonVigilKey}`
+      `https://rpc-mumbai.maticvigil.com/v1/${POLYGON_VIGIL_KEY}`
     )), */
   };
   
   web3socketProviderUrls = {
-    mainnet: `wss://mainnet.infura.io/ws/v3/${infuraProjectId}`,
+    mainnet: `wss://mainnet.infura.io/ws/v3/${INFURA_PROJECT_ID}`,
     mainnetsidechain: `${gethNodeWSUrl}:${ports.mainnetsidechainWs}`,
 
-    // testnet: `wss://rinkeby.infura.io/ws/v3/${infuraProjectId}`,
+    // testnet: `wss://rinkeby.infura.io/ws/v3/${INFURA_PROJECT_ID}`,
     // testnetsidechain: `${gethNodeWSUrl}:${ports.testnetsidechainWs}`,
     
-    polygon: `wss://rpc-webverse-mainnet.maticvigil.com/v1/${polygonVigilKey}`,
-    // testnetpolygon: `wss://rpc-mumbai.maticvigil.com/ws/v1/${polygonVigilKey}`,
+    polygon: `wss://rpc-webverse-mainnet.maticvigil.com/v1/${POLYGON_VIGIL_KEY}`,
+    // testnetpolygon: `wss://rpc-mumbai.maticvigil.com/ws/v1/${POLYGON_VIGIL_KEY}`,
   };
   
   /* web3socketProviders = {};

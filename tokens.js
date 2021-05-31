@@ -1,8 +1,6 @@
-const {accountKeys, storageHost} = require('./constants.js');
+const {accountKeys, zeroAddress, defaultAvatarPreview} = require('./constants.js');
 const {getBlockchain, getPastEvents} = require('./blockchain.js');
-
-const zeroAddress = '0x0000000000000000000000000000000000000000';
-const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
+const {STORAGE_HOST} = require('./config.js');
 const _log = async (text, p) => {
   // console.log('start pull', text);
   try {
@@ -393,7 +391,7 @@ const _cancelEntries = (mainnetDepositedEntries, mainnetWithdrewEntries, sidecha
   ];
 };
 
-const formatToken = contractName => chainName => async (token, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
+const formatToken = chainName => async (token, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
   // console.log('format token', {id: token.id});
   
   const tokenId = parseInt(token.id, 10);
@@ -404,9 +402,9 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
   } = await getBlockchain();
 
   const {
-    mainnetChainName,
+    // mainnetChainName,
     sidechainChainName,
-    polygonChainName,
+    // polygonChainName,
   } = getChainNames(chainName);
 
   let [
@@ -496,7 +494,7 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
     description,
     image: 'https://preview.exokit.org/' + hash + '.' + ext + '/preview.png',
     external_url: 'https://app.webaverse.com?h=' + hash,
-    animation_url: `${storageHost}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+    animation_url: `${STORAGE_HOST}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
     properties: {
       name,
       hash,
@@ -517,15 +515,15 @@ const formatToken = contractName => chainName => async (token, storeEntries, mai
   console.log('got token', JSON.stringify(o, null, 2));
   return o;
 };
-const formatLand = contractName => chainName => async (token, storeEntries) => {
+const formatLand = chainName => async (token) => {
   const {
     contracts,
   } = await getBlockchain();
 
   const {
-    mainnetChainName,
+    // mainnetChainName,
     sidechainChainName,
-    polygonChainName,
+    // polygonChainName,
   } = getChainNames(chainName);
 
   const owner = await _fetchAccount(token.owner, sidechainChainName);
@@ -537,7 +535,7 @@ const formatLand = contractName => chainName => async (token, storeEntries) => {
     description,
     rarity,
     extents,
-    sidechainMinterAddress,
+    // sidechainMinterAddress,
   ] = await Promise.all([
     contracts[chainName].LAND.methods.getSingleMetadata(tokenId, 'description').call(),
     contracts[chainName].LAND.methods.getMetadata(name, 'rarity').call(),
@@ -560,7 +558,7 @@ const formatLand = contractName => chainName => async (token, storeEntries) => {
     description,
     image: coord ? `https://land-preview.exokit.org/32/${coord[0]}/${coord[2]}?${extentsJson ? `e=${JSON.stringify(extentsJson)}` : ''}` : null,
     external_url: `https://app.webaverse.com?${coord ? `c=${JSON.stringify(coord)}` : ''}`,
-    // animation_url: `${storageHost}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
+    // animation_url: `${STORAGE_HOST}/${hash}/preview.${ext === 'vrm' ? 'glb' : ext}`,
     properties: {
       name,
       hash,
@@ -646,7 +644,7 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
     if (_isValidToken(token)) {
       if (contractName === 'NFT') {
         // console.log('start call');
-        const r = await formatToken(contractName)(chainName)(
+        const r = await formatToken(chainName)(
           token,
           storeEntries,
           mainnetDepositedEntries,
@@ -659,7 +657,7 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
         // console.log('end call');
         return r;
       } else if (contractName === 'LAND') {
-        return await formatLand(contractName)(chainName)(
+        return await formatLand(chainName)(
           token,
           storeEntries,
           mainnetDepositedEntries,
@@ -681,7 +679,7 @@ const getChainNft = contractName => chainName => async (tokenId, storeEntries, m
   }
 };
 const getChainToken = getChainNft('NFT');
-const getChainLand = getChainNft('LAND');
+// const getChainLand = getChainNft('LAND');
 const getChainOwnerNft = contractName => chainName => async (address, i, storeEntries, mainnetDepositedEntries, mainnetWithdrewEntries, sidechainDepositedEntries, sidechainWithdrewEntries, polygonDepositedEntries, polygonWithdrewEntries) => {
   if (!storeEntries || !mainnetDepositedEntries || !mainnetWithdrewEntries || !sidechainDepositedEntries || !sidechainWithdrewEntries || !polygonDepositedEntries || !polygonWithdrewEntries) {
     console.warn('bad arguments were', {
@@ -695,7 +693,8 @@ const getChainOwnerNft = contractName => chainName => async (address, i, storeEn
     });
     throw new Error('invalid arguments');
   }
-  
+  const {contracts} = await getBlockchain();
+
   const tokenSrc = await contracts[chainName][contractName].methods.tokenOfOwnerByIndexFull(address, i).call();
   const token = _copy(tokenSrc);
   const {hash} = token;
@@ -706,7 +705,7 @@ const getChainOwnerNft = contractName => chainName => async (address, i, storeEn
 
   try {
     if (contractName === 'NFT') {
-      return await formatToken(contractName)(chainName)(
+      return await formatToken(chainName)(
         token,
         storeEntries,
         mainnetDepositedEntries,
@@ -717,7 +716,7 @@ const getChainOwnerNft = contractName => chainName => async (address, i, storeEn
         polygonWithdrewEntries,
       );
     } else if (contractName === 'LAND') {
-      return await formatLand(contractName)(chainName)(
+      return await formatLand(chainName)(
         token,
         storeEntries,
         mainnetDepositedEntries,
@@ -890,6 +889,7 @@ module.exports = {
   getChainNft,
   getChainAccount,
   getChainToken,
+  getChainOwnerNft,
   // formatToken,
   // formatLand,
   getStoreEntries,

@@ -1,4 +1,4 @@
-const { putObject } = require('./aws.js')
+const {putObject} = require('./aws.js')
 const fetch = require('node-fetch');
 const mime = require('mime');
 
