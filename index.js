@@ -2010,35 +2010,38 @@ try {
   if (req.headers['authorization'] === 'Password ' + config.devPassword) {
 	  _setCorsHeaders(res);
 		
-		const bs = [];
-		req.on('data', d => {
-		  bs.push(d);
-		});
-		req.on('end', () => {
-		  const b = Buffer.concat(bs);
-			bs.length = 0;
-
-      const s = b.toString('utf8');
-      const o = JSON.parse(s);
-
-			const gptResponse = await openai.complete({
-				engine: 'davinci',
-				// stream: false,
-				prompt: o.prompt, // 'this is a test',
-				maxTokens: o.maxTokens, // 5,
-				temperature: o.temperature, // 0.9,
-				topP: o.topP, // 1,
-				presencePenalty: o.presencePenalty, // 0,
-				frequencyPenalty: o.frequencyPenalty, // 0,
-				bestOf: o.bestOf, // 1,
-				n: o.n, // 1,
-				stop: o.stop, // ['\n']
+		const b = await new Promise((accept, reject) => {
+			const bs = [];
+			req.on('data', d => {
+				bs.push(d);
 			});
-
-			console.log(gptResponse.data);
-
-			res.end(JSON.stringify(gptResponse.data));
+			req.on('end', () => {
+				const b = Buffer.concat(bs);
+				bs.length = 0;
+				return b;
+			});
+			req.on('error', reject);
 		});
+		const s = b.toString('utf8');
+		const o = JSON.parse(s);
+
+		const gptResponse = await openai.complete({
+			engine: 'davinci',
+			// stream: false,
+			prompt: o.prompt, // 'this is a test',
+			maxTokens: o.maxTokens, // 5,
+			temperature: o.temperature, // 0.9,
+			topP: o.topP, // 1,
+			presencePenalty: o.presencePenalty, // 0,
+			frequencyPenalty: o.frequencyPenalty, // 0,
+			bestOf: o.bestOf, // 1,
+			n: o.n, // 1,
+			stop: o.stop, // ['\n']
+		});
+
+		console.log(gptResponse.data);
+
+		res.end(JSON.stringify(gptResponse.data));
 	} else {
 	  _respond(403, JSON.stringify({
 			error: 'invalid password',
