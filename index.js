@@ -2021,7 +2021,7 @@ try {
 			req.on('end', () => {
 				const b = Buffer.concat(bs);
 				bs.length = 0;
-				return b;
+				accept(b);
 			});
 			req.on('error', reject);
 		});
