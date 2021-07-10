@@ -2007,7 +2007,11 @@ const _handleAi = async (req, res) => {
   };
 
 try {
-  if (req.method === 'POST' && req.headers['authorization'] === 'Password ' + config.devPassword) {
+	if (req.method === 'OPTIONS') {
+		if (req.method === 'OPTIONS') {
+      _setCorsHeaders(res);
+      res.end();
+  } else if (req.method === 'POST' && req.headers['authorization'] === 'Password ' + config.devPassword) {
 	  _setCorsHeaders(res);
 		
 		const b = await new Promise((accept, reject) => {
