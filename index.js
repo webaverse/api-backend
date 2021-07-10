@@ -2008,9 +2008,8 @@ const _handleAi = async (req, res) => {
 
 try {
 	if (req.method === 'OPTIONS') {
-		if (req.method === 'OPTIONS') {
-      _setCorsHeaders(res);
-      res.end();
+		_setCorsHeaders(res);
+		res.end();
   } else if (req.method === 'POST' && req.headers['authorization'] === 'Password ' + config.devPassword) {
 	  _setCorsHeaders(res);
 		
