@@ -2210,7 +2210,7 @@ try {
     _handleStore("sidechain")(req, res);
     return;
   } else if (o.host === 'ai.exokit.org') {
-	  _handleAi();
+	  _handleAi(req, res);
 		return;
 	}
 
