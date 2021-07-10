@@ -39,6 +39,7 @@ const {getBlockchain} = require('./blockchain.js');
 const {accountKeys, ids, nftIndexName, redisPrefixes, mainnetSignatureMessage, cacheHostUrl} = require('./constants.js');
 const {connect: redisConnect, getRedisClient} = require('./redis');
 const ethereumJsUtil = require('./ethereumjs-util.js');
+const OpenAI = require('openai-api');
 
 let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
 
@@ -75,6 +76,7 @@ const ses = new AWS.SES(new AWS.Config({
 // const eventsManager = require('./events-manager.js');
 
 const Discord = require('discord.js');
+const openai = new OpenAI(config.openAiKey);
 
 // const api = require('./api.js');
 // const { _handleStorageRequest } = require('./routes/storage.js');
@@ -1992,6 +1994,65 @@ try {
 }
 };
 
+const _handleAi = async (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+
+try {
+  if (req.headers['authorization'] === 'Password ' + config.devPassword) {
+	  _setCorsHeaders(res);
+		
+		const bs = [];
+		req.on('data', d => {
+		  bs.push(d);
+		});
+		req.on('end', () => {
+		  const b = Buffer.concat(bs);
+			bs.length = 0;
+
+      const s = b.toString('utf8');
+      const o = JSON.parse(s);
+
+			const gptResponse = await openai.complete({
+				engine: 'davinci',
+				// stream: false,
+				prompt: o.prompt, // 'this is a test',
+				maxTokens: o.maxTokens, // 5,
+				temperature: o.temperature, // 0.9,
+				topP: o.topP, // 1,
+				presencePenalty: o.presencePenalty, // 0,
+				frequencyPenalty: o.frequencyPenalty, // 0,
+				bestOf: o.bestOf, // 1,
+				n: o.n, // 1,
+				stop: o.stop, // ['\n']
+			});
+
+			console.log(gptResponse.data);
+
+			res.end(JSON.stringify(gptResponse.data));
+		});
+	} else {
+	  _respond(403, JSON.stringify({
+			error: 'invalid password',
+		}));
+	}
+} catch(err) {
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
+}
+};
+
 let redisClient = null;
 const _tryConnectRedis = () => {
   redisConnect(undefined, cacheHostUrl)
@@ -2145,7 +2206,10 @@ try {
   } else if (o.host === 'testnetsidechain-store.webaverse.com') {
     _handleStore("sidechain")(req, res);
     return;
-  }
+  } else if (o.host === 'ai.exokit.org') {
+	  _handleAi();
+		return;
+	}
 
   if (match = o.host.match(/^(.+)\.proxy\.exokit.org$/)) {
     const raw = match[1];
