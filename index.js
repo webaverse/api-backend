@@ -2027,6 +2027,8 @@ try {
 		});
 		const s = b.toString('utf8');
 		const o = JSON.parse(s);
+		
+		console.log('got o', o);
 
 		const gptResponse = await openai.complete({
 			engine: 'davinci',
@@ -2042,6 +2044,7 @@ try {
 			stop: o.stop, // ['\n']
 		});
 
+		console.log('got response');
 		console.log(gptResponse.data);
 
 		res.end(JSON.stringify(gptResponse.data));
