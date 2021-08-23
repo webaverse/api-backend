@@ -120,9 +120,31 @@ function _randomString() {
   return Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
 }
 
+const maxEmailsPerIp = 5;
+const maxEmailsRefillTime = 10 * 60 * 1000;
+class Throttler {
+  constructor() {
+	  this.tickets = {};
+	}
+	getTicket(ip) {
+		this.tickets[ip] ||= 0;
+		if (this.tickets[ip] < maxEmailsPerIp) {
+			this.tickets[ip]++;
+			setTimeout(() => {
+				this.tickets[ip]--;
+			}, maxEmailsRefillTime);
+		  return true;
+		} else {
+			return false;
+		}
+	}
+}
+
 (async () => {
 
 await worldManager.waitForLoad();
+
+const throttler = new Throttler();
 
 /* const ipfsRepoLockPath = path.join(os.homedir(), '.ipfs', 'repo.lock');
 try {
@@ -309,6 +331,8 @@ try {
           console.log('whitelist', {email, whitelisted});
 
           if (whitelisted) { */
+					
+					if (throttler.getTicket(req.connection.remoteAddress)) {
             const code = new Uint32Array(crypto.randomBytes(4).buffer, 0, 1).toString(10).slice(-6);
 
             console.log('verification', {email, code});
@@ -345,7 +369,10 @@ try {
             console.log('got response', data);
 
             _respond(200, JSON.stringify({}));
-          /* } else {
+          } else {
+					  _respond(429, JSON.stringify({}));
+					}
+					/* } else {
             _respond(403, JSON.stringify({
               error: 'email not whitelisted',
             }));
