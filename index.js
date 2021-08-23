@@ -124,20 +124,20 @@ const maxEmailsPerIp = 5;
 const maxEmailsRefillTime = 10 * 60 * 1000;
 class Throttler {
   constructor() {
-	  this.tickets = {};
-	}
-	getTicket(ip) {
-		this.tickets[ip] ||= 0;
-		if (this.tickets[ip] < maxEmailsPerIp) {
-			this.tickets[ip]++;
-			setTimeout(() => {
-				this.tickets[ip]--;
-			}, maxEmailsRefillTime);
-		  return true;
-		} else {
-			return false;
-		}
-	}
+    this.tickets = {};
+  }
+  getTicket(ip) {
+    this.tickets[ip] ||= 0;
+    if (this.tickets[ip] < maxEmailsPerIp) {
+      this.tickets[ip]++;
+      setTimeout(() => {
+        this.tickets[ip]--;
+      }, maxEmailsRefillTime);
+      return true;
+    } else {
+      return false;
+    }
+  }
 }
 
 (async () => {
@@ -331,8 +331,8 @@ try {
           console.log('whitelist', {email, whitelisted});
 
           if (whitelisted) { */
-					
-					if (throttler.getTicket(req.connection.remoteAddress)) {
+          
+          if (throttler.getTicket(req.connection.remoteAddress)) {
             const code = new Uint32Array(crypto.randomBytes(4).buffer, 0, 1).toString(10).slice(-6);
 
             console.log('verification', {email, code});
@@ -370,9 +370,9 @@ try {
 
             _respond(200, JSON.stringify({}));
           } else {
-					  _respond(429, JSON.stringify({}));
-					}
-					/* } else {
+            _respond(429, JSON.stringify({}));
+          }
+          /* } else {
             _respond(403, JSON.stringify({
               error: 'email not whitelisted',
             }));
@@ -2034,52 +2034,52 @@ const _handleAi = async (req, res) => {
   };
 
 try {
-	if (req.method === 'OPTIONS') {
-		_setCorsHeaders(res);
-		res.end();
+  if (req.method === 'OPTIONS') {
+    _setCorsHeaders(res);
+    res.end();
   } else if (req.method === 'POST' && req.headers['authorization'] === 'Password ' + config.devPassword) {
-	  _setCorsHeaders(res);
-		
-		const b = await new Promise((accept, reject) => {
-			const bs = [];
-			req.on('data', d => {
-				bs.push(d);
-			});
-			req.on('end', () => {
-				const b = Buffer.concat(bs);
-				bs.length = 0;
-				accept(b);
-			});
-			req.on('error', reject);
-		});
-		const s = b.toString('utf8');
-		const o = JSON.parse(s);
-		
-		console.log('got o', o);
+    _setCorsHeaders(res);
+    
+    const b = await new Promise((accept, reject) => {
+      const bs = [];
+      req.on('data', d => {
+        bs.push(d);
+      });
+      req.on('end', () => {
+        const b = Buffer.concat(bs);
+        bs.length = 0;
+        accept(b);
+      });
+      req.on('error', reject);
+    });
+    const s = b.toString('utf8');
+    const o = JSON.parse(s);
+    
+    console.log('got o', o);
 
-		const gptResponse = await openai.complete({
-			engine: 'davinci',
-			// stream: false,
-			prompt: o.prompt, // 'this is a test',
-			maxTokens: o.maxTokens, // 5,
-			temperature: o.temperature, // 0.9,
-			topP: o.topP, // 1,
-			presencePenalty: o.presencePenalty, // 0,
-			frequencyPenalty: o.frequencyPenalty, // 0,
-			bestOf: o.bestOf, // 1,
-			n: o.n, // 1,
-			stop: o.stop, // ['\n']
-		});
+    const gptResponse = await openai.complete({
+      engine: 'davinci',
+      // stream: false,
+      prompt: o.prompt, // 'this is a test',
+      maxTokens: o.maxTokens, // 5,
+      temperature: o.temperature, // 0.9,
+      topP: o.topP, // 1,
+      presencePenalty: o.presencePenalty, // 0,
+      frequencyPenalty: o.frequencyPenalty, // 0,
+      bestOf: o.bestOf, // 1,
+      n: o.n, // 1,
+      stop: o.stop, // ['\n']
+    });
 
-		console.log('got response');
-		console.log(gptResponse.data);
+    console.log('got response');
+    console.log(gptResponse.data);
 
-		res.end(JSON.stringify(gptResponse.data));
-	} else {
-	  _respond(403, JSON.stringify({
-			error: 'invalid password',
-		}));
-	}
+    res.end(JSON.stringify(gptResponse.data));
+  } else {
+    _respond(403, JSON.stringify({
+      error: 'invalid password',
+    }));
+  }
 } catch(err) {
   console.warn(err);
 
@@ -2243,9 +2243,9 @@ try {
     _handleStore("sidechain")(req, res);
     return;
   } else if (o.host === 'ai.exokit.org') {
-	  _handleAi(req, res);
-		return;
-	}
+    _handleAi(req, res);
+    return;
+  }
 
   if (match = o.host.match(/^(.+)\.proxy\.exokit.org$/)) {
     const raw = match[1];
