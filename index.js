@@ -332,9 +332,10 @@ try {
 
           if (whitelisted) { */
           
-          if (throttler.getTicket(req.connection.remoteAddress)) {
-            console.log(`login with email ${email} @ ${req.connection.remoteAddress}`);
-            
+          const ok = throttler.getTicket(req.connection.remoteAddress);
+          console.log(`login with email ${email} @ ${req.connection.remoteAddress} ${ok ? 'OK' : 'BLOCKED'}`);
+          
+          if (ok) {
             const code = new Uint32Array(crypto.randomBytes(4).buffer, 0, 1).toString(10).slice(-6);
 
             console.log('verification', {email, code});
