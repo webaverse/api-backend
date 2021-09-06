@@ -1980,10 +1980,16 @@ try {
   if (method === 'GET') {
     const {pathname: p} = url.parse(req.url, true);
     let match;
-    if (match = p.match(/^\/0x([0-9a-f]+)$/i)) {
-      const address = parseInt(match[1], 10);
+    if (match = p.match(/^\/accounts\/(0x[0-9a-f]+)$/i)) {
+      const accountAddress = match[1];
+      const metadata = await gotNfts.fetchNftsMetadata(accountAddress);
       
-      const metadata = await gotNfts.getNftsMetadata(address);
+      _setCorsHeaders(res);
+      res.json(metadata);
+    } else if (match = p.match(/^\/tokens\/(0x[0-9a-f]+)\/([0-9]+)/$/i)) {
+      const contractAddress = match[1];
+      const tokenId = parseInt(match[2], 10);
+      const metadata = await gotNfts.fetchNftMetadata(contractAddress, tokenId);
       
       _setCorsHeaders(res);
       res.json(metadata);
