@@ -29,6 +29,7 @@
     "ethereumjs-wallet": "^1.0.1",
     "form-data": "^3.0.0",
     "form-urlencoded": "^4.2.1",
+    "got-nfts": "^1.0.4",
     "http-proxy": "^1.18.1",
     "lru": "^3.1.0",
     "mime": "^2.4.6",
