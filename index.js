@@ -1961,7 +1961,7 @@ try {
 };
 const _handleTokens = _handleCachedNft('NFT');
 const _handleLand = _handleChainNft('LAND');
-const _handleGraph = (req, res) => {
+const _handleGraph = async (req, res) => {
     const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
