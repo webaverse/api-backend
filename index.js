@@ -1984,14 +1984,14 @@ try {
       const metadata = await gotNfts.fetchNftsMetadata(accountAddress);
       
       _setCorsHeaders(res);
-      res.json(metadata);
+      _respond(200, JSON.stringify(metadata));
     } else if (match = p.match(/^\/tokens\/(0x[0-9a-f]+)\/([0-9]+)$/i)) {
       const contractAddress = match[1];
       const tokenId = parseInt(match[2], 10);
       const metadata = await gotNfts.fetchNftMetadata(contractAddress, tokenId);
       
       _setCorsHeaders(res);
-      res.json(metadata);
+      _respond(200, JSON.stringify(metadata));
     } else {
       _respond(404, 'not found');
     }
