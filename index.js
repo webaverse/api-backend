@@ -39,6 +39,7 @@ const {getBlockchain} = require('./blockchain.js');
 const {accountKeys, ids, nftIndexName, redisPrefixes, mainnetSignatureMessage, cacheHostUrl} = require('./constants.js');
 const {connect: redisConnect, getRedisClient} = require('./redis');
 const ethereumJsUtil = require('./ethereumjs-util.js');
+const gotNfts = require('got-nfts');
 const OpenAI = require('openai-api');
 
 let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
@@ -1960,6 +1961,46 @@ try {
 };
 const _handleTokens = _handleCachedNft('NFT');
 const _handleLand = _handleChainNft('LAND');
+const _handleGraph = (req, res) => {
+    const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+  const _maybeGetStoreEntries = () => (contractName === 'NFT' && !chainName.includes('testnet')) ? getStoreEntries(chainName) : Promise.resolve([]);
+
+try {
+  const {method} = req;
+
+  if (method === 'GET') {
+    const {pathname: p} = url.parse(req.url, true);
+    let match;
+    if (match = p.match(/^\/0x([0-9a-f]+)$/i)) {
+      const address = parseInt(match[1], 10);
+      
+      const metadata = await gotNfts.getNftsMetadata(address);
+      
+      _setCorsHeaders(res);
+      res.json(metadata);
+    } else {
+      _respond(404, 'not found');
+    }
+  } else {
+    _respond(404, 'not found');
+  }
+} catch(err) {
+  console.warn(err);
+
+  _respond(500, JSON.stringify({
+    error: err.stack,
+  }));
+}
+};
 
 const _handleStore = chainName => async (req, res) => {
   const _respond = (statusCode, body) => {
@@ -2233,9 +2274,12 @@ try {
   } else if (o.host === 'testnetpolygon-land.webaverse.com') {
     _handleLand("testnetpolygon", false)(req, res);
     return;
-  } else if (o.host === 'worlds.exokit.org') {
-    _handleWorldsRequest(req, res);
+  } else if (o.host === 'graph.webaverse.com') {
+    _handleGraph(req, res);
     return;
+  /* } else if (o.host === 'worlds.exokit.org') {
+    _handleWorldsRequest(req, res);
+    return; */
   /* } else if (o.host === 'storage.exokit.org' || o.host === 'storage.webaverse.com') {
     _handleStorageRequest(req, res);
     return; */
