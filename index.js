@@ -2163,6 +2163,7 @@ proxy.on('proxyRes', (proxyRes, req) => {
     proxyRes.headers['location'] = o.href;
   }
   proxyRes.headers['access-control-allow-origin'] = '*';
+  delete proxyRes.headers['x-frame-options'];
 });
 proxy.on('error', err => {
   console.warn(err.stack);
