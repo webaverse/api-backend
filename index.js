@@ -2165,6 +2165,7 @@ proxy.on('proxyRes', (proxyRes, req) => {
   proxyRes.headers['access-control-allow-origin'] = '*';
   delete proxyRes.headers['x-frame-options'];
   delete proxyRes.headers['content-security-policy'];
+  delete proxyRes.headers['x-xss-protection'];
 });
 proxy.on('error', err => {
   console.warn(err.stack);
