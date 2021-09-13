@@ -2214,6 +2214,7 @@ try {
     const aiPrefix = await getAiPrefix();
 
     const p = decodeURIComponent(o.query.p);
+    console.log('run query', {aiPrefix, p});
     const proxyRes = await _openAiCodex(aiPrefix + p + ' */\n', '\n/* Command: ');
     if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
       for (const key in proxyRes.headers) {
