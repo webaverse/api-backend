@@ -2162,7 +2162,8 @@ const _handleAi = async (req, res) => {
   };
 
 try {
-  let {pathname: p} = url.parse(req.url, true);
+  const o = url.parse(req.url, true);
+  const {pathname: p} = o;
   
   console.log('got ai hit', req.method, o, req.headers);
   
