@@ -2169,74 +2169,68 @@ try {
   if (req.method === 'OPTIONS') {
     _setCorsHeaders(res);
     res.end();
-  } else if (req.method === 'POST' && req.headers['authorization'] === 'Password ' + config.devPassword) {
-    if (p === '/') {
-      _setCorsHeaders(res);
-      
-      const b = await new Promise((accept, reject) => {
-        const bs = [];
-        req.on('data', d => {
-          bs.push(d);
-        });
-        req.on('end', () => {
-          const b = Buffer.concat(bs);
-          bs.length = 0;
-          accept(b);
-        });
-        req.on('error', reject);
+  } else if (req.method === 'POST' && p === '/' && req.headers['authorization'] === 'Password ' + config.devPassword) {
+    _setCorsHeaders(res);
+    
+    const b = await new Promise((accept, reject) => {
+      const bs = [];
+      req.on('data', d => {
+        bs.push(d);
       });
-      const s = b.toString('utf8');
-      const o = JSON.parse(s);
-      
-      console.log('got o', o);
-
-      const gptResponse = await openai.complete({
-        engine: 'davinci',
-        // stream: false,
-        prompt: o.prompt, // 'this is a test',
-        maxTokens: o.maxTokens, // 5,
-        temperature: o.temperature, // 0.9,
-        topP: o.topP, // 1,
-        presencePenalty: o.presencePenalty, // 0,
-        frequencyPenalty: o.frequencyPenalty, // 0,
-        bestOf: o.bestOf, // 1,
-        n: o.n, // 1,
-        stop: o.stop, // ['\n']
+      req.on('end', () => {
+        const b = Buffer.concat(bs);
+        bs.length = 0;
+        accept(b);
       });
+      req.on('error', reject);
+    });
+    const s = b.toString('utf8');
+    const o = JSON.parse(s);
+    
+    console.log('got o', o);
 
-      console.log('got response');
-      console.log(gptResponse.data);
+    const gptResponse = await openai.complete({
+      engine: 'davinci',
+      // stream: false,
+      prompt: o.prompt, // 'this is a test',
+      maxTokens: o.maxTokens, // 5,
+      temperature: o.temperature, // 0.9,
+      topP: o.topP, // 1,
+      presencePenalty: o.presencePenalty, // 0,
+      frequencyPenalty: o.frequencyPenalty, // 0,
+      bestOf: o.bestOf, // 1,
+      n: o.n, // 1,
+      stop: o.stop, // ['\n']
+    });
 
-      res.end(JSON.stringify(gptResponse.data));
-    } else if (p === '/code') {
-      _setCorsHeaders(res);
+    console.log('got response');
+    console.log(gptResponse.data);
 
-      const aiPrefix = await getAiPrefix();
+    res.end(JSON.stringify(gptResponse.data));
+  } else if (req.method === 'POST' && p === '/code' && o.query.a && decodeURIComponent(o.query.a) === config.devPassword) {
+    _setCorsHeaders(res);
 
-      const p = decodeURIComponent(o.query.p);
-      const proxyRes = await _openAiCodex(aiPrefix + p + ' */\n', '\n/* Command: ');
-      if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
-        for (const key in proxyRes.headers) {
-          const value = proxyRes.headers[key];
-          res.setHeader(key, value);
-        }
-        // console.log('render');
-        proxyRes.pipe(res);
-        proxyRes.on('data', d => {
-          console.log('got data', d.toString('utf8'));
-        });
-      } else {
-        proxyRes.setEncoding('utf8');
-        proxyRes.on('data', s => {
-          console.log(s);
-        });
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.end('data: [DONE]');
+    const aiPrefix = await getAiPrefix();
+
+    const p = decodeURIComponent(o.query.p);
+    const proxyRes = await _openAiCodex(aiPrefix + p + ' */\n', '\n/* Command: ');
+    if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
+      for (const key in proxyRes.headers) {
+        const value = proxyRes.headers[key];
+        res.setHeader(key, value);
       }
+      // console.log('render');
+      proxyRes.pipe(res);
+      proxyRes.on('data', d => {
+        console.log('got data', d.toString('utf8'));
+      });
     } else {
-      _respond(404, JSON.stringify({
-        error: 'path not found',
-      }));
+      proxyRes.setEncoding('utf8');
+      proxyRes.on('data', s => {
+        console.log(s);
+      });
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.end('data: [DONE]');
     }
   } else {
     _respond(403, JSON.stringify({
