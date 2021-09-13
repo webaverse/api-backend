@@ -90,12 +90,15 @@ const getAiPrefix = (() => {
         aiPrefixLoad = (async () => {
           const res = await fetch(`https://webaverse.github.io/app/ai/ai-prefix.js`);
           const text = await res.text();
+          return text;
+        })();
+        aiPrefixLoad.then(text => {
           aiPrefix = text;
           aiPrefixLoad = null;
           setTimeout(() => {
             aiPrefix = null;
           }, 10 * 60 * 1000);
-        })();
+        });
       }
       return await aiPrefixLoad;
     }
