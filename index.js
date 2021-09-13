@@ -43,7 +43,7 @@ const gotNfts = require('got-nfts');
 const OpenAI = require('openai-api');
 const GPT3Encoder = require('gpt-3-encoder');
 
-let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
+let config = fs.existsSync('./config.json') ? require('./config.json') : null;
 
 const accessKeyId = process.env.accessKeyId || config.accessKeyId;
 const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
