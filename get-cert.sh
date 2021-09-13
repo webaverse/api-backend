@@ -7,5 +7,6 @@ certbot certonly --manual \
   -d "*.exokit.org" \
   -d "*.proxy.exokit.org" \
   -d "*.webaverse.com" \
+  -d "*.proxy.webaverse.com" \
   -d "exokit.org" \
   -d "webaverse.com"
