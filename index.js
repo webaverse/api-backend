@@ -2165,7 +2165,7 @@ try {
   const o = url.parse(req.url, true);
   const {pathname: p} = o;
   
-  console.log('got ai hit', req.method, o, req.headers);
+  // console.log('got ai hit', req.method, o, req.headers);
   
   if (req.method === 'OPTIONS') {
     _setCorsHeaders(res);
@@ -2208,7 +2208,7 @@ try {
     console.log(gptResponse.data);
 
     res.end(JSON.stringify(gptResponse.data));
-  } else if (req.method === 'POST' && p === '/code' && o.query.a && decodeURIComponent(o.query.a) === config.devPassword) {
+  } else if (req.method === 'GET' && p === '/code' && o.query.a && decodeURIComponent(o.query.a) === config.devPassword) {
     _setCorsHeaders(res);
 
     const aiPrefix = await getAiPrefix();
