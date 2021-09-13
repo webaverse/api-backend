@@ -2164,7 +2164,7 @@ const _handleAi = async (req, res) => {
 try {
   let {pathname: p} = url.parse(req.url, true);
   
-  console.log('got ai hit', req.method, p, req.headers);
+  console.log('got ai hit', req.method, o, req.headers);
   
   if (req.method === 'OPTIONS') {
     _setCorsHeaders(res);
