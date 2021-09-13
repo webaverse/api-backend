@@ -2297,7 +2297,7 @@ try {
   } else if (o.host === 'testnetsidechain-store.webaverse.com') {
     _handleStore("sidechain")(req, res);
     return;
-  } else if (o.host === 'ai.exokit.org') {
+  } else if (o.host === 'ai.exokit.org' || o.host === 'ai.webaverse.com') {
     _handleAi(req, res);
     return;
   }
