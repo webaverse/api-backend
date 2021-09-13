@@ -97,7 +97,7 @@ const getAiPrefix = (() => {
           aiPrefixLoad = null;
           setTimeout(() => {
             aiPrefix = null;
-          }, 10 * 60 * 1000);
+          }, 60 * 1000);
         });
       }
       return await aiPrefixLoad;
