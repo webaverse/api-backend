@@ -2416,7 +2416,7 @@ try {
     return;
   }
 
-  if (match = o.host.match(/^(.+)\.proxy\.webaverse\.com$/)) {
+  if (match = o.host.match(/^(.+)\.proxy\.(?:webaverse\.com|exokit\.org)$/)) {
     const raw = match[1];
     const match2 = raw.match(/^(https?-)(.+?)(-[0-9]+)?$/);
     if (match2) {
@@ -2480,7 +2480,7 @@ const _ws = protocol => (req, socket, head) => {
     const o = url.parse(protocol + '//' + (req.headers['host'] || '') + req.url);
     console.log('got', protocol, req.headers['host'], req.url, o);
     let match;
-    if (match = o.host.match(/^(.+)\.proxy\.webaverse\.com$/)) {
+    if (match = o.host.match(/^(.+)\.proxy\.(?:webaverse\.com|exokit\.org)$/)) {
       const raw = match[1];
       const match2 = raw.match(/^(https?-)(.+?)(-[0-9]+)?$/);
       console.log('match 2', raw, match2);
