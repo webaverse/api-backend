@@ -2219,24 +2219,31 @@ try {
 
     const p = decodeURIComponent(o.query.p);
     console.log('run query', {aiPrefix, p});
-    const proxyRes = await _openAiCodex(aiPrefix + p + ' */\n', '\n/* Command: ');
-    if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
-      for (const key in proxyRes.headers) {
-        const value = proxyRes.headers[key];
-        res.setHeader(key, value);
+    const maxChars = 256;
+    if (p.length <= maxChars) {
+      const proxyRes = await _openAiCodex(aiPrefix + p + ' */\n', '\n/* Command: ');
+      if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
+        for (const key in proxyRes.headers) {
+          const value = proxyRes.headers[key];
+          res.setHeader(key, value);
+        }
+        // console.log('render');
+        proxyRes.pipe(res);
+        proxyRes.on('data', d => {
+          console.log('got data', d.toString('utf8'));
+        });
+      } else {
+        proxyRes.setEncoding('utf8');
+        proxyRes.on('data', s => {
+          console.log(s);
+        });
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.end('data: [DONE]');
       }
-      // console.log('render');
-      proxyRes.pipe(res);
-      proxyRes.on('data', d => {
-        console.log('got data', d.toString('utf8'));
-      });
     } else {
-      proxyRes.setEncoding('utf8');
-      proxyRes.on('data', s => {
-        console.log(s);
-      });
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.end('data: [DONE]');
+      _respond(400, JSON.stringify({
+        error: `prompt length exceeded (max=${maxChars} submitted=${p.length})`,
+      }));
     }
   } else {
     _respond(403, JSON.stringify({
