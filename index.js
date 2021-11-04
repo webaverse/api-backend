@@ -272,7 +272,7 @@ try {
     console.log('got login', JSON.stringify({method, p, query}, null, 2));
 
     if (method === 'POST') {
-      let {email, code, token, discordcode, discordid, twittercode, twitterid, autoip, mnemonic, signature, nonce} = query;
+      let {email, code, token, discordcode, discordid, twittercode, twitterid, autoip, mnemonic, signature, nonce, redirect_uri} = query;
       if (email && emailRegex.test(email)) {
         if (token) {
           const tokenItem = await ddb.getItem({
@@ -628,7 +628,7 @@ try {
             code: discordcode,
             grant_type: 'authorization_code',
             scope: 'identify',
-            redirect_uri: 'https://webaverse.com/login',
+            redirect_uri: redirect_uri || 'https://webaverse.com/login',
           });
           proxyReq.end(s);
           proxyReq.on('error', err => {
