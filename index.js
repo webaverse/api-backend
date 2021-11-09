@@ -2339,12 +2339,7 @@ try {
 
   const o = url.parse(protocol + '//' + (req.headers['host'] || '') + req.url);
   let match;
-  if (o.host === 'localhost:3000') {
-    if (o.pathname === '/tokenids' && req.method === 'GET') {
-      _handleTokenIds('rinkeby')(req, res);
-      return;
-    }
-  }
+
   if (o.host === 'login.exokit.org') {
     _handleLogin(req, res);
     return;
@@ -2469,6 +2464,10 @@ try {
         res.setHeader('Access-Control-Allow-Headers', '*');
         res.end();
       } else {
+        if (o.pathname === '/tokenids' && req.method === 'GET') {
+          _handleTokenIds('rinkeby')(req, res);
+          return;
+        }
         o.protocol = match2[1].replace(/-/g, ':');
         o.host = match2[2].replace(/--/g, '=').replace(/-/g, '.').replace(/=/g, '-').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
         const oldUrl = req.url;
