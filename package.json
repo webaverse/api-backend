@@ -23,6 +23,7 @@
     "@onflow/sdk": "0.0.31",
     "@onflow/types": "0.0.4",
     "aws-sdk": "^2.750.0",
+    "axios": "^0.24.0",
     "bip39": "^3.0.2",
     "discord.js": "^12.2.0",
     "dotenv": "^8.2.0",

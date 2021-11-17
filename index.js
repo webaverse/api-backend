@@ -43,7 +43,7 @@ const gotNfts = require('got-nfts');
 const OpenAI = require('openai-api');
 const GPT3Encoder = require('gpt-3-encoder');
 const Web3 = require('web3');
-
+const axios = require('axios');
 
 let config = fs.existsSync('./config.json') ? require('./config.json') : null;
 
@@ -2110,12 +2110,37 @@ const _handleTokenIds = chainName => async (req, res) => {
     _respond(400, 'invalid address');
     return;
   }
-  let o = await getRedisItem(ownerAddress, redisPrefixes.WebaverseERC721);
+  let o = await getRedisItem(ownerAddress, redisPrefixes.rinkebyWebaverseERC721);
   if (!o) {
     _respond(404, 'Record Not Found');
     return;
   }
   return _respond(200, JSON.stringify(o));
+}
+
+
+const _handleTokenURIs = chainName => async (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+  const query = url.parse(req.url,true).query;
+  const tokenID = query.tokenID;
+  let o = await getRedisItem(tokenID, redisPrefixes.rinkebyWebaverseERC721+'uris');
+  if (!o || !o.Item) {
+    _respond(404, 'Record Not Found');
+    return;
+  }
+
+  const val = Object.values(o.Item).join('');
+  const ares = await axios.get(val);
+  return _respond(200, JSON.stringify(ares.data));
 }
 
 
@@ -2339,7 +2364,16 @@ try {
 
   const o = url.parse(protocol + '//' + (req.headers['host'] || '') + req.url);
   let match;
-
+  if (o.host === 'localhost:3000') {
+    if (o.pathname === '/tokenids' && req.method === 'GET') {
+      _handleTokenIds('rinkeby')(req, res);
+      return;
+    }
+    if (o.pathname === '/tokenuri' && req.method === 'GET') {
+      _handleTokenURIs('rinkeby')(req, res);
+      return;
+    }
+  }
   if (o.host === 'login.exokit.org') {
     _handleLogin(req, res);
     return;
@@ -2468,6 +2502,10 @@ try {
           _handleTokenIds('rinkeby')(req, res);
           return;
         }
+        if (o.pathname === '/tokenuri' && req.method === 'GET') {
+          _handleTokenURIs('rinkeby')(req, res);
+          return;
+        }    
         o.protocol = match2[1].replace(/-/g, ':');
         o.host = match2[2].replace(/--/g, '=').replace(/-/g, '.').replace(/=/g, '-').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
         const oldUrl = req.url;
