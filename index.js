@@ -2364,7 +2364,8 @@ try {
 
   const o = url.parse(protocol + '//' + (req.headers['host'] || '') + req.url);
   let match;
-  if (o.host === 'localhost:3000') {
+  // Add localhost for the testing purpose
+  // if (o.host === 'localhost:3000') {
     if (o.pathname === '/tokenids' && req.method === 'GET') {
       _handleTokenIds('rinkeby')(req, res);
       return;
@@ -2373,7 +2374,7 @@ try {
       _handleTokenURIs('rinkeby')(req, res);
       return;
     }
-  }
+  // }
   if (o.host === 'login.exokit.org') {
     _handleLogin(req, res);
     return;
