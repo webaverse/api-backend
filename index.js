@@ -2092,7 +2092,58 @@ try {
 }
 };
 
-const _handleTokenIds = chainName => async (req, res) => {
+// const _handleTokenIds = chainName => async (req, res) => {
+//   const _respond = (statusCode, body) => {
+//     res.statusCode = statusCode;
+//     _setCorsHeaders(res);
+//     res.end(body);
+//   };
+//   const _setCorsHeaders = res => {
+//     res.setHeader('Access-Control-Allow-Origin', '*');
+//     res.setHeader('Access-Control-Allow-Headers', '*');
+//     res.setHeader('Access-Control-Allow-Methods', '*');
+//   };
+//   const web3 = new Web3();
+//   const query = url.parse(req.url,true).query;
+//   const ownerAddress = query.address;
+//   if (!web3.utils.isAddress(ownerAddress)) {
+//     _respond(400, 'invalid address');
+//     return;
+//   }
+//   let o = await getRedisItem(ownerAddress, redisPrefixes.rinkebyWebaverseERC721);
+//   if (!o) {
+//     _respond(404, 'Record Not Found');
+//     return;
+//   }
+//   return _respond(200, JSON.stringify(o));
+// }
+
+
+// const _handleTokenURIs = chainName => async (req, res) => {
+//   const _respond = (statusCode, body) => {
+//     res.statusCode = statusCode;
+//     _setCorsHeaders(res);
+//     res.end(body);
+//   };
+//   const _setCorsHeaders = res => {
+//     res.setHeader('Access-Control-Allow-Origin', '*');
+//     res.setHeader('Access-Control-Allow-Headers', '*');
+//     res.setHeader('Access-Control-Allow-Methods', '*');
+//   };
+//   const query = url.parse(req.url,true).query;
+//   const tokenID = query.tokenID;
+//   let o = await getRedisItem(tokenID, redisPrefixes.rinkebyWebaverseERC721+'uris');
+//   if (!o || !o.Item) {
+//     _respond(404, 'Record Not Found');
+//     return;
+//   }
+
+//   const val = Object.values(o.Item).join('');
+//   const ares = await axios.get(val);
+//   return _respond(200, JSON.stringify(ares.data));
+// }
+
+const _handleTokensMetaData = chainName => async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -2111,38 +2162,29 @@ const _handleTokenIds = chainName => async (req, res) => {
     return;
   }
   let o = await getRedisItem(ownerAddress, redisPrefixes.rinkebyWebaverseERC721);
-  if (!o) {
-    _respond(404, 'Record Not Found');
-    return;
-  }
-  return _respond(200, JSON.stringify(o));
-}
-
-
-const _handleTokenURIs = chainName => async (req, res) => {
-  const _respond = (statusCode, body) => {
-    res.statusCode = statusCode;
-    _setCorsHeaders(res);
-    res.end(body);
-  };
-  const _setCorsHeaders = res => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', '*');
-    res.setHeader('Access-Control-Allow-Methods', '*');
-  };
-  const query = url.parse(req.url,true).query;
-  const tokenID = query.tokenID;
-  let o = await getRedisItem(tokenID, redisPrefixes.rinkebyWebaverseERC721+'uris');
-  if (!o || !o.Item) {
+  if (!o || o.Item === null) {
     _respond(404, 'Record Not Found');
     return;
   }
 
-  const val = Object.values(o.Item).join('');
-  const ares = await axios.get(val);
-  return _respond(200, JSON.stringify(ares.data));
+  const tokenIDs = Object.values(o.Item);
+  const metadatas = [];
+  // convert the loop to for each
+    
+  for (let i = 0; i < tokenIDs.length; i++) {
+    const tokenID = tokenIDs[i];
+    console.log(tokenID);
+    let o = await getRedisItem(tokenID, redisPrefixes.rinkebyWebaverseERC721+'uris');
+    if (o && o.Item) {
+      console.log(Object.values(o.Item).join(''));
+      const val = Object.values(o.Item).join('');
+      const ares = await axios.get(val);
+      metadatas.push(ares.data);
+    }
+  }
+  console.log('metadatas done');
+  return _respond(200, JSON.stringify(metadatas));
 }
-
 
 const _handleStore = chainName => async (req, res) => {
   const _respond = (statusCode, body) => {
@@ -2366,14 +2408,10 @@ try {
   let match;
   // Add localhost for the testing purpose
   // if (o.host === 'localhost:3000') {
-    if (o.pathname === '/tokenids' && req.method === 'GET') {
-      _handleTokenIds('rinkeby')(req, res);
-      return;
-    }
-    if (o.pathname === '/tokenuri' && req.method === 'GET') {
-      _handleTokenURIs('rinkeby')(req, res);
-      return;
-    }
+  //   if (o.pathname === '/tokens' && req.method === 'GET') {
+  //     _handleTokensMetaData('rinkeby')(req, res);
+  //     return;
+  //   }
   // }
   if (o.host === 'login.exokit.org') {
     _handleLogin(req, res);
@@ -2499,14 +2537,10 @@ try {
         res.setHeader('Access-Control-Allow-Headers', '*');
         res.end();
       } else {
-        if (o.pathname === '/tokenids' && req.method === 'GET') {
-          _handleTokenIds('rinkeby')(req, res);
+        if (o.pathname === '/tokens' && req.method === 'GET') {
+          _handleTokensMetaData('rinkeby')(req, res);
           return;
         }
-        if (o.pathname === '/tokenuri' && req.method === 'GET') {
-          _handleTokenURIs('rinkeby')(req, res);
-          return;
-        }    
         o.protocol = match2[1].replace(/-/g, ':');
         o.host = match2[2].replace(/--/g, '=').replace(/-/g, '.').replace(/=/g, '-').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
         const oldUrl = req.url;
