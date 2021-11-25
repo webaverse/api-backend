@@ -2179,7 +2179,7 @@ const _handleTokensMetaData = chainName => async (req, res) => {
       console.log(Object.values(o.Item).join(''));
       const val = Object.values(o.Item).join('');
       const ares = await axios.get(val);
-      metadatas.push(ares.data);
+      metadatas.push({...ares.data, tokenID});
     }
   }
   console.log('metadatas done');
