@@ -43,7 +43,6 @@ const gotNfts = require('got-nfts');
 const OpenAI = require('openai-api');
 const GPT3Encoder = require('gpt-3-encoder');
 const Web3 = require('web3');
-const axios = require('axios');
 
 let config = fs.existsSync('./config.json') ? require('./config.json') : null;
 
@@ -2092,58 +2091,7 @@ try {
 }
 };
 
-// const _handleTokenIds = chainName => async (req, res) => {
-//   const _respond = (statusCode, body) => {
-//     res.statusCode = statusCode;
-//     _setCorsHeaders(res);
-//     res.end(body);
-//   };
-//   const _setCorsHeaders = res => {
-//     res.setHeader('Access-Control-Allow-Origin', '*');
-//     res.setHeader('Access-Control-Allow-Headers', '*');
-//     res.setHeader('Access-Control-Allow-Methods', '*');
-//   };
-//   const web3 = new Web3();
-//   const query = url.parse(req.url,true).query;
-//   const ownerAddress = query.address;
-//   if (!web3.utils.isAddress(ownerAddress)) {
-//     _respond(400, 'invalid address');
-//     return;
-//   }
-//   let o = await getRedisItem(ownerAddress, redisPrefixes.rinkebyWebaverseERC721);
-//   if (!o) {
-//     _respond(404, 'Record Not Found');
-//     return;
-//   }
-//   return _respond(200, JSON.stringify(o));
-// }
-
-
-// const _handleTokenURIs = chainName => async (req, res) => {
-//   const _respond = (statusCode, body) => {
-//     res.statusCode = statusCode;
-//     _setCorsHeaders(res);
-//     res.end(body);
-//   };
-//   const _setCorsHeaders = res => {
-//     res.setHeader('Access-Control-Allow-Origin', '*');
-//     res.setHeader('Access-Control-Allow-Headers', '*');
-//     res.setHeader('Access-Control-Allow-Methods', '*');
-//   };
-//   const query = url.parse(req.url,true).query;
-//   const tokenID = query.tokenID;
-//   let o = await getRedisItem(tokenID, redisPrefixes.rinkebyWebaverseERC721+'uris');
-//   if (!o || !o.Item) {
-//     _respond(404, 'Record Not Found');
-//     return;
-//   }
-
-//   const val = Object.values(o.Item).join('');
-//   const ares = await axios.get(val);
-//   return _respond(200, JSON.stringify(ares.data));
-// }
-
-const _handleTokensMetaData = chainName => async (req, res) => {
+const _handleTokensMetaData = async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
@@ -2156,30 +2104,32 @@ const _handleTokensMetaData = chainName => async (req, res) => {
   };
   const web3 = new Web3();
   const query = url.parse(req.url,true).query;
-  const ownerAddress = query.address;
+  const ownerAddress = `${query.address}`.toLowerCase();
+  let chainName = query.chainName;
+  const validChainNames = ['rinkeby'];
+  // Default to rinkeby if chainName is not provided or if it's not valid
+  if (!validChainNames.includes(chainName)) {
+    chainName = 'rinkeby';
+  }
   if (!web3.utils.isAddress(ownerAddress)) {
     _respond(400, 'invalid address');
     return;
   }
-  let o = await getRedisItem(ownerAddress, redisPrefixes.rinkebyWebaverseERC721);
+  let o = await getRedisItem(ownerAddress, chainName + redisPrefixes['webaverseERC721'] + 'Owners');
   if (!o || o.Item === null) {
     _respond(404, 'Record Not Found');
     return;
   }
-
   const tokenIDs = Object.values(o.Item);
   const metadatas = [];
-  // convert the loop to for each
-    
   for (let i = 0; i < tokenIDs.length; i++) {
     const tokenID = tokenIDs[i];
-    console.log(tokenID);
-    let o = await getRedisItem(tokenID, redisPrefixes.rinkebyWebaverseERC721+'uris');
+    let o = await getRedisItem(tokenID, chainName + redisPrefixes.webaverseERC721 + 'Metadata');
     if (o && o.Item) {
-      console.log(Object.values(o.Item).join(''));
-      const val = Object.values(o.Item).join('');
-      const ares = await axios.get(val);
-      metadatas.push({...ares.data, tokenID});
+      metadatas.push({...o.Item, tokenID});
+    } else {
+      // Return just tokenID if no metadata is found
+      metadatas.push({ tokenID });
     }
   }
   console.log('metadatas done');
@@ -2409,7 +2359,7 @@ try {
   // Add localhost for the testing purpose
   // if (o.host === 'localhost:3000') {
   //   if (o.pathname === '/tokens' && req.method === 'GET') {
-  //     _handleTokensMetaData('rinkeby')(req, res);
+  //     _handleTokensMetaData(req, res);
   //     return;
   //   }
   // }
@@ -2538,7 +2488,7 @@ try {
         res.end();
       } else {
         if (o.pathname === '/tokens' && req.method === 'GET') {
-          _handleTokensMetaData('rinkeby')(req, res);
+          _handleTokensMetaData(req, res);
           return;
         }
         o.protocol = match2[1].replace(/-/g, ':');
