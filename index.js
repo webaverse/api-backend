@@ -2106,34 +2106,27 @@ const _handleTokensMetaData = async (req, res) => {
   const query = url.parse(req.url,true).query;
   const ownerAddress = `${query.address}`.toLowerCase();
   let chainName = query.chainName;
-  const validChainNames = ['rinkeby'];
-  // Default to rinkeby if chainName is not provided or if it's not valid
+  const validChainNames = ['matic-mainnet', 'sidechain'];
   if (!validChainNames.includes(chainName)) {
-    chainName = 'rinkeby';
+    chainName = 'sidechain';
   }
+
   if (!web3.utils.isAddress(ownerAddress)) {
     _respond(400, 'invalid address');
     return;
   }
-  let o = await getRedisItem(ownerAddress, chainName + redisPrefixes['webaverseERC721'] + 'Owners');
-  if (!o || o.Item === null) {
-    _respond(404, 'Record Not Found');
-    return;
+  try {
+    const res = await fetch(`http://ec2-54-177-150-69.us-west-1.compute.amazonaws.com/erc721/?owner=${ownerAddress}&network=${chainName}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return _respond(200, JSON.stringify(await res.json()) || {});
+  } catch (error) {
+    console.log(error);
+    return _respond(500, 'Something went wrong');
   }
-  const tokenIDs = Object.values(o.Item);
-  const metadatas = [];
-  for (let i = 0; i < tokenIDs.length; i++) {
-    const tokenID = tokenIDs[i];
-    let o = await getRedisItem(tokenID, chainName + redisPrefixes.webaverseERC721 + 'Metadata');
-    if (o && o.Item) {
-      metadatas.push({...o.Item, tokenID});
-    } else {
-      // Return just tokenID if no metadata is found
-      metadatas.push({ tokenID });
-    }
-  }
-  console.log('metadatas done');
-  return _respond(200, JSON.stringify(metadatas));
 }
 
 const _handleStore = chainName => async (req, res) => {
