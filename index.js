@@ -2340,7 +2340,7 @@ try {
   const o = url.parse(protocol + '//' + (req.headers['host'] || '') + req.url);
   let match;
 
-  if (o.host === 'login.exokit.org') {
+  if (o.host === 'login.webaverse.com') {
     _handleLogin(req, res);
     return;
   } else if (o.host === 'mainnetsidechain.exokit.org') {
