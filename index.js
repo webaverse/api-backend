@@ -2046,7 +2046,7 @@ try {
 };
 const _handleTokens = _handleCachedNft('NFT');
 // const _handleLand = _handleChainNft('LAND');
-const _handleLand = (req, res) => {
+const _handleLand = tokenBName => (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
     _setCorsHeaders(res);
