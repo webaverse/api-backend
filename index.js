@@ -2043,7 +2043,20 @@ try {
 }
 };
 const _handleTokens = _handleCachedNft('NFT');
-const _handleLand = _handleChainNft('LAND');
+// const _handleLand = _handleChainNft('LAND');
+const _handleLand = (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+  _respond(200, JSON.stringify([]));
+};
 const _handleGraph = async (req, res) => {
     const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
