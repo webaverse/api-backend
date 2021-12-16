@@ -42,6 +42,8 @@ const ethereumJsUtil = require('./ethereumjs-util.js');
 const gotNfts = require('got-nfts');
 const OpenAI = require('openai-api');
 const GPT3Encoder = require('gpt-3-encoder');
+const Web3 = require('web3');
+
 
 let config = fs.existsSync('./config.json') ? require('./config.json') : null;
 
@@ -272,7 +274,7 @@ try {
     console.log('got login', JSON.stringify({method, p, query}, null, 2));
 
     if (method === 'POST') {
-      let {email, code, token, discordcode, discordid, twittercode, twitterid, autoip, mnemonic, signature, nonce} = query;
+      let {email, code, token, discordcode, discordid, twittercode, twitterid, autoip, mnemonic, signature, nonce, redirect_uri} = query;
       if (email && emailRegex.test(email)) {
         if (token) {
           const tokenItem = await ddb.getItem({
@@ -628,7 +630,7 @@ try {
             code: discordcode,
             grant_type: 'authorization_code',
             scope: 'identify',
-            redirect_uri: 'https://webaverse.com/login',
+            redirect_uri: redirect_uri || 'https://webaverse.com/login',
           });
           proxyReq.end(s);
           proxyReq.on('error', err => {
@@ -2103,6 +2105,33 @@ try {
 }
 };
 
+const _handleTokenIds = chainName => async (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = res => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+  };
+  const web3 = new Web3();
+  const query = url.parse(req.url,true).query;
+  const ownerAddress = query.address;
+  if (!web3.utils.isAddress(ownerAddress)) {
+    _respond(400, 'invalid address');
+    return;
+  }
+  let o = await getRedisItem(ownerAddress, redisPrefixes.WebaverseERC721);
+  if (!o) {
+    _respond(404, 'Record Not Found');
+    return;
+  }
+  return _respond(200, JSON.stringify(o));
+}
+
+
 const _handleStore = chainName => async (req, res) => {
   const _respond = (statusCode, body) => {
     res.statusCode = statusCode;
@@ -2323,7 +2352,8 @@ try {
 
   const o = url.parse(protocol + '//' + (req.headers['host'] || '') + req.url);
   let match;
-  if (o.host === 'login.exokit.org') {
+
+  if (o.host === 'login.webaverse.com') {
     _handleLogin(req, res);
     return;
   } else if (o.host === 'mainnetsidechain.exokit.org') {
@@ -2435,7 +2465,7 @@ try {
     _handleAi(req, res);
     return;
   }
-
+  
   if (match = o.host.match(/^(.+)\.proxy\.(?:webaverse\.com|exokit\.org)$/)) {
     const raw = match[1];
     const match2 = raw.match(/^(https?-)(.+?)(-[0-9]+)?$/);
@@ -2447,6 +2477,10 @@ try {
         res.setHeader('Access-Control-Allow-Headers', '*');
         res.end();
       } else {
+        if (o.pathname === '/tokenids' && req.method === 'GET') {
+          _handleTokenIds('rinkeby')(req, res);
+          return;
+        }
         o.protocol = match2[1].replace(/-/g, ':');
         o.host = match2[2].replace(/--/g, '=').replace(/-/g, '.').replace(/=/g, '-').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
         const oldUrl = req.url;

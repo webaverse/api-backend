@@ -1,19 +1,20 @@
-# Webaverse API backend
 
-Node server hosted on AWS, mainly used for REST endpoints.
+# API BACKEND
 
-## Dev Setup
+## To Use
+
+To clone and run App you'll need [Git](https://git-scm.com) and [Node.js](https://nodejs.org/en/download/) v.17(which comes with [npm](http://npmjs.com)) installed on your computer. From your command line:
 
 1. `npm install`
 
 2. Create a `config.json` and paste this in: 
 
-```
-{
-    "accessKeyId": "<ACCESS_KEY_ID>",
-    "secretAccessKey": "<SECRET_ACCESS_KEY>"
-}
-```
+	```
+	{
+	    "accessKeyId": "<ACCESS_KEY_ID>",
+	    "secretAccessKey": "<SECRET_ACCESS_KEY>"
+	}
+	```
 
 You can get these credentials from Avaer.
 
@@ -21,35 +22,81 @@ You can get these credentials from Avaer.
 
 4. `npm run start` (forever) or `npm run dev` (nodemon).
 
-## API Docs
 
-### worlds.exokit.org
+### Technologies
 
-`GET` worlds.exokit.org/{worldId}
+The App primarily uses the following technologies
 
-*Returns an object with: Host, World Name and Uptime of server.*
+* [NodeJS](https://nodejs.org/)
 
-`POST` worlds.exokit.org/create
+---
 
-*Returns an object with: Host, World Name and Uptime of server.*
+### Directory Structure
 
-`DELETE` worlds.exokit.org/{worldId}
+```bash
+**Root**
+│
+├─ index.js <-- This file starts the api-backend and register all major routes in itself.
+├─ config.json <-- This file controls all of the environment variables in the application.
+```
 
-*Terminates the ec2 associated with world.*
+---
 
-## How to deploy new world-server code.
+### Registered Routes
 
-1.) Make sure your `dialog` repo changes are commited to the `dialog/worlds` branch.
+| Domain  | Route | Usage |
+|--|--|--|
+| login.exokit.org | `_handleLogin` | Provides the application with the functionality to login via Discrod, Email, Twitter & Github  |
+| accounts.webaverse.com | `_handleAccounts` | Fetch accounts from redis server   |
+| ai.webaverse.com| `_handleAi` | Handle the openAI codex compiling request from the app.webaverse   |
 
-2.) Go to `world-server` repo and bump the `package.json` version number. (this triggers the GH action to execute and create a new release, it will pull `dialog/worlds`)
+### Config.json
 
-3.) After the GH action is done, copy the hash of the release and paste it into `exokit-backend/routes/worlds.js` in the `updateZipFile()` fetch url.
+```json
 
-4.) SSH into `exokit-backend` EC2 server (can get the IP from AWS dashboard), and delete the `world-server.zip` file. (it exists inside `~/exokit-backend/`)
+{
 
-5.) `npm run start` inside of `exokit-backend`. (this will start a forever process and start downloading the new ZIP file from the Github release.
+		"accessKeyId"			: "<AWS ID>",
+		"secretAccessKey"		: "<AWS Key>",
+		"infuraProjectId"		: "<infuraProjectId>",
+		"infuraProjectSecret"	: "<infuraProjectSecret>",
+		"discordApiToken"		: "<discordApiToken>",
+		"discordClientId"		: "<discordClientId>",
+		"discordClientSecret"	: "<discordClientSecret>",
+		"twitterId"				: "<twitterId>",
+		"twitterConsumerKey"	: "<twitterConsumerKey>",
+		"twitterConsumerSecret"	: "<twitterConsumerSecret>",
+		"twitterAccessToken"	: "<twitterAccessToken>",
+		"twitterAccessTokenSecret": "<twitterAccessTokenSecret>",
+		"ngrokToken"			: "<ngrokToken>",
+		"twitterWebhookPort"	: 123456,
+		"mainnetMnemonic"		: "some key",
+		"rinkebyMnemonic"		: "some key",
+		"polygonMnemonic"		: "some key",
+		"testnetpolygonMnemonic": "some key",
+		"treasuryMnemonic"		: "some key",
+		"encryptionMnemonic"	: "some key",
+		"infuraKey"				: "<infuraKey>",
+		"polygonVigilKey"		: "<polygonVigilKey>",
+		"redisKey"				: "<redisKey>",
+		"devPassword"			: "<openai>",
+		"openAiKey"				: "<openAiKey>"
 
-6.) After it is done, verify the logs. (`sudo forever list`, `sudo forever logs [index]`) The server is up and running and will create new world-servers with the fresh codebase.
+}
 
-P.S. To truly wipe the old servers and start fresh, you need to login to AWS and terminate the old world servers OR you can use the DELETE API for worlds.
+```
+____
+### Development Mode
+
+The application uses vite to hot reload itself automatically if there are any changes to any files. To start the App in dev mode, run:
+
+```bash
+npm run dev
+```
+:::note 
+Any changes inside the `packages` folder won't recompile automatically and so will require restarting the entire development server by just running again: `npm run dev`
+:::
+
+---
+
 
