@@ -2254,7 +2254,7 @@ try {
     console.log(gptResponse.data);
 
     res.end(JSON.stringify(gptResponse.data));
-  } else if (req.method === 'GET' && p === '/code' && o.query.a && decodeURIComponent(o.query.a) === config.devPassword) {
+  } else if (req.method === 'GET' && p === '/code') {
     _setCorsHeaders(res);
 
     const aiPrefix = await getAiPrefix();
