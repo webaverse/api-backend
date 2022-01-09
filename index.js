@@ -348,8 +348,6 @@ Error.stackTraceLimit = 300;
       const o = url.parse(req.url, true);
       const { pathname: p } = o;
 
-      // console.log('got ai hit', req.method, o, req.headers);
-
       if (req.method === "OPTIONS") {
         _setCorsHeaders(res);
         res.end();
@@ -584,25 +582,25 @@ Error.stackTraceLimit = 300;
         _handleTokens("testnetsidechain", false)(req, res);
         return;
       } else if (o.host === "mainnet-land.webaverse.com") {
-        _handleLand("mainnet", true)(req, res);
+        _handleLand("mainnet")(req, res);
         return;
       } else if (o.host === "polygon-land.webaverse.com") {
-        _handleLand("polygon", true)(req, res);
+        _handleLand("polygon")(req, res);
         return;
       } else if (
         o.host === "land.webaverse.com" ||
         o.host === "mainnetsidechain-land.webaverse.com"
       ) {
-        _handleLand("mainnetsidechain", false)(req, res);
+        _handleLand("mainnetsidechain")(req, res);
         return;
       } else if (o.host === "testnet-land.webaverse.com") {
-        _handleLand("testnet", true)(req, res);
+        _handleLand("testnet")(req, res);
         return;
       } else if (o.host === "testnetsidechain-land.webaverse.com") {
-        _handleLand("testnetsidechain", false)(req, res);
+        _handleLand("testnetsidechain")(req, res);
         return;
       } else if (o.host === "testnetpolygon-land.webaverse.com") {
-        _handleLand("testnetpolygon", false)(req, res);
+        _handleLand("testnetpolygon")(req, res);
         return;
       } else if (o.host === "graph.webaverse.com") {
         _handleGraph(req, res);
