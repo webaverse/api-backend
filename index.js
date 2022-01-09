@@ -329,59 +329,7 @@ Error.stackTraceLimit = 300;
       res.setHeader("Access-Control-Allow-Headers", "*");
       res.setHeader("Access-Control-Allow-Methods", "*");
     };
-
-    try {
-      const { method } = req;
-      const { pathname: p } = url.parse(req.url);
-
-      const _getBooths = async () => {
-        const storeEntries = await getStoreEntries(chainName);
-
-        const booths = [];
-        for (let i = 0; i < storeEntries.length; i++) {
-          const store = storeEntries[i];
-          const { tokenId, seller } = store;
-
-          if (tokenId) {
-            const token = await getChainToken(chainName)(tokenId, storeEntries);
-
-            let booth = booths.find((booth) => booth.seller === seller);
-            if (!booth) {
-              booth = {
-                seller,
-                entries: [],
-              };
-              booths.push(booth);
-            }
-            booth.entries.push(token);
-          }
-        }
-
-        return booths;
-      };
-
-      let match;
-      if ((method === "GET") & (p === "/")) {
-        const booths = await _getBooths();
-        _respond(200, JSON.stringify(booths));
-      } else if ((match = p.match(/^\/(0x[a-f0-9]+)$/i))) {
-        const seller = match[1];
-        let booths = await _getBooths();
-        booths = booths.filter((booth) => booth.seller === seller);
-        _respond(200, JSON.stringify(booths));
-      } else {
-        _respond(404, "not found");
-      }
-    } catch (err) {
-      console.warn(err);
-
-      _respond(
-        500,
-        JSON.stringify({
-          error: err.stack,
-        })
-      );
-    }
+    _respond(200, JSON.stringify([]));
   };
 
   const _handleAi = async (req, res) => {
@@ -506,25 +454,10 @@ Error.stackTraceLimit = 300;
     }
   };
 
-  let redisClient = null;
-  const _tryConnectRedis = () => {
-    redisConnect(undefined, cacheHostUrl)
-      .then(() => {
-        redisClient = getRedisClient();
-        console.log("connected to redis");
-      })
-      .catch((err) => {
-        console.warn("failed to connect to redis, retrying", err);
-        setTimeout(_tryConnectRedis, 1000);
-      });
-  };
-  _tryConnectRedis();
-
   const proxy = httpProxy.createProxyServer({});
   proxy.on("proxyRes", (proxyRes, req) => {
     if (proxyRes.headers["location"]) {
       const o = new url.URL(proxyRes.headers["location"], req.url);
-      // console.log('redirect location 1', req.url, proxyRes.headers['location'], o.href);
       o.host = o.host.replace("-", "--");
       o.host =
         o.protocol.slice(0, -1) +
