@@ -1,15 +1,17 @@
-const path = require('path');
-const url = require('url');
-const fs = require('fs').promises;
+const path = require("path");
+const url = require("url");
+const fs = require("fs").promises;
 // const https = require('https');
 // const { putObject, uploadFromStream } = require('../aws.js');
 // const crypto = require('crypto');
-const child_process = require('child_process');
+const child_process = require("child_process");
 // const mime = require('mime');
-const {_setCorsHeaders, getExt} = require('../utils.js');
-const AWS = require('aws-sdk');
-const ps = require('ps-node');
-let config = require('fs').existsSync('./config.json') ? require('../config.json') : null;
+const { _setCorsHeaders, getExt } = require("../utils.js");
+const AWS = require("aws-sdk");
+const ps = require("ps-node");
+let config = require("fs").existsSync("./config.json")
+  ? require("../config.json")
+  : null;
 
 const accessKeyId = process.env.accessKeyId || config.accessKeyId;
 const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
@@ -21,15 +23,15 @@ const awsConfig = new AWS.Config({
     accessKeyId,
     secretAccessKey,
   }),
-  region: 'us-west-1',
+  region: "us-west-1",
 });
 // const ddb = new AWS.DynamoDB(awsConfig);
 // const ddbd = new AWS.DynamoDB.DocumentClient(awsConfig);
 const s3 = new AWS.S3(awsConfig);
 
-const jsPath = '../dialog/index.js';
-const bucketName = 'worlds.exokit.org';
-const pidSymbol = Symbol('pid');
+const jsPath = "../dialog/index.js";
+const bucketName = "worlds.exokit.org";
+const pidSymbol = Symbol("pid");
 
 let startPort = 4000;
 let endPort = 5000;
@@ -49,7 +51,7 @@ class WorldManager {
   findPort() {
     if (this.worlds.length > 0) {
       for (let port = startPort; port < endPort; port++) {
-        if (!this.worlds.some(world => world.port === port)) {
+        if (!this.worlds.some((world) => world.port === port)) {
           return port;
         }
       }
@@ -60,128 +62,144 @@ class WorldManager {
   }
   async loadWorlds() {
     this.worlds = await new Promise((accept, reject) => {
-      ps.lookup({
-        command: 'node',
-        // psargs: 'ux',
-      }, function(err, results) {
-        if (!err) {
-          results = results
-            .filter(w => w.arguments[0] === jsPath)
-            .map(w => {
-              const {pid} = w;
-              let [_, name, publicIp, privateIp, port] = w.arguments;
-              port = parseInt(port, 10);
-              return {
-                name,
-                publicIp,
-                privateIp,
-                port,
-                [pidSymbol]: pid,
-              };
-            });
-          console.log('got load world results', results);
-          accept(results);
-        } else {
-          /* resultList.forEach(function( process ){
+      ps.lookup(
+        {
+          command: "node",
+          // psargs: 'ux',
+        },
+        function (err, results) {
+          if (!err) {
+            results = results
+              .filter((w) => w.arguments[0] === jsPath)
+              .map((w) => {
+                const { pid } = w;
+                let [_, name, publicIp, privateIp, port] = w.arguments;
+                port = parseInt(port, 10);
+                return {
+                  name,
+                  publicIp,
+                  privateIp,
+                  port,
+                  [pidSymbol]: pid,
+                };
+              });
+            console.log("got load world results", results);
+            accept(results);
+          } else {
+            /* resultList.forEach(function( process ){
             if( process ){
               console.log( 'PID: %s, COMMAND: %s, ARGUMENTS: %s', process.pid, process.command, process.arguments );
             }
           }); */
-          reject(err);
+            reject(err);
+          }
         }
-      });
+      );
     });
   }
   async createWorld(name) {
-    console.log('create world', name, new Error().stack);
+    console.log("create world", name, new Error().stack);
     if (!this.runnings[name]) {
       this.runnings[name] = true;
 
       try {
-        if (!this.worlds.some(w => w.name === name)) {
+        if (!this.worlds.some((w) => w.name === name)) {
           let b;
           try {
-            const o = await s3.getObject({
-              Bucket: bucketName,
-              Key: name,
-            }).promise();
-            console.log('got object', o);
+            const o = await s3
+              .getObject({
+                Bucket: bucketName,
+                Key: name,
+              })
+              .promise();
+            console.log("got object", o);
             b = o.Body;
-          } catch(err) {
-            if (err.code === 'NoSuchKey') {
+          } catch (err) {
+            if (err.code === "NoSuchKey") {
               // nothing
             } else {
               console.warn(err.stack);
             }
             b = null;
           }
-          const dataFilePath = path.join(path.dirname(jsPath), 'data', name + '.bin');
+          const dataFilePath = path.join(
+            path.dirname(jsPath),
+            "data",
+            name + ".bin"
+          );
           // console.log('placing data', b && b.byteLength);
           if (b) {
-            await fs.writeFile(dataFilePath, b); 
+            await fs.writeFile(dataFilePath, b);
           }
 
-          const fullchain = path.join('..', 'exokit-backend', 'certs', 'fullchain.pem');
-          let fullChainExists = fs.existsSync(fullchain);       
-          const privkey = path.join('..', 'exokit-backend', 'certs', 'privkey.pem');
-          let privkeyExists = fs.existsSync(privkey);     
-          if(!fullChainExists || !privkeyExists){
+          const fullchain = path.join(
+            "..",
+            "exokit-backend",
+            "certs",
+            "fullchain.pem"
+          );
+          let fullChainExists = fs.existsSync(fullchain);
+          const privkey = path.join(
+            "..",
+            "exokit-backend",
+            "certs",
+            "privkey.pem"
+          );
+          let privkeyExists = fs.existsSync(privkey);
+          if (!fullChainExists || !privkeyExists) {
             console.warn("WARNING: Couldn't retrieve SSL certs locally");
           }
           const port = this.findPort();
-          const cp = child_process.spawn(process.argv[0], [
-            jsPath,
-            name,
-            publicIp,
-            privateIp,
-            port,
-          ], {
-            cwd: path.dirname(jsPath),
-            env: {
-              PROTOO_LISTEN_PORT: port,
-              MEDIASOUP_LISTEN_IP: privateIp,
-              MEDIASOUP_ANNOUNCED_IP: publicIp,
-              // NOTE: These certs will not be available in CI-produced builds
-              HTTPS_CERT_FULLCHAIN: fullChainExists ? fullchain : null,
-              HTTPS_CERT_PRIVKEY: privkeyExists ? privkey : null,
-              AUTH_KEY: privkeyExists ? privkey : null,
-              DATA_FILE: dataFilePath,
-              // NUM_WORKERS: 2,
-            },
-          });
+          const cp = child_process.spawn(
+            process.argv[0],
+            [jsPath, name, publicIp, privateIp, port],
+            {
+              cwd: path.dirname(jsPath),
+              env: {
+                PROTOO_LISTEN_PORT: port,
+                MEDIASOUP_LISTEN_IP: privateIp,
+                MEDIASOUP_ANNOUNCED_IP: publicIp,
+                // NOTE: These certs will not be available in CI-produced builds
+                HTTPS_CERT_FULLCHAIN: fullChainExists ? fullchain : null,
+                HTTPS_CERT_PRIVKEY: privkeyExists ? privkey : null,
+                AUTH_KEY: privkeyExists ? privkey : null,
+                DATA_FILE: dataFilePath,
+                // NUM_WORKERS: 2,
+              },
+            }
+          );
 
-          
           cp.name = name;
           cp.dataFilePath = dataFilePath;
           cp.stdin.end();
           cp.stdout.pipe(process.stdout);
           cp.stderr.pipe(process.stderr);
-          cp.on('error', err => {
-            console.log('cp error', err.stack);
+          cp.on("error", (err) => {
+            console.log("cp error", err.stack);
           });
-          cp.on('exit', code => {
-            console.log('cp exit', code);
+          cp.on("exit", (code) => {
+            console.log("cp exit", code);
             this.loadWorlds();
             this.childProcesses.splice(this.childProcesses.indexOf(cp), 1);
           });
           this.childProcesses.push(cp);
 
           await new Promise((accept, reject) => {
-            cp.stdout.setEncoding('utf8');
-            const _data = s => {
+            cp.stdout.setEncoding("utf8");
+            const _data = (s) => {
               if (/ready\n/.test(s)) {
-                console.log('got dialog ready');
+                console.log("got dialog ready");
 
                 accept();
-                cp.stdout.removeListener('data', _end);
-                cp.stdout.removeListener('end', _end);
+                cp.stdout.removeListener("data", _end);
+                cp.stdout.removeListener("end", _end);
               }
             };
-            cp.stdout.on('data', _data);
+            cp.stdout.on("data", _data);
             const _end = () => {
-              reject(new Error('dialog did not output ready'));
+              reject(new Error("dialog did not output ready"));
             };
-            cp.stdout.on('end', _end);
+            cp.stdout.on("end", _end);
           });
 
           await this.loadWorlds();
@@ -217,23 +235,25 @@ class WorldManager {
       this.runnings[name] = true;
 
       try {
-        const world = this.worlds.find(w => w.name === name);
+        const world = this.worlds.find((w) => w.name === name);
 
         if (world) {
-          const cp = this.childProcesses.find(cp => cp.name === name);
+          const cp = this.childProcesses.find((cp) => cp.name === name);
           if (cp) {
             cp.kill();
 
             await new Promise((accept, reject) => {
-              cp.on('exit', async () => {
+              cp.on("exit", async () => {
                 const b = await fs.readFile(cp.dataFilePath);
-                await s3.putObject({
-                  Bucket: bucketName,
-                  Key: name,
-                  ContentType: 'application/octet-stream',
-                  ContentLength: b.length,
-                  Body: b,
-                }).promise();
+                await s3
+                  .putObject({
+                    Bucket: bucketName,
+                    Key: name,
+                    ContentType: "application/octet-stream",
+                    ContentLength: b.length,
+                    Body: b,
+                  })
+                  .promise();
 
                 await fs.unlink(cp.dataFilePath);
 
@@ -269,43 +289,47 @@ const worldManager = new WorldManager();
 
 const _handleWorldsRequest = async (req, res) => {
   try {
-    const {method, headers, url: u} = req;
+    const { method, headers, url: u } = req;
     const o = url.parse(u);
     const match = decodeURIComponent(o.path).match(/^\/([a-z0-9\-\ \.]+)$/i);
     const p = match && match[1];
 
     res = _setCorsHeaders(res);
-    
-    console.log('get worlds request', {method, headers, o, p});
-    
-    if (method === 'OPTIONS') {
+
+    console.log("get worlds request", { method, headers, o, p });
+
+    if (method === "OPTIONS") {
       res.end();
-    } else if (method === 'GET' && o.path == '/') {
+    } else if (method === "GET" && o.path == "/") {
       res.end(JSON.stringify(worldManager.worlds));
-    } else if (method === 'GET' && p) {
+    } else if (method === "GET" && p) {
       const name = p;
-      const world = worldManager.worlds.find(world => world.name === name);
+      const world = worldManager.worlds.find((world) => world.name === name);
       if (world) {
-        res.end(JSON.stringify({
-          result: world,
-        }));
+        res.end(
+          JSON.stringify({
+            result: world,
+          })
+        );
       } else {
         res.statusCode = 404;
-        res.end(JSON.stringify({error: 'world not found'}));
+        res.end(JSON.stringify({ error: "world not found" }));
       }
-    } else if (method === 'POST' && p) {
+    } else if (method === "POST" && p) {
       const name = p;
       const world = await worldManager.createWorld(name);
 
       if (world) {
-        res.end(JSON.stringify({
-          result: world,
-        }));
+        res.end(
+          JSON.stringify({
+            result: world,
+          })
+        );
       } else {
         res.statusCode = 400;
-        res.end(JSON.stringify({error: 'name already taken'}));
+        res.end(JSON.stringify({ error: "name already taken" }));
       }
-    } else if (method === 'DELETE' && p) {
+    } else if (method === "DELETE" && p) {
       const name = p;
       const ok = await worldManager.deleteWorld(name);
       if (ok) {
@@ -313,7 +337,7 @@ const _handleWorldsRequest = async (req, res) => {
         res.end();
       } else {
         res.statusCode = 404;
-        res.end(JSON.stringify({error: 'world not found'}));
+        res.end(JSON.stringify({ error: "world not found" }));
       }
     } else {
       res.statusCode = 404;
@@ -322,9 +346,9 @@ const _handleWorldsRequest = async (req, res) => {
   } catch (e) {
     console.log(e);
   }
-}
+};
 
 module.exports = {
   worldManager,
   _handleWorldsRequest,
-}
+};

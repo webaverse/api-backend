@@ -1,51 +1,51 @@
 const MAX_SIZE = 50 * 1024 * 1024;
 const accountKeys = [
-  'name',
-  'avatarId',
-  'avatarName',
-  'avatarExt',
-  'avatarPreview',
-  'loadout',
-  'homeSpaceId',
-  'homeSpaceName',
-  'homeSpaceExt',
-  'homeSpacePreview',
-  'ftu',
+  "name",
+  "avatarId",
+  "avatarName",
+  "avatarExt",
+  "avatarPreview",
+  "loadout",
+  "homeSpaceId",
+  "homeSpaceName",
+  "homeSpaceExt",
+  "homeSpacePreview",
+  "ftu",
   // 'mainnetAddress',
-  'addressProofs',
+  "addressProofs",
 ];
 const ids = {
-  lastCachedBlockAccount: 'lastCachedBlock',
+  lastCachedBlockAccount: "lastCachedBlock",
   lastCachedBlockNft: -1,
 };
 const tableNames = {
-  mainnetAccount: 'mainnet-cache-account',
-  mainnetNft: 'mainnet-cache-nft',
-  mainnetsidechainAccount: 'sidechain-cache-account',
-  mainnetsidechainNft: 'sidechain-cache-nft',
-  testnetAccount: 'testnet-cache-account',
-  testnetNft: 'testnet-cache-nft',
-  testnetsidechainAccount: 'testnetsidechain-cache-account',
-  testnetsidechainNft: 'testnetsidechain-cache-nft',
-  polygonAccount: 'polygon-cache-account',
-  polygonNft: 'polygon-cache-nft',
-  testnetpolygonAccount: 'testnetpolygon-cache-account',
-  testnetpolygonNft: 'testnetpolygon-cache-nft',
+  mainnetAccount: "mainnet-cache-account",
+  mainnetNft: "mainnet-cache-nft",
+  mainnetsidechainAccount: "sidechain-cache-account",
+  mainnetsidechainNft: "sidechain-cache-nft",
+  testnetAccount: "testnet-cache-account",
+  testnetNft: "testnet-cache-nft",
+  testnetsidechainAccount: "testnetsidechain-cache-account",
+  testnetsidechainNft: "testnetsidechain-cache-nft",
+  polygonAccount: "polygon-cache-account",
+  polygonNft: "polygon-cache-nft",
+  testnetpolygonAccount: "testnetpolygon-cache-account",
+  testnetpolygonNft: "testnetpolygon-cache-nft",
   WebaverseERC721: "WebaverseERC721-cache-tokenids",
 };
 const redisPrefixes = (() => {
   const result = {};
   for (const k in tableNames) {
-    result[k] = tableNames[k].replace(/\-/g, '');
+    result[k] = tableNames[k].replace(/\-/g, "");
   }
   return result;
 })();
-const nftIndexName = 'nftIdx';
+const nftIndexName = "nftIdx";
 const polygonVigilKey = `1bdde9289621d9d420488a9804254f4a958e128b`;
-const ethereumHost = 'ethereum.exokit.org';
-const storageHost = 'https://ipfs.exokit.org';
+const ethereumHost = "ethereum.exokit.org";
+const storageHost = "https://ipfs.exokit.org";
 const mainnetSignatureMessage = `Connecting mainnet address.`;
-const cacheHostUrl = 'cache.webaverse.com';
+const cacheHostUrl = "cache.webaverse.com";
 module.exports = {
   MAX_SIZE,
   accountKeys,

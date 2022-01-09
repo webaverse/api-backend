@@ -5,12 +5,12 @@ const jsonParse = (s, d = null) => {
     return d;
   }
 };
-const _setCorsHeaders = res => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', '*');
-    res.setHeader('Access-Control-Allow-Methods', '*');
-    res.setHeader('Access-Control-Expose-Headers', '*');
-    return res;
+const _setCorsHeaders = (res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "*");
+  res.setHeader("Access-Control-Allow-Methods", "*");
+  res.setHeader("Access-Control-Expose-Headers", "*");
+  return res;
 };
 function getExt(fileName) {
   const match = fileName.match(/\.([^\.]+)$/);
@@ -31,4 +31,4 @@ module.exports = {
   _setCorsHeaders,
   getExt,
   makePromise,
-}
+};

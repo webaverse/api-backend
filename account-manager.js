@@ -1,6 +1,8 @@
-const AWS = require('aws-sdk');
-const blockchain = require('./blockchain.js');
-let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
+const AWS = require("aws-sdk");
+const blockchain = require("./blockchain.js");
+let config = require("fs").existsSync("./config.json")
+  ? require("./config.json")
+  : null;
 
 const accessKeyId = process.env.accessKeyId || config.accessKeyId;
 const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
@@ -10,11 +12,11 @@ const awsConfig = new AWS.Config({
     accessKeyId,
     secretAccessKey,
   }),
-  region: 'us-west-1',
+  region: "us-west-1",
 });
 const ddb = new AWS.DynamoDB(awsConfig);
-const tableName = 'users';
-const keyName = 'test-users.cache';
+const tableName = "users";
+const keyName = "test-users.cache";
 
 const _makePromise = () => {
   let accept, reject;
@@ -36,23 +38,27 @@ class AccountManager {
     this.load();
   }
   async load() {
-    const tokenItem = await ddb.getItem({
-      TableName: tableName,
-      Key: {
-        email: {S: keyName},
-      }
-    }).promise();
+    const tokenItem = await ddb
+      .getItem({
+        TableName: tableName,
+        Key: {
+          email: { S: keyName },
+        },
+      })
+      .promise();
     this.users = tokenItem.Item ? JSON.parse(tokenItem.Item.users.S) : [];
     // console.log('got old', this.users);
 
     const _save = async () => {
-      await ddb.putItem({
-        TableName: tableName,
-        Item: {
-          email: {S: keyName},
-          users: {S: JSON.stringify(this.users)},
-        }
-      }).promise();
+      await ddb
+        .putItem({
+          TableName: tableName,
+          Item: {
+            email: { S: keyName },
+            users: { S: JSON.stringify(this.users) },
+          },
+        })
+        .promise();
     };
     const _flush = async () => {
       while (this.queue.length > 0 && this.users.length > 0) {

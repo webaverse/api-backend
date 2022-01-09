@@ -1,9 +1,9 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require("puppeteer");
 
 const browserPromise = puppeteer.launch({
   args: [
-    '--no-sandbox',
-    '--no-zygote',
+    "--no-sandbox",
+    "--no-zygote",
     // '--disable-dev-shm-usage',
   ],
   // defaultViewport: chromium.defaultViewport,

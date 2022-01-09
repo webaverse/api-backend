@@ -1,10 +1,10 @@
-const stream = require('stream');
-const redis = require('redis');
-const redisearch = require('redis-redisearch');
+const stream = require("stream");
+const redis = require("redis");
+const redisearch = require("redis-redisearch");
 redisearch(redis);
-const {makePromise} = require('./utils.js');
-const {ids} = require('./constants.js');
-const {redisKey} = require('./config.json');
+const { makePromise } = require("./utils.js");
+const { ids } = require("./constants.js");
+const { redisKey } = require("./config.json");
 
 // c = r.createClient(); c.auth('lol', err => {c.hset('cities', 'id', 'A Town Created from Grafting.', err => { c.hget('cities', 'id', console.log); }); c.on('error', console.warn); }); c.ft_create.apply(c, 'idx SCHEMA id TEXT SORTABLE'.split(' ').concat([console.warn])); 1
 
@@ -14,7 +14,7 @@ async function connect(port, host) {
   if (!loadPromise) {
     loadPromise = new Promise((accept, reject) => {
       redisClient = redis.createClient(port, host);
-      redisClient.auth(redisKey, err => {
+      redisClient.auth(redisKey, (err) => {
         if (!err) {
           accept();
         } else {
@@ -43,29 +43,27 @@ async function getRedisItem(id, TableName) {
     } else {
       p.reject(err);
     }
-  }); 
+  });
   return await p;
 }
 
 async function putRedisItem(id, data, TableName) {
-  const args = [
-    `${TableName}:${id}`,
-  ];
+  const args = [`${TableName}:${id}`];
   for (const k in data) {
     args.push(k, JSON.stringify(data[k]));
   }
   // console.log('putting', args);
   const p = makePromise();
-  args.push(err => {
+  args.push((err) => {
     if (!err) {
       // console.log('accept');
       p.accept();
     } else {
-      console.warn('error', err);
+      console.warn("error", err);
       p.reject(err);
     }
   });
-  redisClient.hmset.apply(redisClient, args); 
+  redisClient.hmset.apply(redisClient, args);
   await p;
 }
 
@@ -82,55 +80,58 @@ async function getRedisAllItems(TableName = defaultDynamoTable) {
   });
   // console.log('got old keys', keys, {lastCachedBlockAccountId: ids.lastCachedBlockAccount});
   const filterKey = `${TableName}:${ids.lastCachedBlockAccount}`;
-  keys = keys.filter(key => key !== filterKey);
+  keys = keys.filter((key) => key !== filterKey);
   // console.timeEnd('lol 1');
-  
+
   // console.time('lol 2');
-  const _runJobs = jobs => new Promise((accept, reject) => {
-    const maxTasksInFlight = 100;
-    let tasksInFlight = 0;
-    const _recurse = async () => {
-      if (tasksInFlight < maxTasksInFlight && jobs.length > 0) {
-        tasksInFlight++;
-        try {
-          await jobs.shift()();
-        } catch(err) {
-          console.warn(err);
-        } finally {
-          tasksInFlight--;
-        }
-        _recurse();
-      } else if (tasksInFlight === 0) {
-        accept();
-      }
-    };
-    for (let i = 0; i < jobs.length; i++) {
-      _recurse();
-    }
-  });
-  
-  const items = [];
-  await _runJobs(keys.map(k => async () => {
-    // console.time('inner 1: ' + k);
-    const item = await new Promise((accept, reject) => {
-      redisClient.hgetall(k, (err, result) => {
-        if (!err) {
-          for (const k in result){
-            try {
-              result[k] = JSON.parse(result[k]);
-            } catch(err) {
-              console.warn('failed to parse key', result, k, err);
-            }
+  const _runJobs = (jobs) =>
+    new Promise((accept, reject) => {
+      const maxTasksInFlight = 100;
+      let tasksInFlight = 0;
+      const _recurse = async () => {
+        if (tasksInFlight < maxTasksInFlight && jobs.length > 0) {
+          tasksInFlight++;
+          try {
+            await jobs.shift()();
+          } catch (err) {
+            console.warn(err);
+          } finally {
+            tasksInFlight--;
           }
-          accept(result);
-        } else {
-          reject(err);
+          _recurse();
+        } else if (tasksInFlight === 0) {
+          accept();
         }
-      });
+      };
+      for (let i = 0; i < jobs.length; i++) {
+        _recurse();
+      }
     });
-    // console.timeEnd('inner 1: ' + k);
-    items.push(item);
-  }));
+
+  const items = [];
+  await _runJobs(
+    keys.map((k) => async () => {
+      // console.time('inner 1: ' + k);
+      const item = await new Promise((accept, reject) => {
+        redisClient.hgetall(k, (err, result) => {
+          if (!err) {
+            for (const k in result) {
+              try {
+                result[k] = JSON.parse(result[k]);
+              } catch (err) {
+                console.warn("failed to parse key", result, k, err);
+              }
+            }
+            accept(result);
+          } else {
+            reject(err);
+          }
+        });
+      });
+      // console.timeEnd('inner 1: ' + k);
+      items.push(item);
+    })
+  );
   // console.timeEnd('lol 2');
   return items;
 
@@ -148,7 +149,7 @@ async function getRedisAllItems(TableName = defaultDynamoTable) {
   } */
 }
 
-const parseRedisItems = result => {
+const parseRedisItems = (result) => {
   const [numItems] = result;
   const items = Array(numItems);
   for (let i = 0; i < numItems; i++) {

@@ -1,30 +1,32 @@
-const stream = require('stream');
-const AWS = require('aws-sdk');
-let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
+const stream = require("stream");
+const AWS = require("aws-sdk");
+let config = require("fs").existsSync("./config.json")
+  ? require("./config.json")
+  : null;
 
 const accessKeyId = process.env.accessKeyId || config.accessKeyId;
 const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
 
 const awsConfig = new AWS.Config({
-    credentials: new AWS.Credentials({
-        accessKeyId,
-        secretAccessKey,
-    }),
-    region: 'us-west-1',
+  credentials: new AWS.Credentials({
+    accessKeyId,
+    secretAccessKey,
+  }),
+  region: "us-west-1",
 });
 const s3 = new AWS.S3(awsConfig);
 
 const ddb = new AWS.DynamoDB({
   ...awsConfig,
-  apiVersion: '2012-08-10',
+  apiVersion: "2012-08-10",
 });
 
 const ddbd = new AWS.DynamoDB.DocumentClient({
   ...awsConfig,
-  apiVersion: '2012-08-10',
+  apiVersion: "2012-08-10",
 });
 
-const defaultDynamoTable = 'sidechain-cache';
+const defaultDynamoTable = "sidechain-cache";
 
 async function getDynamoItem(id, TableName) {
   const params = {
@@ -76,16 +78,16 @@ async function getDynamoAllItems(TableName = defaultDynamoTable) {
 
 function uploadFromStream(bucket, key, type) {
   const pass = new stream.PassThrough();
-  const params = {Bucket: bucket, Key: key, Body: pass, ACL: 'public-read'};
+  const params = { Bucket: bucket, Key: key, Body: pass, ACL: "public-read" };
   if (type) {
-    params['ContentType'] = type;
+    params["ContentType"] = type;
   }
-  s3.upload(params, function(err, data) {
-    console.log('emit done', !!err, !!data);
+  s3.upload(params, function (err, data) {
+    console.log("emit done", !!err, !!data);
     if (err) {
-      pass.emit('error', err);
+      pass.emit("error", err);
     } else {
-      pass.emit('done', data);
+      pass.emit("done", data);
     }
   });
   return pass;
@@ -98,4 +100,4 @@ module.exports = {
   putDynamoItem,
   getDynamoAllItems,
   uploadFromStream,
-}
+};
