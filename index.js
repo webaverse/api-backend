@@ -1,25 +1,15 @@
+// @ts-check
 require("dotenv").config();
 const fs = require("fs");
 const url = require("url");
-const querystring = require("querystring");
 const http = require("http");
 const https = require("https");
-const crypto = require("crypto");
 const httpProxy = require("http-proxy");
 const ws = require("ws");
-const mime = require("mime");
-const AWS = require("aws-sdk");
-const namegen = require("./namegen.js");
 const fetch = require("node-fetch");
-const { default: formurlencoded } = require("form-urlencoded");
-const bip39 = require("bip39");
-const { hdkey } = require("ethereumjs-wallet");
 const {
   getRedisItem,
-  getRedisAllItems,
-  parseRedisItems,
 } = require("./redis.js");
-const { makePromise } = require("./utils.js");
 const {
   getStoreEntries,
   getChainNft,
@@ -28,58 +18,17 @@ const {
 const { getBlockchain } = require("./blockchain.js");
 
 const {
-  accountKeys,
-  ids,
-  nftIndexName,
   redisPrefixes,
-  mainnetSignatureMessage,
   cacheHostUrl,
 } = require("./constants.js");
 
 const { connect: redisConnect, getRedisClient } = require("./redis");
-const ethereumJsUtil = require("./ethereumjs-util.js");
 const gotNfts = require("got-nfts");
 const OpenAI = require("openai-api");
 const GPT3Encoder = require("gpt-3-encoder");
 const Web3 = require("web3");
 
 let config = fs.existsSync("./config.json") ? require("./config.json") : null;
-
-const accessKeyId = process.env.accessKeyId || config.accessKeyId;
-const secretAccessKey = process.env.secretAccessKey || config.secretAccessKey;
-const githubClientId = process.env.githubClientId || config.githubClientId;
-const githubClientSecret =
-  process.env.githubClientSecret || config.githubClientSecret;
-const discordClientId = process.env.discordClientId || config.discordClientId;
-const discordClientSecret =
-  process.env.discordClientSecret || config.discordClientSecret;
-
-const awsConfig = new AWS.Config({
-  credentials: new AWS.Credentials({
-    accessKeyId,
-    secretAccessKey,
-  }),
-  region: "us-west-1",
-});
-const ddb = new AWS.DynamoDB(awsConfig);
-const ddbd = new AWS.DynamoDB.DocumentClient(awsConfig);
-const s3 = new AWS.S3(awsConfig);
-const ses = new AWS.SES(
-  new AWS.Config({
-    credentials: new AWS.Credentials({
-      accessKeyId,
-      secretAccessKey,
-    }),
-    region: "us-west-2",
-  })
-);
-/* const apiKeyCache = new LRU({
-  max: 1024,
-  maxAge: 60 * 1000,
-}); */
-// const stripe = Stripe(stripeClientSecret);
-// const accountManager = require('./account-manager.js');
-// const eventsManager = require('./events-manager.js');
 
 const getAiPrefix = (() => {
   let aiPrefix = null;
@@ -115,8 +64,6 @@ OpenAI.prototype._send_request = ((sendRequest) =>
       let result = key.replace(/([A-Z])/g, " $1");
       return result.split(" ").join("_").toLowerCase();
     };
-
-    // console.log('got req', url, method, opts);
 
     const data = {};
     for (const key in opts) {
@@ -156,29 +103,12 @@ const _openAiCodex = async (prompt, stop) => {
     topP: 1,
     max_tokens,
     stream: true,
-
-    /* stream: false,
-    prompt: o.prompt, // 'this is a test',
-    maxTokens: o.maxTokens, // 5,
-    temperature: o.temperature, // 0.9,
-    topP: o.topP, // 1,
-    presencePenalty: o.presencePenalty, // 0,
-    frequencyPenalty: o.frequencyPenalty, // 0,
-    bestOf: o.bestOf, // 1,
-    n: o.n, // 1,
-    stop: o.stop, // ['\n'] */
   });
   return gptRes;
 };
 
-// const api = require('./api.js');
-// const { _handleStorageRequest } = require('./routes/storage.js');
-// const { _handleAccountsRequest } = require('./routes/accounts.js');
-// const { _handlePreviewRequest } = require('./routes/preview.js')
 const {
   worldManager,
-  _handleWorldsRequest,
-  _startWorldsRoute,
 } = require("./routes/worlds.js");
 const { _handleSignRequest } = require("./routes/sign.js");
 
@@ -203,8 +133,6 @@ const {
   _handleUnlockRequest,
   _handleLockRequest,
   _handleDecryptRequest,
-  _isCollaborator,
-  _isSingleCollaborator,
 } = require("./routes/unlock.js");
 const { _handleAnalyticsRequest } = require("./routes/analytics.js");
 
@@ -225,153 +153,10 @@ try {
 }
 
 const PORT = parseInt(process.env.HTTP_PORT, 10) || 80;
-// const filterTopic = 'webxr-site';
-const tableName = "users";
-
-const defaultAvatarPreview = `https://preview.exokit.org/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png`;
-
 Error.stackTraceLimit = 300;
-
-const emailRegex =
-  /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
-const codeTestRegex = /^[0-9]{6}$/;
-const discordIdTestRegex = /^[0-9]+$/;
-const twitterIdTestRegex = /^@?(\w){1,15}$/;
-
-function _randomString() {
-  return Math.random()
-    .toString(36)
-    .replace(/[^a-z]+/g, "")
-    .substr(0, 5);
-}
-
-const maxEmailsPerIp = 5;
-const maxEmailsRefillTime = 10 * 60 * 1000;
-class Throttler {
-  constructor() {
-    this.tickets = {};
-  }
-  getTicket(ip) {
-    this.tickets[ip] ||= 0;
-    if (this.tickets[ip] < maxEmailsPerIp) {
-      this.tickets[ip]++;
-      setTimeout(() => {
-        this.tickets[ip]--;
-      }, maxEmailsRefillTime);
-      return true;
-    } else {
-      return false;
-    }
-  }
-}
 
 (async () => {
   await worldManager.waitForLoad();
-
-  const throttler = new Throttler();
-
-  /* const ipfsRepoLockPath = path.join(os.homedir(), '.ipfs', 'repo.lock');
-try {
-  fs.unlinkSync(ipfsRepoLockPath);
-} catch (err) {
-  if (err.code === 'ENOENT') {
-    // nothing
-  } else {
-    console.warn(err.stack);
-  }
-}
-const ipfsProcess = child_process.spawn('ipfs', [
-  'daemon',
-  '--writable',
-]);
-ipfsProcess.stdout.pipe(process.stdout);
-ipfsProcess.stderr.pipe(process.stderr);
-ipfsProcess.on('exit', code => {
-  console.warn('ipfs exited', code);
-});
-process.on('exit', () => {
-  ipfsProcess.kill(9);
-}); */
-
-
-  /* const MAX_SIZE = 50 * 1024 * 1024;
-const _handleIpfs = async (req, res) => {
-  const _respond = (statusCode, body) => {
-    res.statusCode = statusCode;
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.end(body);
-  };
-  const _setCorsHeaders = res => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', '*');
-    res.setHeader('Access-Control-Allow-Methods', '*');
-  };
-
-try {
-    const {method} = req;
-    const {query, pathname: p} = url.parse(req.url, true);
-
-    // console.log('got ethereum', {method, p, query});
-
-    if (method === 'GET') {
-      const match = req.url.match(/^(?:\/ipfs)?\/([a-z0-9]+)(?:\/(.*))?$/i);
-      if (match) {
-        const proxy = httpProxy.createProxyServer({});
-        req.url = '/ipfs/' + match[1];
-        proxy
-          .web(req, res, {
-            target: 'http://127.0.0.1:8080',
-            // secure: false,
-            changeOrigin: true,
-          }, err => {
-            console.warn(err.stack);
-
-            res.statusCode = 500;
-            res.end();
-          });
-      } else {
-        res.statusCode = 404;
-        res.end();
-      }
-    } else if (method === 'POST') {
-      const form = new FormData();
-      form.append('file', req);
-      form.submit('http://127.0.0.1:5001/api/v0/add', function(err, proxyRes) {
-        if (!err) {
-          if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
-            const bs = [];
-            proxyRes.on('data', function(d) {
-              bs.push(d);
-            });
-            proxyRes.on('end', function() {
-              const b = Buffer.concat(bs);
-              const s = b.toString('utf8');
-              const j = JSON.parse(s);
-              const {Hash} = j;
-              res.end(Hash);
-            });
-          } else {
-            res.statusCode = proxyRes.statusCode;
-            proxyRes.pipe(res);
-          }
-        } else {
-          res.statusCode = 500;
-          res.end(err.stack);
-        }
-      });
-    } else {
-      _respond(500, JSON.stringify({
-        error: err.stack,
-      }));
-    }
-} catch(err) {
-  console.warn(err);
-
-  _respond(500, JSON.stringify({
-    error: err.stack,
-  }));
-}
-}; */
 
   const _handleEthereum = (port) => async (req, res) => {
     // XXX make this per-port
@@ -387,12 +172,7 @@ try {
     };
 
     try {
-      const { method } = req;
-      const { query, pathname: p } = url.parse(req.url, true);
-
       const { gethNodeUrl } = await getBlockchain();
-
-      // console.log('got ethereum', {method, p, query});
 
       const proxy = httpProxy.createProxyServer({});
       proxy.web(
@@ -422,270 +202,10 @@ try {
     }
   };
 
-  /* const _handlePayments = async (req, res) => {
-  const _respond = (statusCode, body) => {
-    res.statusCode = statusCode;
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', '*');
-    res.setHeader('Access-Control-Allow-Methods', '*');
-    res.end(body);
-  };
-
-try {
-  // console.log('got payments req', req.url, req.headers);
-
-  const o = url.parse(req.url, true);
-  if (o.pathname === '/card') {
-    let {email, token, number, exp_month, exp_year, cvc} = o.query;
-    exp_month = parseInt(exp_month, 10);
-    exp_year = parseInt(exp_year, 10);
-    const tokenItem = await ddb.getItem({
-      TableName: tableName,
-      Key: {
-        email: {S: email + '.token'},
-      }
-    }).promise();
-
-    // console.log('got item', JSON.stringify(token), tokenItem && tokenItem.Item);
-
-    const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
-    if (tokens.includes(token)) {
-      const stripeState = await stripe.tokens.create({
-        card: {
-          number,
-          exp_month,
-          exp_year,
-          cvc,
-        }
-      });
-
-      await ddb.putItem({
-        TableName: tableName,
-        Item: {
-          email: {S: tokenItem.Item.email.S},
-          name: {S: tokenItem.Item.name.S},
-          tokens: {S: tokenItem.Item.tokens.S},
-          // mnemonic: {S: tokenItem.Item.mnemonic.S},
-          // addr: {S: tokenItem.Item.addr.S},
-          state: {S: tokenItem.Item.state.S},
-          stripeState: {S: JSON.stringify(stripeState)},
-          stripeConnectState: {S: tokenItem.Item.stripeConnectState.S},
-          githubOauthState: {S: tokenItem.Item.githubOauthState.S},
-          // whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
-        }
-      }).promise();
-
-      _respond(200, JSON.stringify({
-        email,
-        token,
-        name: tokenItem.Item.name.S,
-        // mnemonic: tokenItem.Item.mnemonic.S,
-        // addr: tokenItem.Item.addr.S,
-        state: tokenItem.Item.state.S,
-        stripeState: !!stripeState,
-        stripeConnectState: !!JSON.parse(tokenItem.Item.stripeConnectState.S),
-        githubOauthState: !!JSON.parse(tokenItem.Item.githubOauthState.S),
-      }));
-    } else {
-      _respond(401, 'not authorized');
-    }
-  } else if (o.pathname === '/uncard') {
-    let {email, token, number, exp_month, exp_year, cvc} = o.query;
-    const tokenItem = await ddb.getItem({
-      TableName: tableName,
-      Key: {
-        email: {S: email + '.token'},
-      }
-    }).promise();
-
-    // console.log('got item', JSON.stringify(token), tokenItem && tokenItem.Item);
-
-    const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
-    if (tokens.includes(token)) {
-      const stripeState = null;
-      await ddb.putItem({
-        TableName: tableName,
-        Item: {
-          email: {S: tokenItem.Item.email.S},
-          name: {S: tokenItem.Item.name.S},
-          tokens: {S: tokenItem.Item.tokens.S},
-          // mnemonic: {S: tokenItem.Item.mnemonic.S},
-          // addr: {S: tokenItem.Item.addr.S},
-          state: {S: tokenItem.Item.state.S},
-          stripeState: {S: JSON.stringify(stripeState)},
-          stripeConnectState: {S: tokenItem.Item.stripeConnectState.S},
-          githubOauthState: {S: tokenItem.Item.githubOauthState.S},
-          // whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
-        }
-      }).promise();
-
-      _respond(200, JSON.stringify({
-        email,
-        token,
-        name: tokenItem.Item.name.S,
-        // mnemonic: tokenItem.Item.mnemonic.S,
-        // addr: tokenItem.Item.addr.S,
-        state: tokenItem.Item.state.S,
-        stripeState: !!stripeState,
-        stripeConnectState: !!JSON.parse(tokenItem.Item.stripeConnectState.S),
-        githubOauthState: !!JSON.parse(tokenItem.Item.githubOauthState.S),
-      }));
-    } else {
-      _respond(401, 'not authorized');
-    }
-  } else if (o.pathname === '/authorize' && o.query.email && o.query.token) {
-    let {email, token, redirectUrl} = o.query;
-    const tokenItem = await ddb.getItem({
-      TableName: tableName,
-      Key: {
-        email: {S: email + '.token'},
-      }
-    }).promise();
-
-    const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
-    if (tokens.includes(token)) {
-      const state = email + ':' + tokenItem.Item.state.S + ':' + redirectUrl;
-
-      let parameters = {
-        client_id,
-        state,
-      };
-      parameters = Object.assign(parameters, { // XXX
-        'stripe_user[business_type]': 'individual',
-        'stripe_user[business_name]': 'Exokit Lol',
-        'stripe_user[first_name]': 'A',
-        'stripe_user[last_name]': 'B',
-        'stripe_user[email]': 'lol@lol.com',
-      });
-
-      res.statusCode = 301;
-      res.setHeader('Location', 'https://connect.stripe.com/express/oauth/authorize?' + querystring.stringify(parameters));
-      res.end();
-    } else {
-      _respond(401, 'not authorized');
-    }
-  } else if (o.pathname === '/token') {
-    // console.log('got query', o.query);
-
-    const proxyRes = await request.post({
-      uri: 'https://connect.stripe.com/oauth/token',
-      form: {
-        grant_type: 'authorization_code',
-        client_id,
-        client_secret,
-        code: o.query.code,
-      },
-      json: true
-    });
-
-    const stripeConnectState = await new Promise((accept, reject) => {
-      const bs = [];
-      proxyRes.on('data', b => {
-        bs.push(b);
-      });
-      proxyRes.on('end', () => {
-        accept(JSON.parse(Buffer.concat(bs).toString('utf8')));
-      });
-      proxyRes.on('error', err => {
-        reject(err);
-      });
-    });
-
-    // console.log('got json 2', stripeConnectState);
-
-    const match = o.query.state.match(/^([^:]+):([^:]+):(.+)$/);
-    if (match) {
-      const queryEmail = match[1];
-      const queryState = match[2];
-      const queryUrl = match[3];
-
-      const tokenItem = await ddb.getItem({
-        TableName: tableName,
-        Key: {
-          email: {S: queryEmail + '.token'},
-        }
-      }).promise();
-      const dbState = tokenItem.Item ? tokenItem.Item.state.S : null;
-      // console.log('logging in', queryEmail, queryState, queryUrl, dbState, tokenItem.Item);
-
-      if (dbState === queryState) {
-        await ddb.putItem({
-          TableName: tableName,
-          Item: {
-            email: {S: tokenItem.Item.email.S},
-            name: {S: tokenItem.Item.name.S},
-            tokens: {S: tokenItem.Item.tokens.S},
-            // mnemonic: {S: tokenItem.Item.mnemonic.S},
-            // addr: {S: tokenItem.Item.addr.S},
-            state: {S: tokenItem.Item.state.S},
-            stripeState: {S: tokenItem.Item.stripeState.S},
-            stripeConnectState: {S: JSON.stringify(stripeConnectState)},
-            githubOauthState: {S: tokenItem.Item.githubOauthState.S},
-            // whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
-          }
-        }).promise();
-
-        res.statusCode = 301;
-        res.setHeader('Location', queryUrl);
-        res.end();
-      } else {
-        _respond(400, 'not authorized');
-      }
-    } else {
-      _respond(400, 'invalid parameters');
-    }
-  } else if (o.pathname === '/untoken' && o.query.email && o.query.token) {
-    const {email, token} = o.query;
-    const tokenItem = await ddb.getItem({
-      TableName: tableName,
-      Key: {
-        email: {S: email + '.token'},
-      }
-    }).promise();
-
-    const tokens = tokenItem.Item ? JSON.parse(tokenItem.Item.tokens.S) : [];
-    if (tokens.includes(token)) {
-      await ddb.putItem({
-        TableName: tableName,
-        Item: {
-          email: {S: tokenItem.Item.email.S},
-          name: {S: tokenItem.Item.name.S},
-          tokens: {S: tokenItem.Item.tokens.S},
-          // mnemonic: {S: tokenItem.Item.mnemonic.S},
-          // addr: {S: tokenItem.Item.addr.S},
-          state: {S: tokenItem.Item.state.S},
-          stripeState: {S: tokenItem.Item.stripeState.S},
-          stripeConnectState: {S: JSON.stringify(null)},
-          githubOauthState: {S: tokenItem.Item.githubOauthState.S},
-          // whitelisted: {BOOL: tokenItem.Item.whitelisted.BOOL},
-        }
-      }).promise();
-
-      _respond(200, 'ok');
-    } else {
-      _respond(401, 'not authorized');
-    }
-  } else {
-    _respond(404, 'not found');
-  }
-} catch (err) {
-  console.warn(err.stack);
-}
-}; */
 
   const _handleProxyRoot = (() => {
     const proxy = httpProxy.createProxyServer({});
-    /* proxy.on('proxyRes', (proxyRes, req) => {
-    if (proxyRes.headers['location']) {
-      const o = new url.URL(proxyRes.headers['location'], req.url);
-      // console.log('redirect location 1', req.url, proxyRes.headers['location'], o.href);
-      o.host = o.host.replace('-', '--');
-      o.host = o.protocol.slice(0, -1) + '-' + o.host.replace(/\./g, '-').replace(/:([0-9]+)$/, '-$1') + '.proxy.webaverse.com';
-      o.protocol = 'https:';
-      proxyRes.headers['location'] = o.href;
-    }
-    proxyRes.headers['access-control-allow-origin'] = '*';
-  }); */
+
     proxy.on("error", (err) => {
       console.warn(err.stack);
     });
@@ -710,17 +230,7 @@ try {
 
   const _handleProxyApp = (() => {
     const proxy = httpProxy.createProxyServer({});
-    /* proxy.on('proxyRes', (proxyRes, req) => {
-    if (proxyRes.headers['location']) {
-      const o = new url.URL(proxyRes.headers['location'], req.url);
-      // console.log('redirect location 1', req.url, proxyRes.headers['location'], o.href);
-      o.host = o.host.replace('-', '--');
-      o.host = o.protocol.slice(0, -1) + '-' + o.host.replace(/\./g, '-').replace(/:([0-9]+)$/, '-$1') + '.proxy.webaverse.com';
-      o.protocol = 'https:';
-      proxyRes.headers['location'] = o.href;
-    }
-    proxyRes.headers['access-control-allow-origin'] = '*';
-  }); */
+
     proxy.on("error", (err) => {
       console.warn(err.stack);
     });
@@ -742,317 +252,7 @@ try {
       );
     };
   })();
-  const _isTokenZero = (token) => {
-    return (
-      (token.properties.hash === "" &&
-        token.owner.address === "0x0000000000000000000000000000000000000000") ||
-      (token.properties.hash.startsWith("0xdeaddeaddeaddeaddead") &&
-        token.owner.address.toLowerCase().startsWith("0xdeaddeaddeaddeaddead"))
-    );
-  };
 
-  const _handleChainNft =
-    (contractName) => (chainName, isAll) => async (req, res) => {
-      const _respond = (statusCode, body) => {
-        res.statusCode = statusCode;
-        _setCorsHeaders(res);
-        res.end(body);
-      };
-      const _setCorsHeaders = (res) => {
-        res.setHeader("Access-Control-Allow-Origin", "*");
-        res.setHeader("Access-Control-Allow-Headers", "*");
-        res.setHeader("Access-Control-Allow-Methods", "*");
-      };
-      const _maybeGetStoreEntries = () =>
-        contractName === "NFT" && !chainName.includes("testnet")
-          ? getStoreEntries(chainName)
-          : Promise.resolve([]);
-
-      try {
-        const { method } = req;
-
-        if (method === "GET") {
-          const { pathname: p } = url.parse(req.url, true);
-          let match;
-          if ((match = p.match(/^\/([0-9]+)$/))) {
-            const tokenId = parseInt(match[1], 10);
-
-            const storeEntries = await _maybeGetStoreEntries();
-            const {
-              mainnetDepositedEntries,
-              mainnetWithdrewEntries,
-              sidechainDepositedEntries,
-              sidechainWithdrewEntries,
-              polygonDepositedEntries,
-              polygonWithdrewEntries,
-            } = await getAllWithdrawsDeposits(contractName)(chainName);
-            const token = await getChainNft(contractName)(chainName)(
-              tokenId,
-              storeEntries,
-              mainnetDepositedEntries,
-              mainnetWithdrewEntries,
-              sidechainDepositedEntries,
-              sidechainWithdrewEntries,
-              polygonDepositedEntries,
-              polygonWithdrewEntries
-            );
-
-            _setCorsHeaders(res);
-            res.setHeader("Content-Type", "application/json");
-            _respond(200, JSON.stringify(token));
-            /* res.end(JSON.stringify({
-        "name": filename,
-        "description": 'Hash ' + hash,
-        "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.png',
-        "external_url": "https://app.webaverse.com?h=" + p.slice(1),
-        // "background_color": "000000",
-        "animation_url": `${storageHost}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
-        // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
-        "properties": {
-                "filename": filename,
-                "hash": hash,
-                "ext": ext,
-                "rich_property": {
-                        "name": "Name",
-                        "value": "123",
-                        "display_value": "123 Example Value",
-                        "class": "emphasis",
-                        "css": {
-                                "color": "#ffffff",
-                                "font-weight": "bold",
-                                "text-decoration": "underline"
-                        }
-                },
-                "array_property": {
-                        "name": "Name",
-                        "value": [1,2,3,4],
-                        "class": "emphasis"
-                }
-        }
-      })); */
-          } else if ((match = p.match(/^\/([0-9]+)-([0-9]+)$/))) {
-            const startTokenId = parseInt(match[1], 10);
-            const endTokenId = parseInt(match[2], 10);
-
-            if (
-              startTokenId >= 1 &&
-              endTokenId > startTokenId &&
-              endTokenId - startTokenId <= 100
-            ) {
-              const storeEntries = await _maybeGetStoreEntries();
-              const {
-                mainnetDepositedEntries,
-                mainnetWithdrewEntries,
-                sidechainDepositedEntries,
-                sidechainWithdrewEntries,
-                polygonDepositedEntries,
-                polygonWithdrewEntries,
-              } = await getAllWithdrawsDeposits(contractName)(chainName);
-
-              if (!mainnetDepositedEntries) {
-                console.log("fetch from chain name", chainName);
-                throw new Error("fail");
-              }
-
-              const numTokens = endTokenId - startTokenId;
-              const promises = Array(numTokens);
-              for (let i = 0; i < numTokens; i++) {
-                promises[i] = getChainNft(contractName)(chainName)(
-                  startTokenId + i,
-                  storeEntries,
-                  mainnetDepositedEntries,
-                  mainnetWithdrewEntries,
-                  sidechainDepositedEntries,
-                  sidechainWithdrewEntries,
-                  polygonDepositedEntries,
-                  polygonWithdrewEntries
-                );
-              }
-              let tokens = await Promise.all(promises);
-              tokens = tokens.filter((token) => token !== null);
-              tokens.sort((a, b) => a.id - b.id);
-              if (contractName === "NFT") {
-                tokens = tokens.filter((token, i) => {
-                  // filter unique hashes
-                  if (_isTokenZero(token)) {
-                    return false;
-                  }
-                  for (let j = 0; j < i; j++) {
-                    if (
-                      tokens[j].properties.hash === token.properties.hash &&
-                      token.properties.hash !== ""
-                    ) {
-                      return false;
-                    }
-                  }
-                  return true;
-                });
-              } else if (contractName === "LAND") {
-                tokens = tokens.filter((token) => !!token.name);
-              }
-
-              _setCorsHeaders(res);
-              res.setHeader("Content-Type", "application/json");
-              _respond(200, JSON.stringify(tokens));
-              /* res.end(JSON.stringify({
-          "name": filename,
-          "description": 'Hash ' + hash,
-          "image": "https://preview.exokit.org/" + hash.slice(2) + '.' + ext + '/preview.png',
-          "external_url": "https://app.webaverse.com?h=" + p.slice(1),
-          // "background_color": "000000",
-          "animation_url": `${storageHost}/${hash.slice(2)}/preview.${ext === 'vrm' ? 'glb' : ext}`,
-          // "animation_url": "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm",
-          "properties": {
-                  "filename": filename,
-                  "hash": hash,
-                  "ext": ext,
-                  "rich_property": {
-                          "name": "Name",
-                          "value": "123",
-                          "display_value": "123 Example Value",
-                          "class": "emphasis",
-                          "css": {
-                                  "color": "#ffffff",
-                                  "font-weight": "bold",
-                                  "text-decoration": "underline"
-                          }
-                  },
-                  "array_property": {
-                          "name": "Name",
-                          "value": [1,2,3,4],
-                          "class": "emphasis"
-                  }
-          }
-        })); */
-            } else {
-              _respond(400, "invalid range");
-            }
-          } else if ((match = p.match(/^\/(0x[a-f0-9]+)$/i))) {
-            const address = match[1];
-
-            const signature = await contracts[
-              NetworkNames.mainnetsidechain
-            ].Account.methods
-              .getMetadata(address, "mainnetAddress")
-              .call();
-
-            let mainnetAddress = null;
-            if (signature !== "") {
-              mainnetAddress = await web3.testnet.eth.accounts.recover(
-                "Connecting mainnet address.",
-                signature
-              );
-            }
-
-            const [
-              nftBalance,
-              storeEntries,
-              {
-                mainnetDepositedEntries,
-                mainnetWithdrewEntries,
-                sidechainDepositedEntries,
-                sidechainWithdrewEntries,
-                polygonDepositedEntries,
-                polygonWithdrewEntries,
-              },
-            ] = await Promise.all([
-              contracts[chainName][contractName].methods
-                .balanceOf(address)
-                .call(),
-              _maybeGetStoreEntries(),
-              getAllWithdrawsDeposits(contractName)(chainName),
-            ]);
-
-            const promises = Array(nftBalance);
-            for (let i = 0; i < nftBalance; i++) {
-              promises[i] = getChainOwnerNft(contractName)(chainName)(
-                address,
-                i,
-                storeEntries,
-                mainnetDepositedEntries,
-                mainnetWithdrewEntries,
-                sidechainDepositedEntries,
-                sidechainWithdrewEntries,
-                polygonDepositedEntries,
-                polygonWithdrewEntries
-              );
-            }
-            let tokens = await Promise.all(promises);
-
-            if (isAll && mainnetAddress) {
-              const nftMainnetBalance = await contracts[otherChainName][
-                contractName
-              ].methods
-                .balanceOf(mainnetAddress)
-                .call();
-              const mainnetPromises = Array(nftMainnetBalance);
-              for (let i = 0; i < nftMainnetBalance; i++) {
-                let id = await getChainOwnerNft(contractName)(chainName)(
-                  address,
-                  i,
-                  storeEntries,
-                  mainnetDepositedEntries,
-                  mainnetWithdrewEntries,
-                  sidechainDepositedEntries,
-                  sidechainWithdrewEntries,
-                  polygonDepositedEntries,
-                  polygonWithdrewEntries
-                );
-                mainnetPromises[i] = getChainNft(contractName)(chainName)(
-                  id.id,
-                  storeEntries,
-                  mainnetDepositedEntries,
-                  mainnetWithdrewEntries,
-                  sidechainDepositedEntries,
-                  sidechainWithdrewEntries,
-                  polygonDepositedEntries,
-                  polygonWithdrewEntries
-                );
-              }
-              let mainnetTokens = await Promise.all(mainnetPromises);
-
-              tokens = tokens.concat(mainnetTokens);
-            }
-            // tokens = tokens.filter(token => token !== null);
-            tokens.sort((a, b) => a.id - b.id);
-            if (contractName === "NFT") {
-              tokens = tokens.filter((token, i) => {
-                // filter unique hashes
-                if (_isTokenZero(token)) {
-                  return false;
-                }
-                for (let j = 0; j < i; j++) {
-                  if (
-                    tokens[j].properties.hash === token.properties.hash &&
-                    token.properties.hash !== ""
-                  ) {
-                    return false;
-                  }
-                }
-                return true;
-              });
-            } else if (contractName === "LAND") {
-              tokens = tokens.filter((token) => !!token.name);
-            }
-            _respond(200, JSON.stringify(tokens));
-          } else {
-            _respond(404, "not found");
-          }
-        } else {
-          _respond(404, "not found");
-        }
-      } catch (err) {
-        console.warn(err);
-
-        _respond(
-          500,
-          JSON.stringify({
-            error: err.stack,
-          })
-        );
-      }
-    };
-  // const _handleLand = _handleChainNft('LAND');
   const _handleLand = (tokenBName) => (req, res) => {
     const _respond = (statusCode, body) => {
       res.statusCode = statusCode;
@@ -1116,32 +316,6 @@ try {
         })
       );
     }
-  };
-
-  const _handleTokenIds = (chainName) => async (req, res) => {
-    const _respond = (statusCode, body) => {
-      res.statusCode = statusCode;
-      _setCorsHeaders(res);
-      res.end(body);
-    };
-    const _setCorsHeaders = (res) => {
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Access-Control-Allow-Headers", "*");
-      res.setHeader("Access-Control-Allow-Methods", "*");
-    };
-    const web3 = new Web3();
-    const query = url.parse(req.url, true).query;
-    const ownerAddress = query.address;
-    if (!web3.utils.isAddress(ownerAddress)) {
-      _respond(400, "invalid address");
-      return;
-    }
-    let o = await getRedisItem(ownerAddress, redisPrefixes.WebaverseERC721);
-    if (!o) {
-      _respond(404, "Record Not Found");
-      return;
-    }
-    return _respond(200, JSON.stringify(o));
   };
 
   const _handleStore = (chainName) => async (req, res) => {
@@ -1372,15 +546,6 @@ try {
   const presenceWss = new ws.Server({
     noServer: true,
   });
-  /*presenceWss.on('connection', async (s, req/!*, channels, saveHtml*!/) => {
-  const _transaction = tx => {
-    s.send(JSON.stringify(tx));
-  };
-  eventsManager.on('transaction', _transaction);
-  s.on('close', () => {
-    eventsManager.removeListener('transaction', _transaction);
-  });
-});*/
 
   const _req = (protocol) => (req, res) => {
     try {
@@ -1509,12 +674,6 @@ try {
       } else if (o.host === "graph.webaverse.com") {
         _handleGraph(req, res);
         return;
-        /* } else if (o.host === 'worlds.exokit.org') {
-    _handleWorldsRequest(req, res);
-    return; */
-        /* } else if (o.host === 'storage.exokit.org' || o.host === 'storage.webaverse.com') {
-    _handleStorageRequest(req, res);
-    return; */
       } else if (
         o.host === "store.webaverse.com" ||
         o.host === "mainnetsidechain-store.webaverse.com"
@@ -1542,10 +701,6 @@ try {
             res.setHeader("Access-Control-Allow-Headers", "*");
             res.end();
           } else {
-            if (o.pathname === "/tokenids" && req.method === "GET") {
-              _handleTokenIds("rinkeby")(req, res);
-              return;
-            }
             o.protocol = match2[1].replace(/-/g, ":");
             o.host =
               match2[2]
@@ -1598,14 +753,6 @@ try {
       presenceWss.handleUpgrade(req, socket, head, (s) => {
         presenceWss.emit("connection", s, req);
       });
-      /* if (host === 'presence.exokit.org') {
-    presenceWss.handleUpgrade(req, socket, head, s => {
-      presenceWss.emit('connection', s, req, webaverseChannels, true);
-    });
-  } else if (host === 'presence-tmp.exokit.org') {
-    presenceWss.handleUpgrade(req, socket, head, s => {
-      presenceWss.emit('connection', s, req, webaverseTmpChannels, false);
-    }); */
     } else {
       const o = url.parse(
         protocol + "//" + (req.headers["host"] || "") + req.url
@@ -1619,13 +766,6 @@ try {
         const match2 = raw.match(/^(https?-)(.+?)(-[0-9]+)?$/);
         console.log("match 2", raw, match2);
         if (match2) {
-          /* o.protocol = match2[1].replace(/-/g, ':');
-        o.host = match2[2].replace(/--/g, '=').replace(/-/g, '.').replace(/=/g, '-').replace(/\.\./g, '-') + (match2[3] ? match2[3].replace(/-/g, ':') : '');
-        const oldUrl = req.url;
-        req.url = url.format(o);
-
-        console.log(oldUrl, '->', req.url); */
-
           const hostname =
             match2[2]
               .replace(/--/g, "=")
@@ -1634,12 +774,7 @@ try {
               .replace(/\.\./g, "-") +
             (match2[3] ? match2[3].replace(/-/g, ":") : "");
           const host = "wss://" + hostname;
-          // const host = 'wss://mystifying-artificer.reticulum.io/socket/websocket?vsn=2.0.0';
           req.headers["host"] = hostname;
-          // o.host = hostname;
-          // req.url = url.format(o);
-
-          // req.headers['user-agent'] = 'curl/1';
           req.headers["origin"] = "https://hubs.mozilla.com";
           delete req.headers["referer"];
 
