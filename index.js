@@ -5,21 +5,23 @@ const http = require("http");
 const https = require("https");
 const httpProxy = require("http-proxy");
 const ws = require("ws");
-
-const { getBlockchain } = require("./blockchain.js");
-
 const gotNfts = require("got-nfts");
 
 const {
-  _handleAi
-} = require('./routes/ai.js');
+  getBlockchain
+} = require("./blockchain");
 
+const {
+  _handleAi
+} = require('./routes/ai');
 
 const {
   worldManager,
-} = require("./routes/worlds.js");
+} = require("./routes/worlds");
 
-const { _handleSignRequest } = require("./routes/sign.js");
+const {
+  _handleSignRequest
+} = require("./routes/sign");
 
 const {
   _handleLogin,
@@ -42,8 +44,11 @@ const {
   _handleUnlockRequest,
   _handleLockRequest,
   _handleDecryptRequest,
-} = require("./routes/unlock.js");
-const { _handleAnalyticsRequest } = require("./routes/analytics.js");
+} = require("./routes/unlock");
+
+const {
+  _handleAnalyticsRequest
+} = require("./routes/analytics");
 
 let CERT = null;
 let PRIVKEY = null;
