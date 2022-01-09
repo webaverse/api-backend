@@ -1,49 +1,32 @@
 require("dotenv").config();
-const path = require("path");
-const stream = require("stream");
 const fs = require("fs");
 const url = require("url");
 const querystring = require("querystring");
 const http = require("http");
 const https = require("https");
-const dns = require("dns");
 const crypto = require("crypto");
-const zlib = require("zlib");
-const os = require("os");
-const child_process = require("child_process");
-const mkdirp = require("mkdirp");
-const FormData = require("form-data");
-// const express = require('express');
 const httpProxy = require("http-proxy");
 const ws = require("ws");
-// const LRU = require('lru');
 const mime = require("mime");
 const AWS = require("aws-sdk");
-const Stripe = require("stripe");
-// const puppeteer = require('puppeteer');
 const namegen = require("./namegen.js");
-const Base64Encoder = require("./encoder.js").Encoder;
-// const {JSONServer, CustomEvent} = require('./dist/sync-server.js');
 const fetch = require("node-fetch");
-const { SHA3 } = require("sha3");
 const { default: formurlencoded } = require("form-urlencoded");
 const bip39 = require("bip39");
 const { hdkey } = require("ethereumjs-wallet");
-const { getDynamoItem, getDynamoAllItems, putDynamoItem } = require("./aws.js");
 const {
   getRedisItem,
   getRedisAllItems,
   parseRedisItems,
 } = require("./redis.js");
-const { getExt, makePromise } = require("./utils.js");
-const Timer = require("./timer.js");
+const { makePromise } = require("./utils.js");
 const {
   getStoreEntries,
   getChainNft,
   getAllWithdrawsDeposits,
 } = require("./tokens.js");
 const { getBlockchain } = require("./blockchain.js");
-// const browserManager = require('./browser-manager.js');
+
 const {
   accountKeys,
   ids,
@@ -52,6 +35,7 @@ const {
   mainnetSignatureMessage,
   cacheHostUrl,
 } = require("./constants.js");
+
 const { connect: redisConnect, getRedisClient } = require("./redis");
 const ethereumJsUtil = require("./ethereumjs-util.js");
 const gotNfts = require("got-nfts");
@@ -96,8 +80,6 @@ const ses = new AWS.SES(
 // const stripe = Stripe(stripeClientSecret);
 // const accountManager = require('./account-manager.js');
 // const eventsManager = require('./events-manager.js');
-
-const Discord = require("discord.js");
 
 const getAiPrefix = (() => {
   let aiPrefix = null;
