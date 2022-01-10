@@ -1,14 +1,17 @@
 const url = require("url");
-const { getBlockchain } = require("../blockchain.js");
-
-const {
-  getChainNft,
-} = require("../tokens.js");
-
+const fetch = require("node-fetch");
 const defaultAvatarPreview = 'https://preview.webaverse.com/[https://raw.githubusercontent.com/avaer/vrm-samples/master/vroid/male.vrm]/preview.png';
 const defaultHomeSpacePreview = 'https://desktopography.net/wp-content/uploads/bfi_thumb/desk_ranko_blazina-34qm8ho3dk1rd512mo5pfk.jpg'
+const ERC20ABI = require('../abi/WebaverseERC20.json');
 
-const getChainToken = getChainNft("NFT");
+const {
+  getBlockchain
+} = require('../blockchain');
+
+const {
+  WebaverseERC20Address,
+  blockchainSyncServerUrl,
+} = require("../constants");
 
 const _handleProfile = (chainName) => async (req, res) => {
   const _respond = (statusCode, body) => {
@@ -27,42 +30,21 @@ const _handleProfile = (chainName) => async (req, res) => {
 
     if (method === "GET") {
       const { pathname: p } = url.parse(req.url, true);
-      // console.log('got p', p);
       let match;
       if ((match = p.match(/^\/(0x[a-f0-9]+)$/))) {
         const address = match[1];
-        const { contracts } = await getBlockchain();
-        console.log(chainName);
-        const tokenIds = await contracts[chainName].NFT.methods
-          .getTokenIdsOf(address)
-          .call();
+        const account = await fetch(`${blockchainSyncServerUrl}/account/${address}`).then(res => res.json());
+        const username = account.name || 'Anonymous';
+        let avatarPreview = account.avatarPreview || defaultAvatarPreview;
 
-        let username = await contracts[chainName].Account.methods
-          .getMetadata(address, "name")
-          .call();
-        if (!username) {
-          username = "Anonymous";
-        }
-        let avatarPreview = await contracts[chainName].Account.methods
-          .getMetadata(address, "avatarPreview")
-          .call();
-        if (!avatarPreview) {
-          avatarPreview = defaultAvatarPreview;
-        }
-        const balance = await contracts[chainName].FT.methods
-          .balanceOf(address)
-          .call();
-
+        const { web3 } = await getBlockchain();
+        const ftContract = new web3.mainnetsidechain.eth.Contract(ERC20ABI.abi, WebaverseERC20Address);
+        const balanceWei = await ftContract.methods.balanceOf(address).call();
+        const balance = web3.mainnetsidechain.utils.fromWei(balanceWei, 'ether');
         const storeEntries = [];
-        const tokens = await Promise.all(
-          tokenIds.map((tokenId) =>
-            getChainToken(chainName)(tokenId, storeEntries, [], [], [], [], [], [])
-          )
-        );
-
+        const tokens = await fetch(`${blockchainSyncServerUrl}/webaverse-erc721/?owner=${address}`).then(res => res.json());
         const tokens2 = [];
         for (const token of tokens) {
-          // if (token) {
           if (
             !tokens2.some(
               (token2) => token2.properties.hash === token.properties.hash
@@ -70,7 +52,6 @@ const _handleProfile = (chainName) => async (req, res) => {
           ) {
             tokens2.push(token);
           }
-          // }
         }
 
         const result = {
@@ -80,6 +61,7 @@ const _handleProfile = (chainName) => async (req, res) => {
           balance,
           tokens: tokens2,
           loadout: tokens2.length > 0 ? tokens.slice(0, 1) : [],
+          storeEntries,
         };
         _setCorsHeaders(res);
         res.setHeader("Content-Type", "application/json");
