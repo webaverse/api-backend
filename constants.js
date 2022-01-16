@@ -47,7 +47,7 @@ const storageHost = "https://ipfs.exokit.org";
 const mainnetSignatureMessage = `Connecting mainnet address.`;
 const cacheHostUrl = "cache.webaverse.com";
 const blockchainSyncServerUrl = "https://blockchain-sync.webaverse.com";
-const WebaverseERC20Address = '0x7d205bFe4911d27B1FF1E02Dd3E1238Da714C72E';
+const WebaverseERC20Address = '0x5D31B1BAc74A55A2D475d069E698Eb814EcD7eAe';
 
 module.exports = {
   MAX_SIZE,
