@@ -107,13 +107,19 @@ const getAiPrefix = (() => {
   };
 })();
 
-OpenAI.prototype._send_request = (sendRequest => async function(url, method, opts = {}) {
-  let camelToUnderscore = (key) => {
-    let result = key.replace(/([A-Z])/g, " $1");
-    return result.split(' ').join('_').toLowerCase();
-  }
-  
+const engines = {
+  gpt3: 'davinci',
+  codex: 'davinci-codex',
+  lore: 'gpt-neo-20b',
+};
+const camelToUnderscore = key => {
+  let result = key.replace(/([A-Z])/g, " $1");
+  return result.split(' ').join('_').toLowerCase();
+};
+const _makeSendRequestRewriter = (OPEN_AI_URL, engine) => async function(url, method, opts = {}) {
   // console.log('got req', url, method, opts);
+
+  url = `${OPEN_AI_URL}/engines/${engine}/completions`;
 
   const data = {};
   for (const key in opts) {
@@ -135,17 +141,41 @@ OpenAI.prototype._send_request = (sendRequest => async function(url, method, opt
     req.on('error', reject);
   });
   return rs;
-})(OpenAI.prototype._send_request);
+}
 const openai = new OpenAI(config.openAiKey);
-const _openAiCodex = async (prompt, stop) => {
+openai._send_request = _makeSendRequestRewriter('https://api.openai.com', engines.gpt3);
+const openaiCodex = new OpenAI(config.openAiKey);
+openaiCodex._send_request = _makeSendRequestRewriter('https://api.openai.com', engines.codex);
+const gooseAiLore = new OpenAI(config.gooseAiKey);
+gooseAiLore._send_request = _makeSendRequestRewriter('https://api.goose.ai/v1', engines.lore);
+const _openAiCodex = async (prompt, stop, max_tokens = NaN) => {
   const maxTokens = 4096;
-  const max_tokens = maxTokens - GPT3Encoder.encode(prompt).length;
-  console.log('max tokens: ' + max_tokens);
-  const gptRes = await openai.complete({
-    engine: 'davinci-codex',
+  if (isNaN(max_tokens)) {
+    max_tokens = maxTokens - GPT3Encoder.encode(prompt).length;
+  }
+  // console.log('max tokens: ' + max_tokens);
+  const gptRes = await openAiCodex.complete({
+    engine: engines.codex,
     prompt,
     stop,
     temperature: 0,
+    topP: 1,
+    max_tokens,
+    stream: true,
+  });
+  return gptRes;
+};
+const _gooseAiLore = async (prompt, stop, max_tokens = NaN) => {
+  const maxTokens = 4096;
+  if (isNaN(max_tokens)) {
+    max_tokens = maxTokens - GPT3Encoder.encode(prompt).length;
+  }
+  console.log('goose ai', {prompt, stop, max_tokens});
+  const gptRes = await gooseAiLore.complete({
+    engine: engines.lore,
+    prompt,
+    stop: [stop],
+    temperature: 0.7,
     topP: 1,
     max_tokens,
     stream: true,
@@ -2237,7 +2267,7 @@ try {
     console.log('got o', o);
 
     const gptResponse = await openai.complete({
-      engine: 'davinci',
+      engine: engines.gpt3,
       // stream: false,
       prompt: o.prompt, // 'this is a test',
       maxTokens: o.maxTokens, // 5,
@@ -2263,7 +2293,9 @@ try {
     console.log('run query', {aiPrefix, p});
     const maxChars = 256;
     if (p.length <= maxChars) {
-      const proxyRes = await _openAiCodex(aiPrefix + p + ' */\n', '\n/* Command: ');
+      const l = parseInt(decodeURIComponent(o.query.l), 10);
+
+      const proxyRes = await _openAiCodex(aiPrefix + p + ' */\n', '\n/* Command: ', l);
       if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
         for (const key in proxyRes.headers) {
           const value = proxyRes.headers[key];
@@ -2286,6 +2318,32 @@ try {
       _respond(400, JSON.stringify({
         error: `prompt length exceeded (max=${maxChars} submitted=${p.length})`,
       }));
+    }
+  } else if (req.method === 'GET' && p === '/lore') {
+    _setCorsHeaders(res);
+
+    const p = decodeURIComponent(o.query.p);
+    const e = decodeURIComponent(o.query.e);
+    const l = parseInt(decodeURIComponent(o.query.l), 10);
+    // console.log('run query', {aiPrefix, p});
+    const proxyRes = await _gooseAiLore(p, e, l);
+    if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
+      for (const key in proxyRes.headers) {
+        const value = proxyRes.headers[key];
+        res.setHeader(key, value);
+      }
+      // console.log('render');
+      proxyRes.pipe(res);
+      proxyRes.on('data', d => {
+        console.log('got data', d.toString('utf8'));
+      });
+    } else {
+      proxyRes.setEncoding('utf8');
+      proxyRes.on('data', s => {
+        console.log(s);
+      });
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.end('data: [DONE]');
     }
   } else {
     _respond(403, JSON.stringify({
