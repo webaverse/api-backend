@@ -2335,13 +2335,13 @@ try {
       // console.log('render');
       proxyRes.pipe(res);
       proxyRes.on('data', d => {
-        console.log('got data', d.toString('utf8'));
+        console.log('lore data', d.toString('utf8'));
       });
     } else {
       console.warn('lore bad status code', proxyRes.statusCode);
       proxyRes.setEncoding('utf8');
       proxyRes.on('data', s => {
-        console.log(s);
+        console.log('lore error data', s);
       });
       res.setHeader('Content-Type', 'text/event-stream');
       res.end('data: [DONE]');
