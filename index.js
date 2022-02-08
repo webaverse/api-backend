@@ -148,49 +148,59 @@ const openaiCodex = new OpenAI(config.openAiKey);
 openaiCodex._send_request = _makeSendRequestRewriter('https://api.openai.com', engines.codex);
 const gooseAiLore = new OpenAI(config.gooseAiKey);
 gooseAiLore._send_request = _makeSendRequestRewriter('https://api.goose.ai/v1', engines.lore);
-const _openAiCodex = async (prompt, stop, max_tokens = NaN) => {
+const _openAiCodex = async (prompt, {
+  stop,
+  max_tokens = NaN,
+  temperature,
+  top_p,
+}) => {
   const maxTokens = 4096;
   if (isNaN(max_tokens)) {
     max_tokens = maxTokens - GPT3Encoder.encode(prompt).length;
   }
-  // console.log('max tokens: ' + max_tokens);
-  const gptRes = await openAiCodex.complete({
+
+  const o = {
     engine: engines.codex,
     prompt,
     stop,
-    temperature: 0,
-    topP: 1,
     max_tokens,
     stream: true,
-  });
+  };
+  if (typeof temperature === 'number') {
+    o.temperature = temperature;
+  }
+  if (typeof top_p === 'number') {
+    o.top_p = top_p;
+  }
+  const gptRes = await openAiCodex.complete(o);
   return gptRes;
 };
-const _gooseAiLore = async (prompt, stop, max_tokens = NaN) => {
+const _gooseAiLore = async (prompt, {
+  stop,
+  max_tokens = NaN,
+  temperature,
+  top_p,
+}) => {
   const maxTokens = 4096;
   if (isNaN(max_tokens)) {
     max_tokens = maxTokens - GPT3Encoder.encode(prompt).length;
   }
-  console.log('goose ai', {prompt, stop, max_tokens});
-  const gptRes = await gooseAiLore.complete({
+  const o = {
     engine: engines.lore,
     prompt,
     stop: stop ? [stop] : [],
-    temperature: 0.7,
-    topP: 1,
     max_tokens,
     stream: true,
-
-    /* stream: false,
-    prompt: o.prompt, // 'this is a test',
-    maxTokens: o.maxTokens, // 5,
-    temperature: o.temperature, // 0.9,
-    topP: o.topP, // 1,
-    presencePenalty: o.presencePenalty, // 0,
-    frequencyPenalty: o.frequencyPenalty, // 0,
-    bestOf: o.bestOf, // 1,
-    n: o.n, // 1,
-    stop: o.stop, // ['\n'] */
-  });
+  };
+  temperature = +temperature;
+  if (!isNaN(temperature)) {
+    o.temperature = temperature;
+  }
+  top_p = +top_p;
+  if (!isNaN(top_p)) {
+    o.top_p = top_p;
+  }
+  const gptRes = await gooseAiLore.complete(o);
   return gptRes;
 };
 
@@ -1584,7 +1594,6 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
     if (match = p.match(/^\/([0-9]+)$/)) {
       const tokenId = parseInt(match[1], 10);
 
-
       // const t = new Timer('get nft');
       let o = await getRedisItem(tokenId, redisPrefixes.mainnetsidechainNft);
       // t.end();
@@ -2263,8 +2272,6 @@ try {
     });
     const s = b.toString('utf8');
     const o = JSON.parse(s);
-    
-    console.log('got o', o);
 
     const gptResponse = await openai.complete({
       engine: engines.gpt3,
@@ -2293,9 +2300,15 @@ try {
     console.log('run query', {aiPrefix, p});
     const maxChars = 256;
     if (p.length <= maxChars) {
+      const prompt = aiPrefix + p + ' */\n';
       const l = parseInt(decodeURIComponent(o.query.l), 10);
 
-      const proxyRes = await _openAiCodex(aiPrefix + p + ' */\n', '\n/* Command: ', l);
+      const proxyRes = await _openAiCodex(prompt, {
+        stop: '\n/* Command: ',
+        temperature: 0,
+        top_p: 1,
+        max_tokens: l,
+      });
       if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
         for (const key in proxyRes.headers) {
           const value = proxyRes.headers[key];
@@ -2325,8 +2338,15 @@ try {
     const p = o.query.p;
     const e = o.query.e;
     const l = parseInt(o.query.l, 10);
+    const t = parseInt(o.query.t, 10);
+    const tp = parseInt(o.query.tp, 10);
     // console.log('run query', {aiPrefix, p});
-    const proxyRes = await _gooseAiLore(p, e, l);
+    const proxyRes = await _gooseAiLore(p, {
+      stop: e,
+      max_tokens: l,
+      temperature: t,
+      top_p: tp,
+    });
     if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
       for (const key in proxyRes.headers) {
         const value = proxyRes.headers[key];
