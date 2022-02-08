@@ -174,7 +174,7 @@ const _gooseAiLore = async (prompt, stop, max_tokens = NaN) => {
   const gptRes = await gooseAiLore.complete({
     engine: engines.lore,
     prompt,
-    stop: [stop],
+    stop: stop ? [stop] : [],
     temperature: 0.7,
     topP: 1,
     max_tokens,
