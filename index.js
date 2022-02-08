@@ -2338,6 +2338,7 @@ try {
         console.log('got data', d.toString('utf8'));
       });
     } else {
+      console.warn('lore bad status code', proxyRes.statusCode);
       proxyRes.setEncoding('utf8');
       proxyRes.on('data', s => {
         console.log(s);
