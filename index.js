@@ -174,7 +174,7 @@ const _gooseAiLore = async (prompt, stop, max_tokens = NaN) => {
   const gptRes = await gooseAiLore.complete({
     engine: engines.lore,
     prompt,
-    stop: [stop],
+    stop: stop ? [stop] : [],
     temperature: 0.7,
     topP: 1,
     max_tokens,
@@ -2322,9 +2322,9 @@ try {
   } else if (req.method === 'GET' && p === '/lore') {
     _setCorsHeaders(res);
 
-    const p = decodeURIComponent(o.query.p);
-    const e = decodeURIComponent(o.query.e);
-    const l = parseInt(decodeURIComponent(o.query.l), 10);
+    const p = o.query.p;
+    const e = o.query.e;
+    const l = parseInt(o.query.l, 10);
     // console.log('run query', {aiPrefix, p});
     const proxyRes = await _gooseAiLore(p, e, l);
     if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
@@ -2335,12 +2335,13 @@ try {
       // console.log('render');
       proxyRes.pipe(res);
       proxyRes.on('data', d => {
-        console.log('got data', d.toString('utf8'));
+        console.log('lore data', d.toString('utf8'));
       });
     } else {
+      console.warn('lore bad status code', proxyRes.statusCode);
       proxyRes.setEncoding('utf8');
       proxyRes.on('data', s => {
-        console.log(s);
+        console.log('lore error data', s);
       });
       res.setHeader('Content-Type', 'text/event-stream');
       res.end('data: [DONE]');
