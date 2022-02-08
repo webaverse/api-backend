@@ -2322,9 +2322,9 @@ try {
   } else if (req.method === 'GET' && p === '/lore') {
     _setCorsHeaders(res);
 
-    const p = decodeURIComponent(o.query.p);
-    const e = decodeURIComponent(o.query.e);
-    const l = parseInt(decodeURIComponent(o.query.l), 10);
+    const p = o.query.p;
+    const e = o.query.e;
+    const l = parseInt(o.query.l, 10);
     // console.log('run query', {aiPrefix, p});
     const proxyRes = await _gooseAiLore(p, e, l);
     if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
