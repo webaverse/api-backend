@@ -2379,11 +2379,13 @@ try {
     const l = parseInt(o.query.l, 10);
     const t = parseInt(o.query.t, 10);
     const tp = parseInt(o.query.tp, 10);
+    // const k = o.query.k;
     const opts = {
       stop: e,
       max_tokens: l,
       temperature: t,
       top_p: tp,
+      // k,
     };
     // console.log('run query', {aiPrefix, p});
     let proxyRes = null;
