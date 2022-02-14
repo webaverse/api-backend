@@ -108,7 +108,7 @@ const getAiPrefix = (() => {
 })();
 
 const engines = {
-  gpt3: 'davinci',
+  gpt3: 'text-davinci-001',
   codex: 'davinci-codex',
   lore: 'gpt-neo-20b',
 };
