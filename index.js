@@ -143,9 +143,9 @@ const _makeSendRequestRewriter = (OPEN_AI_URL, engine) => async function(url, me
   return rs;
 }
 const openai = new OpenAI(config.openAiKey);
-openai._send_request = _makeSendRequestRewriter('https://api.openai.com', engines.gpt3);
+openai._send_request = _makeSendRequestRewriter('https://api.openai.com/v1', engines.gpt3);
 const openaiCodex = new OpenAI(config.openAiKey);
-openaiCodex._send_request = _makeSendRequestRewriter('https://api.openai.com', engines.codex);
+openaiCodex._send_request = _makeSendRequestRewriter('https://api.openai.com/v1', engines.codex);
 const gooseAiLore = new OpenAI(config.gooseAiKey);
 gooseAiLore._send_request = _makeSendRequestRewriter('https://api.goose.ai/v1', engines.lore);
 const _openAiCodex = async (prompt, {
