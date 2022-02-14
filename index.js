@@ -2258,8 +2258,8 @@ try {
   } else if (req.method === 'GET' && p === '/') {
     _setCorsHeaders(res);
 
-    const x = o.query.x;
-    if (x === config.devPassword) {
+    const k = o.query.k;
+    if (k === config.devPassword) {
       const p = o.query.p;
       const e = o.query.e;
       const l = parseInt(o.query.l, 10);
