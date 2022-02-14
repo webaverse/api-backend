@@ -181,7 +181,7 @@ const _gooseAiLore = async (prompt, {
   temperature,
   top_p,
 }) => {
-  const maxTokens = 4096;
+  const maxTokens = 1024;
   if (isNaN(max_tokens)) {
     max_tokens = maxTokens - GPT3Encoder.encode(prompt).length;
   }
