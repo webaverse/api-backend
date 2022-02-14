@@ -2255,42 +2255,60 @@ try {
   if (req.method === 'OPTIONS') {
     _setCorsHeaders(res);
     res.end();
-  } else if (req.method === 'POST' && p === '/' && req.headers['authorization'] === 'Password ' + config.devPassword) {
+  } else if (req.method === 'GET' && p === '/') {
     _setCorsHeaders(res);
-    
-    const b = await new Promise((accept, reject) => {
-      const bs = [];
-      req.on('data', d => {
-        bs.push(d);
+
+    const x = o.query.x;
+    if (x === config.devPassword) {
+      const p = o.query.p;
+      const e = o.query.e;
+      const l = parseInt(o.query.l, 10);
+      const t = parseInt(o.query.t, 10);
+      const tp = parseInt(o.query.tp, 10);
+      /* const opts = {
+        stop: e,
+        max_tokens: l,
+        temperature: t,
+        top_p: tp,
+      }; */
+      
+      /* const b = await new Promise((accept, reject) => {
+        const bs = [];
+        req.on('data', d => {
+          bs.push(d);
+        });
+        req.on('end', () => {
+          const b = Buffer.concat(bs);
+          bs.length = 0;
+          accept(b);
+        });
+        req.on('error', reject);
       });
-      req.on('end', () => {
-        const b = Buffer.concat(bs);
-        bs.length = 0;
-        accept(b);
+      const s = b.toString('utf8');
+      const o = JSON.parse(s); */
+
+      const gptResponse = await openai.complete({
+        engine: engines.gpt3,
+        // stream: false,
+        prompt: p, // 'this is a test',
+        maxTokens: l, // 5,
+        temperature: t, // 0.9,
+        topP: tp, // 1,
+        // presencePenalty: o.presencePenalty, // 0,
+        // frequencyPenalty: o.frequencyPenalty, // 0,
+        // bestOf: o.bestOf, // 1,
+        // n: o.n, // 1,
+        stop: e, // ['\n']
       });
-      req.on('error', reject);
-    });
-    const s = b.toString('utf8');
-    const o = JSON.parse(s);
 
-    const gptResponse = await openai.complete({
-      engine: engines.gpt3,
-      // stream: false,
-      prompt: o.prompt, // 'this is a test',
-      maxTokens: o.maxTokens, // 5,
-      temperature: o.temperature, // 0.9,
-      topP: o.topP, // 1,
-      presencePenalty: o.presencePenalty, // 0,
-      frequencyPenalty: o.frequencyPenalty, // 0,
-      bestOf: o.bestOf, // 1,
-      n: o.n, // 1,
-      stop: o.stop, // ['\n']
-    });
+      console.log('got response');
+      console.log(gptResponse.data);
 
-    console.log('got response');
-    console.log(gptResponse.data);
-
-    res.end(JSON.stringify(gptResponse.data));
+      res.end(JSON.stringify(gptResponse.data));
+    } else {
+      res.statusCode = 401;
+      res.end('unauthorized');
+    }
   } else if (req.method === 'GET' && p === '/code') {
     _setCorsHeaders(res);
 
@@ -2340,14 +2358,24 @@ try {
     const l = parseInt(o.query.l, 10);
     const t = parseInt(o.query.t, 10);
     const tp = parseInt(o.query.tp, 10);
-    // console.log('run query', {aiPrefix, p});
-    const proxyRes = await _gooseAiLore(p, {
+    const opts = {
       stop: e,
       max_tokens: l,
       temperature: t,
       top_p: tp,
-    });
-    if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
+    };
+    // console.log('run query', {aiPrefix, p});
+    let proxyRes = null;
+    const maxRetries = 5;
+    for (let i = 0; i < maxRetries; i++ ) {
+      proxyRes = await _gooseAiLore(p, opts);
+      if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
+        break;
+      } else {
+        proxyRes = null;
+      }
+    }
+    if (proxyRes) {
       for (const key in proxyRes.headers) {
         const value = proxyRes.headers[key];
         res.setHeader(key, value);
