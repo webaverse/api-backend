@@ -2286,10 +2286,9 @@ try {
       });
       const s = b.toString('utf8');
       const o = JSON.parse(s); */
-
-      const gptResponse = await openai.complete({
+      const opts = {
         engine: engines.gpt3,
-        // stream: false,
+        stream: true,
         prompt: p, // 'this is a test',
         maxTokens: l, // 5,
         temperature: t, // 0.9,
@@ -2299,12 +2298,34 @@ try {
         // bestOf: o.bestOf, // 1,
         // n: o.n, // 1,
         stop: e, // ['\n']
-      });
+      };
+      console.log('got opts', opts);
 
-      console.log('got response');
-      console.log(gptResponse.data);
+      const proxyRes = await openai.complete(opts);
 
-      res.end(JSON.stringify(gptResponse.data));
+      if (proxyRes) {
+        for (const key in proxyRes.headers) {
+          const value = proxyRes.headers[key];
+          res.setHeader(key, value);
+        }
+        // console.log('render');
+        proxyRes.pipe(res);
+        proxyRes.on('data', d => {
+          console.log('lore data', d.toString('utf8'));
+        });
+      } else {
+        // console.warn('lore bad status code', proxyRes.statusCode);
+        proxyRes.setEncoding('utf8');
+        proxyRes.on('data', s => {
+          console.log('lore error data', s);
+        });
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.end('data: [DONE]');
+      }
+
+      // console.log('got response', gptResponse);
+      // console.log(gptResponse.data);
+      // res.end(JSON.stringify(gptResponse.data));
     } else {
       res.statusCode = 401;
       res.end('unauthorized');
