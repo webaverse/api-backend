@@ -2250,7 +2250,7 @@ try {
   const o = url.parse(req.url, true);
   const {pathname: p} = o;
   
-  // console.log('got ai hit', req.method, o, req.headers);
+  console.log('got ai hit', req.method, o, req.headers);
   
   if (req.method === 'OPTIONS') {
     _setCorsHeaders(res);
