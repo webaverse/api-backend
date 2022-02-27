@@ -2371,52 +2371,22 @@ try {
         error: `prompt length exceeded (max=${maxChars} submitted=${p.length})`,
       }));
     }
-  } else if (req.method === 'GET' && p === '/lore') {
+  } else if (req.method === 'POST' && p === '/gooseai/v1/engines/gpt-neo-20b/completions') {
     _setCorsHeaders(res);
+    
+    req.url = '/v1/engines/gpt-neo-20b/completions';
+    req.headers['authorization'] = `Bearer ${config.gooseAiKey}`;
 
-    const p = o.query.p;
-    const e = o.query.e;
-    const l = parseInt(o.query.l, 10);
-    const t = parseInt(o.query.t, 10);
-    const tp = parseInt(o.query.tp, 10);
-    // const k = o.query.k;
-    const opts = {
-      stop: e,
-      max_tokens: l,
-      temperature: t,
-      top_p: tp,
-      // k,
-    };
-    // console.log('run query', {aiPrefix, p});
-    let proxyRes = null;
-    const maxRetries = 5;
-    for (let i = 0; i < maxRetries; i++ ) {
-      proxyRes = await _gooseAiLore(p, opts);
-      if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
-        break;
-      } else {
-        proxyRes = null;
-      }
-    }
-    if (proxyRes) {
-      for (const key in proxyRes.headers) {
-        const value = proxyRes.headers[key];
-        res.setHeader(key, value);
-      }
-      // console.log('render');
-      proxyRes.pipe(res);
-      proxyRes.on('data', d => {
-        console.log('lore data', d.toString('utf8'));
-      });
-    } else {
-      console.warn('lore bad status code', proxyRes.statusCode);
-      proxyRes.setEncoding('utf8');
-      proxyRes.on('data', s => {
-        console.log('lore error data', s);
-      });
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.end('data: [DONE]');
-    }
+    proxy.web(req, res, {
+      target: `https://api.goose.ai/`,
+      // secure: false,
+      changeOrigin: true,
+    }, err => {
+      console.warn(err.stack);
+
+      res.statusCode = 500;
+      res.end();
+    });
   } else {
     _respond(403, JSON.stringify({
       error: 'invalid password',
