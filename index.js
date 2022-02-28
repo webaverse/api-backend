@@ -2371,6 +2371,61 @@ try {
         error: `prompt length exceeded (max=${maxChars} submitted=${p.length})`,
       }));
     }
+  } else if (req.method === 'POST' && p === '/ai21/v1/engines/j1-large/completions') {
+    _setCorsHeaders(res);
+
+    const query = await _readJson(req);
+    // arrayify since the target api requires an array
+    if (typeof query.stop === 'string') {
+      query.stop = [query.stop];
+    }
+    const query2 = {};
+    const keyMappings = {
+      prompt: 'prompt',
+      max_tokens: 'maxTokens',
+      temperature: 'temperature',
+      top_p: 'topP',
+      stop: 'stopSequences',
+    };
+    for (const k in query) {
+      const mapping = keyMappings[k];
+      if (mapping) {
+        query2[mapping] = query[k];
+      }
+    }
+
+    // console.log('got ai32 request', {query, query2});
+
+    const proxyRes = await fetch('https://api.ai21.com/studio/v1/j1-large/complete', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${config.ai21Key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(query2),
+    });
+    const j = await proxyRes.json();
+    // console.log('got ai21 result', j);
+    const s = j.completions[0].data.text;
+    const result = {
+      choices: [
+        {
+          text: s,
+        },
+      ],
+    };
+    res.end(JSON.stringify(result));
+
+    /* proxy.web(req, res, {
+      target: `https://api.ai21.com/`,
+      // secure: false,
+      changeOrigin: true,
+    }, err => {
+      console.warn(err.stack);
+
+      res.statusCode = 500;
+      res.end();
+    }); */
   } else if (req.method === 'POST' && p === '/gooseai/v1/engines/gpt-neo-20b/completions') {
     _setCorsHeaders(res);
     
