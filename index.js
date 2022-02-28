@@ -44,6 +44,21 @@ const OpenAI = require('openai-api');
 const GPT3Encoder = require('gpt-3-encoder');
 const Web3 = require('web3');
 
+const _jsonParse = s => {
+  try {
+    return JSON.parse(s);
+  } catch (e) {
+    return {};
+  }
+}
+const _readJson = async request => {
+  const buffers = [];
+  return new Promise((accept, reject) => {
+    request.on('data', chunk => buffers.push(chunk));
+    request.on('end', () => accept(_jsonParse(Buffer.concat(buffers).toString('utf8'))));
+    request.on('error', reject);
+  });
+};
 
 let config = fs.existsSync('./config.json') ? require('./config.json') : null;
 
