@@ -105,7 +105,7 @@ const getAiPrefix = (() => {
     } else {
       if (!aiPrefixLoad) {
         aiPrefixLoad = (async () => {
-          const res = await fetch(`https://webaverse.github.io/app/ai/ai-prefix.js`);
+          const res = await fetch(`https://webaverse.github.io/code-ai/ai-prefix.js`);
           const text = await res.text();
           return text;
         })();
