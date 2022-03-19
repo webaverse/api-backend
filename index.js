@@ -1,41 +1,22 @@
 require('dotenv').config();
-const path = require('path');
-const stream = require('stream');
 const fs = require('fs');
 const url = require('url');
 const querystring = require('querystring');
 const http = require('http');
 const https = require('https');
-const dns = require('dns');
 const crypto = require('crypto');
-const zlib = require('zlib');
-const os = require('os');
-const child_process = require('child_process');
-const mkdirp = require('mkdirp');
-const FormData = require('form-data');
-// const express = require('express');
 const httpProxy = require('http-proxy');
 const ws = require('ws');
-// const LRU = require('lru');
-const mime = require('mime');
 const AWS = require('aws-sdk');
-const Stripe = require('stripe');
-// const puppeteer = require('puppeteer');
 const namegen = require('./namegen.js');
-const Base64Encoder = require('./encoder.js').Encoder;
-// const {JSONServer, CustomEvent} = require('./dist/sync-server.js');
 const fetch = require('node-fetch');
-const {SHA3} = require('sha3');
 const {default: formurlencoded} = require('form-urlencoded');
 const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
-const {getDynamoItem, getDynamoAllItems, putDynamoItem} = require('./aws.js');
 const {getRedisItem, getRedisAllItems, parseRedisItems} = require('./redis.js');
-const {getExt, makePromise} = require('./utils.js');
-const Timer = require('./timer.js');
+const { makePromise} = require('./utils.js');
 const {getStoreEntries, getChainNft, getAllWithdrawsDeposits} = require('./tokens.js');
 const {getBlockchain} = require('./blockchain.js');
-// const browserManager = require('./browser-manager.js');
 const {accountKeys, ids, nftIndexName, redisPrefixes, mainnetSignatureMessage, cacheHostUrl} = require('./constants.js');
 const {connect: redisConnect, getRedisClient} = require('./redis');
 const ethereumJsUtil = require('./ethereumjs-util.js');
@@ -43,6 +24,7 @@ const gotNfts = require('got-nfts');
 const OpenAI = require('openai-api');
 const GPT3Encoder = require('gpt-3-encoder');
 const Web3 = require('web3');
+const {_handleAccounts} = require('./routes/accounts');
 
 const _jsonParse = s => {
   try {
@@ -1019,66 +1001,6 @@ try {
         res.statusCode = 500;
         res.end();
       });
-} catch(err) {
-  console.warn(err);
-
-  _respond(500, JSON.stringify({
-    error: err.stack,
-  }));
-}
-};
-
-const _handleAccounts = chainName => async (req, res) => {
-  const _respond = (statusCode, body) => {
-    res.statusCode = statusCode;
-    _setCorsHeaders(res);
-    res.end(body);
-  };
-  const _setCorsHeaders = res => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', '*');
-    res.setHeader('Access-Control-Allow-Methods', '*');
-  };
-  const _makeFakeAccount = address => {
-    const account = {
-      address,
-    };
-    for (const k of accountKeys) {
-      account[k] = '';
-    }
-    return account;
-  };
-  const _getAccount = async address => getRedisItem(address, redisPrefixes.mainnetsidechainAccount)
-    .then(o => o.Item || _makeFakeAccount(address));
-
-try {
-  const {method} = req;
-  let {pathname: p} = url.parse(req.url);
-  // console.log('ipfs request', {method, p});
-
-  if (method === 'OPTIONS') {
-    // res.statusCode = 200;
-    _setCorsHeaders(res);
-    res.end();
-  } else if (method === 'GET') {
-    if (p === '/') {
-      let accounts = await getRedisAllItems(redisPrefixes.mainnetsidechainAccount);
-      accounts = accounts.filter(a => a.id !== ids.lastCachedBlockAccount);
-      _respond(200, JSON.stringify(accounts));
-    } else {
-      const match = p.match(/^\/(0x[a-f0-9]+)$/i);
-      if (match) {
-        const address = match[1];
-        const result = await _getAccount(address);
-        console.log('fetched account', address, result);
-        _respond(200, JSON.stringify(result));
-      } else {
-        _respond(404, '');
-      }
-    }
-  } else {
-    _respond(404, '');
-  }
 } catch(err) {
   console.warn(err);
 
