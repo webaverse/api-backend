@@ -1,84 +1,58 @@
-const url = require('url');
-const { _setCorsHeaders } = require('../utils.js');
-const blockchain = require('../blockchain.js');
-const accountManager = require('../account-manager.js');
+const url = require("url");
+const fetch = require("node-fetch");
 
-/* const _jsonParse = s => {
-   try {
-       return JSON.parse(s);
-   } catch(err) {
-       return null;
-   }
-}; */
+const {
+  blockchainSyncServerUrl
+} = require("../constants.js");
 
-const _handleAccountsRequest = async (req, res) => {
-    const request = url.parse(req.url);
-    const path = request.path.split('/')[1];
-    let match;
-    try {
-        res = _setCorsHeaders(res);
-        const {method} = req;
-        if (method === 'OPTIONS') {
-            res.end();
-        } else if (method === 'GET') {
-            if (path === 'latestBlock') {
-                const latestBlock = await blockchain.getLatestBlock();
-                res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify(latestBlock, null, 2));
-            } else if (match = request.path.match(/^\/getEvents\/([^\/]+)\/([0-9]+)\/([0-9]+)$/)) {
-                const eventTypes = match[1].split(',');
-                const startBlock = parseInt(match[2], 10);
-                const endBlock = parseInt(match[3], 10);
-                let result = [];
-                await Promise.all(eventTypes.map(eventType =>
-                    blockchain.getEvents(eventType, startBlock, endBlock)
-                        .then(events => {
-                            result.push.apply(result, events);
-                        })
-                ));
-                res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify(result, null, 2));
-            } else {
-                res.statusCode = 404;
-                res.end();
-            }
-        } else if (method === 'POST') {
-            const bs = [];
-            req.on('data', d => {
-                bs.push(d);
-            });
-            req.on('end', async () => {
-                try {
-                  const b = Buffer.concat(bs);
-                  const s = b.toString('utf8');
-
-                  if (path === 'sendTransaction') {
-                    const spec = JSON.parse(s);
-                    const transaction = await blockchain.runTransaction(spec);
-                    res.setHeader('Content-Type', 'application/json');
-                    res.end(JSON.stringify(transaction, null, 2));
-                  } else {
-                    const userKeys = await accountManager.getAccount();
-                    res.setHeader('Content-Type', 'application/json');
-                    res.end(JSON.stringify(userKeys, null, 2));
-                  }
-                } catch (err) {
-                  console.log(err);
-                  res.statusCode = 500;
-                  res.end(err.stack);
-                }
-            });
+const _handleAccounts = (chainName) => async (req, res) => {
+  const _respond = (statusCode, body) => {
+    res.statusCode = statusCode;
+    _setCorsHeaders(res);
+    res.end(body);
+  };
+  const _setCorsHeaders = (res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Headers", "*");
+    res.setHeader("Access-Control-Allow-Methods", "*");
+  };
+  try {
+    const { method } = req;
+    let { pathname: p } = url.parse(req.url);
+    if (method === "OPTIONS") {
+      _setCorsHeaders(res);
+      res.end();
+    } else if (method === "GET") {
+      if (p === "/") {
+        const accounts = await fetch(`${blockchainSyncServerUrl}/account/`).then(res => res.json());
+        _respond(200, JSON.stringify(accounts));
+      } else {
+        const match = p.match(/^\/(0x[a-f0-9]+)$/i);
+        if (match) {
+          const address = match[1];
+          const account = await fetch(`${blockchainSyncServerUrl}/account/${address}`).then(res => res.json());
+          _respond(200, JSON.stringify(account));
         } else {
-          res.statusCode = 404;
-          res.end();
+          _respond(404, "");
         }
-    } catch (err) {
-        console.log(err);
-        res.statusCode = 500;
-        res.end(err.stack);
+      }
+    } else {
+      _respond(404, "");
     }
-}
+  } catch (err) {
+    console.warn(err);
+
+    _respond(
+      500,
+      JSON.stringify({
+        error: err.stack,
+      })
+    );
+  }
+};
+
+
 
 module.exports = {
-    _handleAccountsRequest,
-}
+  _handleAccounts,
+};
