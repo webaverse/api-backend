@@ -16,5 +16,7 @@
   "infuraNetwork": "rinkeby",
   "githubPagesDomain": "exokit.dev",
   "publicIp": "13.57.56.187",
-  "privateIp": "172.31.18.137"
+  "privateIp": "172.31.18.137",
+  "awsRegion": "",
+  "infuraSecretsArn": ""
 }

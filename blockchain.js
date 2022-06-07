@@ -5,10 +5,15 @@ const https = require('https');
 const fetch = require('node-fetch');
 const Web3 = require('web3');
 const {polygonVigilKey, ethereumHost} = require('./constants.js');
+const { getSecrets } = require('./aws.js');
 
 let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
 
 const infuraProjectId = process.env.infuraProjectId || config.infuraProjectId;
+const infuraSecretsArn = process.env.infuraSecretsArn || config.infuraSecretsArn;
+
+infuraSecrets = new getSecrets(infuraSecretsArn);
+infuraProjectId = infuraSecrets.infura_project_id;
 
 let addresses,
   abis,
