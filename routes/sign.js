@@ -9,6 +9,7 @@ const bip39 = require('bip39');
 const {hdkey} = require('ethereumjs-wallet');
 const {_setCorsHeaders} = require('../utils.js');
 const {polygonVigilKey} = require('../constants.js');
+const { getSecrets } = require('../aws.js');
 
 const config = require('fs').existsSync('./config.json') ? require('../config.json') : null;
 const mainnetMnemonic = process.env.mainnetMnemonic || config.mainnetMnemonic;
@@ -16,7 +17,11 @@ const testnetMnemonic = process.env.testnetMnemonic || config.testnetMnemonic;
 const polygonMnemonic = process.env.polygonMnemonic || config.polygonMnemonic;
 const testnetpolygonMnemonic = process.env.testnetpolygonMnemonic || config.testnetpolygonMnemonic;
 const infuraProjectId = process.env.infuraProjectId || config.infuraProjectId;
+const infuraSecretsArn = process.env.infuraSecretsArn || config.infuraSecretsArn;
 const encryptionMnemonic = process.env.encryptionMnemonic || config.encryptionMnemonic;
+
+infuraSecrets = new getSecrets(infuraSecretsArn);
+infuraProjectId = infuraSecrets.infura_project_id;
 
 const loadPromise = (async () => {
   const ethereumHost = 'ethereum.exokit.org';

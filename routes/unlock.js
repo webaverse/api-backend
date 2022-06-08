@@ -12,6 +12,7 @@ const {hdkey} = require('ethereumjs-wallet');
 const {jsonParse, _setCorsHeaders} = require('../utils.js');
 const {encodeSecret, decodeSecret} = require('../encryption.js');
 const {MAX_SIZE, storageHost, polygonVigilKey} = require('../constants.js');
+const { getSecrets } = require('../aws.js');
 
 let config = require('fs').existsSync('./config.json') ? require('../config.json') : null;
 
@@ -22,7 +23,11 @@ const testnetMnemonic = process.env.testnetMnemonic || config.testnetMnemonic;
 const polygonMnemonic = process.env.polygonMnemonic || config.polygonMnemonic;
 const testnetpolygonMnemonic = process.env.testnetpolygonMnemonic || config.testnetpolygonMnemonic;
 const infuraProjectId = process.env.infuraProjectId || config.infuraProjectId;
+const infuraSecretsArn = process.env.infuraSecretsArn || config.infuraSecretsArn;
 const encryptionMnemonic = process.env.encryptionMnemonic || config.encryptionMnemonic;
+
+infuraSecrets = new getSecrets(infuraSecretsArn);
+infuraProjectId = infuraSecrets.infura_project_id;
 
 const awsConfig = new AWS.Config({
   credentials: new AWS.Credentials({
