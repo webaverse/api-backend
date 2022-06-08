@@ -1,0 +1,13 @@
+version: "3.9"  # optional since v1.27.0
+services:
+  api:
+    build: .
+    ports:
+      - "443:4433"
+    links:
+      - db
+  db:
+    image: scylladb/scylla-nightly:latest
+    ports:
+      - "8000:8000"
+    command: "--alternator-port 8000 --alternator-write-isolation always"
