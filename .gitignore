@@ -4,6 +4,6 @@ cert
 keys
 .DS_Store
 world-server.zip
-certs
+#certs
 *.log
 .env
