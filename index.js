@@ -36,13 +36,15 @@ const Timer = require('./timer.js');
 const {getStoreEntries, getChainNft, getAllWithdrawsDeposits} = require('./tokens.js');
 const {getBlockchain} = require('./blockchain.js');
 // const browserManager = require('./browser-manager.js');
-const {accountKeys, ids, nftIndexName, redisPrefixes, mainnetSignatureMessage, cacheHostUrl} = require('./constants.js');
+const {accountKeys, ids, nftIndexName, redisPrefixes, mainnetSignatureMessage} = require('./constants.js');
 const {connect: redisConnect, getRedisClient} = require('./redis');
 const ethereumJsUtil = require('./ethereumjs-util.js');
 const gotNfts = require('got-nfts');
 const OpenAI = require('openai-api');
 const GPT3Encoder = require('gpt-3-encoder');
 const Web3 = require('web3');
+const {cacheHostUrl} = require('./config.json');
+
 
 const _jsonParse = s => {
   try {

@@ -3,11 +3,17 @@ services:
   api:
     build: .
     ports:
-      - "443:4433"
+      - "4443:443"
     links:
       - db
+      - redis
   db:
     image: scylladb/scylla-nightly:latest
     ports:
       - "8000:8000"
     command: "--alternator-port 8000 --alternator-write-isolation always"
+  redis:
+    build: ./.
+    ports:
+      - "4444:443"
+    command: "--platform linux/x86_64"

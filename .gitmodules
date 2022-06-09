@@ -1,0 +1,3 @@
+[submodule "redis-server"]
+	path = redis-server
+	url = git@github.com:webaverse/redis-server.git
