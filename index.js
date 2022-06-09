@@ -44,6 +44,7 @@ const OpenAI = require('openai-api');
 const GPT3Encoder = require('gpt-3-encoder');
 const Web3 = require('web3');
 const {cacheHostUrl} = require('./config.json');
+import fs from 'fs';
 
 
 const _jsonParse = s => {
@@ -230,21 +231,18 @@ const { _handleSignRequest } = require('./routes/sign.js');
 const { _handleUnlockRequest, _handleLockRequest, _handleDecryptRequest, _isCollaborator, _isSingleCollaborator} = require('./routes/unlock.js');
 const { _handleAnalyticsRequest } = require('./routes/analytics.js');
 
-let CERT = null;
-let PRIVKEY = null;
-
-const fullchainPath = './certs/fullchain.pem';
-const privkeyPath = './certs/privkey.pem';
-try {
-  CERT = fs.readFileSync(fullchainPath);
-} catch (err) {
-  console.warn(`failed to load ${fullchainPath}`);
-}
-try {
-  PRIVKEY = fs.readFileSync(privkeyPath);
-} catch (err) {
-  console.warn(`failed to load ${privkeyPath}`);
-}
+const _tryReadFile = p => {
+  try {
+    return fs.readFileSync(p);
+  } catch(err) {
+    // console.warn(err);
+    return null;
+  }
+};
+const certs = {
+  key: _tryReadFile('./certs/privkey.pem') || _tryReadFile('./certs-local/privkey.pem'),
+  cert: _tryReadFile('./certs/fullchain.pem') || _tryReadFile('./certs-local/fullchain.pem'),
+};
 
 const PORT = parseInt(process.env.HTTP_PORT, 10) || 80;
 // const filterTopic = 'webxr-site';
@@ -2744,10 +2742,7 @@ const _ws = protocol => (req, socket, head) => {
 
 const server = http.createServer(_req('http:'));
 server.on('upgrade', _ws('http:'));
-const server2 = https.createServer({
-  cert: CERT,
-  key: PRIVKEY,
-}, _req('https:'));
+const server2 = https.createServer(certs, _req('https:'));
 server2.on('upgrade', _ws('https:'));
 
 const _warn = err => {
