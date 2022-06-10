@@ -44,7 +44,6 @@ const OpenAI = require('openai-api');
 const GPT3Encoder = require('gpt-3-encoder');
 const Web3 = require('web3');
 const {cacheHostUrl} = require('./config.json');
-import fs from 'fs';
 
 
 const _jsonParse = s => {
@@ -2479,7 +2478,7 @@ const _tryConnectRedis = () => {
       console.log('connected to redis');
     })
     .catch(err => {
-      console.warn('failed to connect to redis, retrying', err);
+      console.warn('failed to connect to redis with '+cacheHostUrl+', retrying', err);
       setTimeout(_tryConnectRedis, 1000);
     });
 };
