@@ -2662,6 +2662,9 @@ try {
         delete req.headers['origin'];
         delete req.headers['referer'];
 
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+
         proxy.web(req, res, {
           target: o.protocol + '//' + o.host,
           secure: false,
