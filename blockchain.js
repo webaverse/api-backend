@@ -203,6 +203,17 @@ async function getBlockchain() {
   };
 }
 
+async function getPolygonNFTCollection(contractAddress, walletAddress) {
+    const POLYGON_API_KEY = 'bN2G8nP-vDFAnRXksfpd7I7g5f9c0GqD' // will be process.env.polygpnAlchemyAPIKey
+    const baseURL = `https://polygon-mainnet.g.alchemy.com/v2/${POLYGON_API_KEY}/getNFTs/`
+    const nftList = await fetch(`${baseURL}?owner=${walletAddress}&contractAddresses%5B%5D=${collectionAddress}`,
+    {
+        method: 'get',
+        redirect: 'follow'
+    }).then(response => response.json())
+    return JSON.stringify(nftList);
+}
+
 function makeWeb3WebsocketContract(chainName, contractName) {
   const web3socketProvider = new Web3.providers.WebsocketProvider(web3socketProviderUrls[chainName])
   const web3socket = new Web3(web3socketProvider);
@@ -232,4 +243,5 @@ module.exports = {
   getBlockchain,
   getPastEvents,
   makeWeb3WebsocketContract,
+  getPolygonNFTCollection
 };
