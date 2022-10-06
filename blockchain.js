@@ -203,7 +203,7 @@ async function getBlockchain() {
   };
 }
 
-async function getPolygonNFTCollection(contractAddress, walletAddress) {
+async function getPolygonNFTCollection(collectionAddress, walletAddress) {
     const POLYGON_API_KEY = 'bN2G8nP-vDFAnRXksfpd7I7g5f9c0GqD' // will be process.env.polygpnAlchemyAPIKey
     const baseURL = `https://polygon-mainnet.g.alchemy.com/v2/${POLYGON_API_KEY}/getNFTs/`
     const nftList = await fetch(`${baseURL}?owner=${walletAddress}&contractAddresses%5B%5D=${collectionAddress}`,
