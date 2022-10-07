@@ -34,7 +34,7 @@ const {getRedisItem, getRedisAllItems, parseRedisItems} = require('./redis.js');
 const {getExt, makePromise} = require('./utils.js');
 const Timer = require('./timer.js');
 const {getStoreEntries, getChainNft, getAllWithdrawsDeposits} = require('./tokens.js');
-const {getBlockchain} = require('./blockchain.js');
+const {getBlockchain, getPolygonNFTCollection} = require('./blockchain.js');
 // const browserManager = require('./browser-manager.js');
 const {accountKeys, ids, nftIndexName, redisPrefixes, mainnetSignatureMessage, cacheHostUrl} = require('./constants.js');
 const {connect: redisConnect, getRedisClient} = require('./redis');
@@ -1604,7 +1604,7 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
   const {method} = req;
 
   if (method === 'GET') {
-    const {pathname: p} = url.parse(req.url, true);
+    const {pathname: p, query} = url.parse(req.url, true);
     let match;
     if (match = p.match(/^\/([0-9]+)$/)) {
       const tokenId = parseInt(match[1], 10);
@@ -1844,6 +1844,16 @@ const _handleCachedNft = contractName => (chainName, isAll) => async (req, res) 
       } else {
         _respond(400, 'no query string');
       }
+    } else if (p === "/getPolygonNFT") { // match = req.url.match(/^\/getPolygonNFT\?(.+)$/)
+        const {collectionAddress, walletAddress} = query;
+        let token = await getPolygonNFTCollection(collectionAddress, walletAddress);
+        _setCorsHeaders(res);
+        if (token) {
+            res.setHeader('Content-Type', 'application/json');
+            _respond(200, JSON.stringify(token));
+        } else {
+            _respond(404, JSON.stringify(null));
+        }
     } else {
       _respond(404, 'not found');
     }
