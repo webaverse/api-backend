@@ -4,7 +4,7 @@ const dns = require('dns');
 const https = require('https');
 const fetch = require('node-fetch');
 const Web3 = require('web3');
-const {polygonVigilKey, ethereumHost} = require('./constants.js');
+const {polygonVigilKey, ethereumHost, polygonAlchemyKey} = require('./constants.js');
 
 let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
 
@@ -204,8 +204,7 @@ async function getBlockchain() {
 }
 
 async function getPolygonNFTCollection(collectionAddress, walletAddress) {
-    const POLYGON_API_KEY = 'bN2G8nP-vDFAnRXksfpd7I7g5f9c0GqD' // will be process.env.polygonAlchemyKey
-    const baseURL = `https://polygon-mainnet.g.alchemy.com/v2/${POLYGON_API_KEY}/getNFTs/`
+    const baseURL = `https://polygon-mainnet.g.alchemy.com/v2/${polygonAlchemyKey}/getNFTs/`
     const nftList = await fetch(`${baseURL}?owner=${walletAddress}&contractAddresses%5B%5D=${collectionAddress}`,
     {
         method: 'get',

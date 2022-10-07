@@ -42,6 +42,7 @@ const redisPrefixes = (() => {
 })();
 const nftIndexName = 'nftIdx';
 const polygonVigilKey = `1bdde9289621d9d420488a9804254f4a958e128b`;
+const polygonAlchemyKey = 'bN2G8nP-vDFAnRXksfpd7I7g5f9c0GqD' // will be process.env.polygonAlchemyKey
 const ethereumHost = 'ethereum.exokit.org';
 const storageHost = 'https://ipfs.exokit.org';
 const mainnetSignatureMessage = `Connecting mainnet address.`;
@@ -54,6 +55,7 @@ module.exports = {
   redisPrefixes,
   nftIndexName,
   polygonVigilKey,
+  polygonAlchemyKey,
   ethereumHost,
   storageHost,
   mainnetSignatureMessage,
