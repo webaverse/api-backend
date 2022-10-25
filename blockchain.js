@@ -4,7 +4,7 @@ const dns = require('dns');
 const https = require('https');
 const fetch = require('node-fetch');
 const Web3 = require('web3');
-const {polygonVigilKey, ethereumHost} = require('./constants.js');
+const {polygonVigilKey, ethereumHost, polygonAlchemyKey} = require('./constants.js');
 
 let config = require('fs').existsSync('./config.json') ? require('./config.json') : null;
 
@@ -203,6 +203,16 @@ async function getBlockchain() {
   };
 }
 
+async function getPolygonNFTCollection(collectionAddress, walletAddress) {
+    const baseURL = `https://polygon-mainnet.g.alchemy.com/v2/${polygonAlchemyKey}/getNFTs/`
+    const nftList = await fetch(`${baseURL}?owner=${walletAddress}&contractAddresses%5B%5D=${collectionAddress}`,
+    {
+        method: 'get',
+        redirect: 'follow'
+    }).then(response => response.json())
+    return nftList;
+}
+
 function makeWeb3WebsocketContract(chainName, contractName) {
   const web3socketProvider = new Web3.providers.WebsocketProvider(web3socketProviderUrls[chainName])
   const web3socket = new Web3(web3socketProvider);
@@ -230,6 +240,8 @@ function makeWeb3WebsocketContract(chainName, contractName) {
 
 module.exports = {
   getBlockchain,
+  getPolygonNFTCollection,
   getPastEvents,
   makeWeb3WebsocketContract,
+  getPolygonNFTCollection
 };
